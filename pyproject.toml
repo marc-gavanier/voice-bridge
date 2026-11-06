@@ -1,0 +1,18 @@
+[project]
+name = "pont-vocal"
+version = "0.1.0"
+description = "Conversation vocale avec une session Claude Code via Mumble"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "pymumble",
+    "setuptools<81",
+    "faster-whisper",
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

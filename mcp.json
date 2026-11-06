@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "voix": {
+      "command": "/path/to/voice-bridge/run.sh",
+      "args": [
+        "-m",
+        "pont_vocal.channel"
+      ],
+      "alwaysLoad": true
+    }
+  }
+}
