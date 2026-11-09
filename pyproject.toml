@@ -2,13 +2,19 @@
 name = "voice-bridge"
 version = "0.1.0"
 description = "Talk to a Claude Code session by voice over Mumble"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.14,<3.15"
 dependencies = [
-    "pymumble",
-    "setuptools<81",
+    "anyio>=4.15.1",
     "faster-whisper",
+    "httpx>=0.28.1",
+    "mcp>=2.3.0",
+    "numpy>=2.4.6",
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12",
+    "platformdirs>=4.14.0",
+    "pydantic-settings>=2.16.2",
+    "pymumble-rev==0.1.0",
+    "soxr>=1.1.0",
 ]
 
 [dependency-groups]

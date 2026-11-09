@@ -1,6 +1,7 @@
-import audioop
 import re
 from collections import deque
+
+from voice_bridge.libraries.audio.pcm import level
 
 BYTES_PER_S = 96000
 MIN_SENTENCE_CHARS = 12
@@ -85,7 +86,7 @@ class UtteranceDetector:
 
 
 def louder_than(threshold):
-    return lambda pcm: audioop.rms(pcm, 2) >= threshold
+    return lambda pcm: level(pcm) >= threshold
 
 
 def all_of(*checks):

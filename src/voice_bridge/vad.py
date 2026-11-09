@@ -1,6 +1,5 @@
-import audioop
-
 import numpy as np
+import soxr
 from faster_whisper.vad import get_vad_model
 
 MUMBLE_RATE = 48000
@@ -21,7 +20,7 @@ class VoiceActivity:
     def __init__(self, model, threshold=0.5):
         self.session = model.session
         self.threshold = threshold
-        self.resample_state = None
+        self.resampler = soxr.ResampleStream(MUMBLE_RATE, VAD_RATE, 1)
         self.pending = np.zeros(0, dtype=np.float32)
         self.context = np.zeros((1, CONTEXT), dtype=np.float32)
         self.h = np.zeros((1, 1, 128), dtype=np.float32)
@@ -29,8 +28,7 @@ class VoiceActivity:
         self.probability = 0.0
 
     def is_voice(self, pcm):
-        resampled, self.resample_state = audioop.ratecv(pcm, 2, 1, MUMBLE_RATE, VAD_RATE, self.resample_state)
-        self.pending = np.concatenate([self.pending, to_float(resampled)])
+        self.pending = np.concatenate([self.pending, self.resampler.resample_chunk(to_float(pcm))])
         while self.pending.size >= WINDOW:
             window, self.pending = self.pending[:WINDOW].reshape(1, WINDOW), self.pending[WINDOW:]
             self.probability = self._score(window)

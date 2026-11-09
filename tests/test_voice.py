@@ -78,3 +78,4 @@ def test_is_ready_is_true_when_health_answers():
         assert VoxtralVoice(f"http://127.0.0.1:{server.server_port}", "fr_female").is_ready() is True
     finally:
         server.shutdown()
+        server.server_close()
