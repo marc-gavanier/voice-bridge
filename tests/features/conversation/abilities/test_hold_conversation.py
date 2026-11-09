@@ -1,0 +1,84 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+
+import anyio
+import pytest
+from anyio.abc import ObjectReceiveStream, ObjectSendStream
+from anyio.streams.memory import MemoryObjectSendStream
+
+from voice_bridge.features.conversation.abilities.hold_conversation import Mouth, hold_conversation
+from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, Transcribed
+
+pytestmark = pytest.mark.anyio
+
+SOUND = b"\x01\x00" * 4800
+
+
+@dataclass(frozen=True)
+class StreamedSpeaker:
+    played: MemoryObjectSendStream[bytes]
+
+    def play(self, pcm: bytes) -> None:
+        self.played.send_nowait(pcm)
+
+    def stop(self) -> None:
+        self.played.send_nowait(b"")
+
+
+async def voiced(sentence: str) -> bytes | None:
+    return None if sentence.startswith("Silent") else SOUND
+
+
+@dataclass(frozen=True)
+class Talk:
+    say: ObjectSendStream[Event]
+    played: ObjectReceiveStream[bytes]
+    forwarded: ObjectReceiveStream[tuple[str, bool]]
+
+
+@asynccontextmanager
+async def talking() -> AsyncGenerator[Talk]:
+    say, events = anyio.create_memory_object_stream[Event](100)
+    played_in, played_out = anyio.create_memory_object_stream[bytes](100)
+    forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool]](100)
+
+    async def claude(text: str, *, interrupted: bool) -> None:
+        await forwarded_in.send((text, interrupted))
+
+    mouth = Mouth(voice=voiced, speaker=StreamedSpeaker(played_in), claude=claude, rate=48000, clock=lambda: 0.0)
+    emit = say.clone()
+    async with (
+        say,
+        emit,
+        events,
+        played_in,
+        played_out,
+        forwarded_in,
+        forwarded_out,
+        anyio.create_task_group() as tasks,
+    ):
+        _ = tasks.start_soon(hold_conversation, mouth, events, emit)
+        yield Talk(say=say, played=played_out, forwarded=forwarded_out)
+        tasks.cancel_scope.cancel()
+
+
+async def test_an_asked_sentence_is_played() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        played = await talk.played.receive()
+    assert played == SOUND
+
+
+async def test_a_sentence_without_voice_is_skipped_for_the_next_one() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Silent sentence.", "Spoken sentence.")))
+        played = await talk.played.receive()
+    assert played == SOUND
+
+
+async def test_a_transcript_is_forwarded_to_claude() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Tu en es où ?"))
+        forwarded = await talk.forwarded.receive()
+    assert forwarded == ("Tu en es où ?", False)
