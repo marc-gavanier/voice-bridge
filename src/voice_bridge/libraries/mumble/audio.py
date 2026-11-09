@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
+import anyio
 from pymumble_rev import events, opus
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Mapping
+    from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping
 
-    from anyio.abc import ObjectSendStream
+    from anyio.abc import ObjectReceiveStream, ObjectSendStream
     from pymumble_rev import ServerState, User
     from pymumble_rev.audio import PcmBuffer
 
@@ -49,6 +50,20 @@ async def pump_audio(
             pcm = decoder.decode(event.opus_data)
             await packets.send(Packet(pcm=pcm, at=clock(), frame_number=event.frame_number))
             decoder = opus.Decoder(channels=1) if event.is_terminator else decoder
+
+
+async def _receive_or_none(packets: ObjectReceiveStream[Packet], patience: float) -> Packet | None:
+    with anyio.move_on_after(patience):
+        return await packets.receive()
+    return None
+
+
+async def with_pauses(packets: ObjectReceiveStream[Packet], patience: float) -> AsyncGenerator[Packet | None]:
+    try:
+        while True:
+            yield await _receive_or_none(packets, patience)
+    except anyio.EndOfStream:
+        return
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

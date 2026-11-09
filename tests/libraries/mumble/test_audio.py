@@ -6,7 +6,15 @@ import pytest
 from pymumble_rev import ServerState, User, events, opus
 from pymumble_rev.audio import PcmBuffer
 
-from voice_bridge.libraries.mumble.audio import Loudspeaker, Packet, holds_certificate, is_listened, named, pump_audio
+from voice_bridge.libraries.mumble.audio import (
+    Loudspeaker,
+    Packet,
+    holds_certificate,
+    is_listened,
+    named,
+    pump_audio,
+    with_pauses,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -100,3 +108,25 @@ def test_stopping_drops_the_queued_audio() -> None:
     speaker.play(TWENTY_MS)
     speaker.stop()
     assert buffer.buffered == 0
+
+
+async def paced(*packets: Packet, patience: float = 0.01) -> list[Packet | None]:
+    sent, received = anyio.create_memory_object_stream[Packet](10)
+    async with received:
+        async with sent:
+            for packet in packets:
+                sent.send_nowait(packet)
+        return [tick async for tick in with_pauses(received, patience)]
+
+
+async def test_packets_come_through_as_they_arrive() -> None:
+    assert await paced(Packet(pcm=TWENTY_MS, at=1.0, frame_number=0)) == [Packet(pcm=TWENTY_MS, at=1.0, frame_number=0)]
+
+
+async def test_a_pause_comes_through_when_no_packet_arrives_in_time() -> None:
+    sent, received = anyio.create_memory_object_stream[Packet](10)
+    async with sent, received:
+        ticks = with_pauses(received, 0.01)
+        tick = await anext(ticks)
+        await ticks.aclose()
+    assert tick is None
