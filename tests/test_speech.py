@@ -1,4 +1,4 @@
-from pont_vocal.speech import UtteranceDetector, all_of, is_noise, louder_than, split_sentences
+from voice_bridge.speech import UtteranceDetector, all_of, is_noise, louder_than, split_sentences
 
 RATE = 96000
 PACKET_S = 0.02

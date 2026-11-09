@@ -3,8 +3,8 @@ from pathlib import Path
 
 import numpy as np
 
-from pont_vocal.speech import all_of
-from pont_vocal.vad import VoiceActivity, load_vad_model
+from voice_bridge.speech import all_of
+from voice_bridge.vad import VoiceActivity, load_vad_model
 
 RATE = 48000
 PACKET_SAMPLES = 960

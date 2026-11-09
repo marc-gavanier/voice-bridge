@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
-import pont_vocal.bridge as bridge_module
-from pont_vocal.bridge import VoiceBridge
+import voice_bridge.bridge as bridge_module
+from voice_bridge.bridge import VoiceBridge
 
 
 class FakeSoundOutput:

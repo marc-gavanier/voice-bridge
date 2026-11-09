@@ -1,4 +1,4 @@
-from pont_vocal.channel import ChannelServer, to_speech
+from voice_bridge.channel import ChannelServer, to_speech
 
 
 def make_server():

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-unit=pont-vocal-voxtral
+unit=voice-bridge-voxtral
 case "${1:-}" in
   start)
     systemd-run --user --unit="$unit" --collect \

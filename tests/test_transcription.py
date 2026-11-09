@@ -1,6 +1,6 @@
 from faster_whisper.transcribe import Segment
 
-from pont_vocal.transcription import describe_segments
+from voice_bridge.transcription import describe_segments
 
 
 def segment(text, no_speech_prob, avg_logprob):

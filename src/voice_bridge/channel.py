@@ -6,11 +6,11 @@ import sys
 import threading
 from pathlib import Path
 
-from pont_vocal.log import setup_log
+from voice_bridge.log import setup_log
 
 SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 log = logging.getLogger(__name__)
-INSTRUCTIONS = (Path(__file__).resolve().parent.parent / "consignes-vocales.txt").read_text(encoding="utf-8").strip()
+INSTRUCTIONS = (Path(__file__).resolve().parents[2] / "consignes-vocales.txt").read_text(encoding="utf-8").strip()
 REPLY_TOOL = {
     "name": "reply",
     "description": "Dire une réponse à voix haute dans le casque de Marc",
@@ -77,7 +77,7 @@ def _result(request_id, result):
 
 def main():
     protocol_out = sys.stdout
-    log_dir = Path(__file__).resolve().parent.parent / "logs"
+    log_dir = Path(__file__).resolve().parents[2] / "logs"
     log_dir.mkdir(exist_ok=True)
     sys.stdout = open(log_dir / "voix.log", "a", buffering=1, encoding="utf-8")
     setup_log(sys.stdout)
@@ -89,10 +89,10 @@ def main():
             protocol_out.write(json.dumps(message) + "\n")
             protocol_out.flush()
 
-    from pont_vocal.bridge import VoiceBridge
-    from pont_vocal.config import load_config
-    from pont_vocal.transcription import Transcriber
-    from pont_vocal.voice import VoxtralVoice
+    from voice_bridge.bridge import VoiceBridge
+    from voice_bridge.config import load_config
+    from voice_bridge.transcription import Transcriber
+    from voice_bridge.voice import VoxtralVoice
 
     holder = {}
     server = ChannelServer(send, lambda text: holder["bridge"].say(to_speech(text)))

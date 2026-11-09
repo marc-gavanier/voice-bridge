@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import numpy as np
 
-from pont_vocal.voice import VoxtralVoice, boost, synthesize_or_skip
+from voice_bridge.voice import VoxtralVoice, boost, synthesize_or_skip
 
 
 def pcm(values):

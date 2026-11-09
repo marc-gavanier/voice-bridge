@@ -25,7 +25,7 @@ class Config:
 
 
 def load_config():
-    _load_env_file(Path(__file__).resolve().parent.parent / ".env")
+    _load_env_file(Path(__file__).resolve().parents[2] / ".env")
     return Config(
         mumble_host=os.environ["MUMBLE_HOST"],
         mumble_password=os.environ["MUMBLE_PASSWORD"],

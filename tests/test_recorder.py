@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 
-from pont_vocal.recorder import lost_packets, next_sequence, wav_path
+from voice_bridge.recorder import lost_packets, next_sequence, wav_path
 
 
 def test_no_packet_lost_on_the_first_chunk():

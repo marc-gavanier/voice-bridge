@@ -1,7 +1,7 @@
 [project]
-name = "pont-vocal"
+name = "voice-bridge"
 version = "0.1.0"
-description = "Conversation vocale avec une session Claude Code via Mumble"
+description = "Talk to a Claude Code session by voice over Mumble"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "pymumble",
@@ -14,5 +14,9 @@ dependencies = [
 [dependency-groups]
 dev = ["pytest"]
 
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14"]
+build-backend = "uv_build"
+
 [tool.pytest.ini_options]
-pythonpath = ["."]
+addopts = ["--import-mode=importlib"]

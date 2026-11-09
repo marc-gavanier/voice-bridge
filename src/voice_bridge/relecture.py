@@ -1,7 +1,7 @@
-from pont_vocal.bridge import VoiceBridge
-from pont_vocal.config import load_config
-from pont_vocal.transcription import Transcriber
-from pont_vocal.voice import VoxtralVoice
+from voice_bridge.bridge import VoiceBridge
+from voice_bridge.config import load_config
+from voice_bridge.transcription import Transcriber
+from voice_bridge.voice import VoxtralVoice
 
 
 def main():

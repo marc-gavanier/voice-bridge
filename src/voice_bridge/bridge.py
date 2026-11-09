@@ -7,9 +7,9 @@ import time
 import pymumble_py3 as pymumble
 from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED
 
-from pont_vocal.speech import UtteranceDetector, all_of, is_noise, louder_than, split_sentences
-from pont_vocal.vad import VoiceActivity, load_vad_model
-from pont_vocal.voice import synthesize_or_skip
+from voice_bridge.speech import UtteranceDetector, all_of, is_noise, louder_than, split_sentences
+from voice_bridge.vad import VoiceActivity, load_vad_model
+from voice_bridge.voice import synthesize_or_skip
 
 log = logging.getLogger(__name__)
 

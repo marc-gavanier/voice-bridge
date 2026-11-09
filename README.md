@@ -103,7 +103,7 @@ Voxtral et Whisper utilisent ensemble environ 13,9 Go sur 16.
 ```bash
 ./voxtral.sh start|stop|status|logs
 tail -f logs/voix.log
-./run.sh -m pont_vocal.recorder
+./run.sh -m voice_bridge.recorder
 uv run pytest
 ```
 

@@ -4,7 +4,7 @@
       "command": "/path/to/voice-bridge/run.sh",
       "args": [
         "-m",
-        "pont_vocal.channel"
+        "voice_bridge.channel"
       ],
       "alwaysLoad": true
     }

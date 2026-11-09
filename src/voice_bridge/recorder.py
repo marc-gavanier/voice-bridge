@@ -9,8 +9,8 @@ from pathlib import Path
 import pymumble_py3 as pymumble
 from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED
 
-from pont_vocal.config import load_config
-from pont_vocal.log import setup_log
+from voice_bridge.config import load_config
+from voice_bridge.log import setup_log
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def save(take, out_dir):
 
 
 def main():
-    out_dir = Path(__file__).resolve().parent.parent / "logs" / "enregistreur"
+    out_dir = Path(__file__).resolve().parents[2] / "logs" / "enregistreur"
     out_dir.mkdir(parents=True, exist_ok=True)
     setup_log(open(out_dir / "journal.log", "a", buffering=1, encoding="utf-8"))
     config = load_config()
