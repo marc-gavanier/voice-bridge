@@ -1,5 +1,17 @@
+import logging
+
 import numpy as np
 from faster_whisper import WhisperModel
+
+log = logging.getLogger(__name__)
+
+
+def describe_segment(segment):
+    return f"« {segment.text.strip()} » sans parole {segment.no_speech_prob:.2f}, confiance {segment.avg_logprob:.2f}"
+
+
+def describe_segments(segments):
+    return " | ".join(map(describe_segment, segments)) or "aucun segment"
 
 
 class Transcriber:
@@ -15,4 +27,6 @@ class Transcriber:
             beam_size=1,
             condition_on_previous_text=False,
         )
+        segments = list(segments)
+        log.info(f"scores : {describe_segments(segments)}")
         return " ".join(segment.text.strip() for segment in segments).strip()

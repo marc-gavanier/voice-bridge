@@ -7,7 +7,8 @@ import time
 import pymumble_py3 as pymumble
 from pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED
 
-from pont_vocal.speech import UtteranceDetector, is_noise, split_sentences
+from pont_vocal.speech import UtteranceDetector, all_of, is_noise, louder_than, split_sentences
+from pont_vocal.vad import VoiceActivity, load_vad_model
 from pont_vocal.voice import synthesize_or_skip
 
 log = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class VoiceBridge:
         self.transcriber = transcriber
         self.voice = voice
         self.on_text = on_text
-        self.detector = UtteranceDetector(config.voice_threshold)
+        self.detector = UtteranceDetector(all_of(louder_than(config.voice_threshold), VoiceActivity(load_vad_model()).is_voice))
         self.detector_lock = threading.Lock()
         self.utterances = queue.Queue()
         self.sentences = queue.Queue()

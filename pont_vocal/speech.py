@@ -8,8 +8,8 @@ NOISE_TEXTS = {"", "merci", "je vous prie"}
 
 
 class UtteranceDetector:
-    def __init__(self, threshold, silence_s=0.8, max_s=30, min_voice_s=0.3, preroll_s=0.3, barge_in_s=0.5, barge_window_s=1.0):
-        self.threshold = threshold
+    def __init__(self, is_voice, silence_s=0.8, max_s=30, min_voice_s=0.3, preroll_s=0.3, barge_in_s=0.5, barge_window_s=1.0):
+        self.is_voice = is_voice
         self.silence_s = silence_s
         self.max_bytes = int(max_s * BYTES_PER_S)
         self.min_voice_bytes = int(min_voice_s * BYTES_PER_S)
@@ -30,7 +30,7 @@ class UtteranceDetector:
         return self.recent_voice_bytes >= self.barge_in_bytes
 
     def feed(self, pcm, now):
-        voiced = audioop.rms(pcm, 2) >= self.threshold
+        voiced = self.is_voice(pcm)
         self._remember(len(pcm), voiced)
         if voiced:
             self._on_voice(pcm, now)
@@ -82,6 +82,14 @@ class UtteranceDetector:
         self.voice_bytes = 0
         self.last_voice = None
         return utterance
+
+
+def louder_than(threshold):
+    return lambda pcm: audioop.rms(pcm, 2) >= threshold
+
+
+def all_of(*checks):
+    return lambda pcm: all([check(pcm) for check in checks])
 
 
 def split_sentences(text):

@@ -9,7 +9,7 @@ Mumla (téléphone) ⇄ WireGuard via le Pi ⇄ serveur Mumble (Pi) ⇄ pont voc
 ```
 
 1. **Mumla** envoie l'audio du téléphone au serveur Mumble, le service `mumble` du homelab.
-2. **Le pont** écoute uniquement l'utilisateur `marc` et attend environ 0,8 seconde de silence pour considérer qu'une phrase est finie.
+2. **Le pont** écoute uniquement l'utilisateur `marc`. Un son compte comme de la voix s'il dépasse `VOICE_THRESHOLD` et si Silero VAD, le détecteur de voix fourni avec faster-whisper, y reconnaît de la parole : un bruit fort seul, comme un scooter, n'est ni transcrit ni pris pour une interruption. Le pont attend environ 0,8 seconde de silence pour considérer qu'une phrase est finie.
 3. **Whisper** transcrit la phrase en français, sur la carte graphique.
 4. **Un canal Claude Code** injecte le texte dans la session.
 5. **Claude** répond avec l'outil `reply`. **Voxtral** lit la réponse phrase par phrase dans le casque.
@@ -107,7 +107,7 @@ tail -f logs/voix.log
 uv run pytest
 ```
 
-`logs/voix.log` contient les transcriptions et les messages échangés avec Claude Code, chaque ligne précédée de sa date et de son heure à la milliseconde : il reste sur le PC et n'est pas versionné.
+`logs/voix.log` contient les transcriptions, avec pour chaque segment ses scores Whisper (probabilité d'absence de parole et confiance moyenne), et les messages échangés avec Claude Code, chaque ligne précédée de sa date et de son heure à la milliseconde : il reste sur le PC et n'est pas versionné.
 
 L'enregistreur de diagnostic se connecte au serveur Mumble comme un second auditeur et enregistre ce que le serveur renvoie de la voix de Claude : un fichier `logs/enregistreur/AAAA-MM-JJ/HHMMSS.wav` par réponse, et une ligne par réponse dans `logs/enregistreur/journal.log` (durée, paquets reçus et perdus, plus long trou entre deux paquets). En comparant avec `voix.log`, on sait si un son coupé s'est perdu avant le serveur, côté PC, ou après, entre le serveur et le téléphone. Le lancer pendant les essais, l'arrêter avec Ctrl+C.
 
@@ -118,7 +118,8 @@ L'enregistreur de diagnostic se connecte au serveur Mumble comme un second audit
 | Pas de « Je t'écoute » | `./voxtral.sh status`, puis `logs/voix.log` |
 | Mot de passe refusé dans Mumla | Vérifier les majuscules et les espaces ajoutés par le clavier |
 | Claude dit ne pas avoir d'outil vocal | La session n'a pas été lancée avec `claude-vocal.sh` |
-| Sa voix se coupe toute seule | Bruit ou écho pris pour de la parole : `interruption` en série dans le journal. Vérifier le casque, ou relever `VOICE_THRESHOLD` dans `.env` |
+| Sa voix se coupe toute seule | Son pris pour de la parole : `interruption` en série dans le journal. Vérifier le casque, ou relever `VOICE_THRESHOLD` dans `.env` |
+| Une phrase inventée arrive (« Merci. », « Sous-titrage… ») | Relever ses scores dans la ligne `scores` du journal, pour régler un filtre sur des données réelles |
 | Sa voix arrive hachée, sans `interruption` dans le journal | Comparer avec l'enregistreur : si son fichier est complet, le son se perd entre le serveur et le téléphone (réseau mobile, Mumla) |
 | Mumla ne se connecte pas | Voir le dépannage de `docs/05-services/mumble.md` dans le dépôt home-lab |
 
@@ -135,5 +136,5 @@ Renseigner ensuite `MUMBLE_PASSWORD` dans `.env` : c'est le mot de passe du serv
 
 - Les permissions ne passent pas par la voix.
 - Interrompre Claude coupe sa voix, pas sa tâche.
-- La détection de la voix repose sur le volume, donc le vent ou le bruit peuvent la déclencher. L'usage en course n'a pas encore été testé.
+- Un bourdonnement régulier, comme un moteur, peut ressembler à une voix pendant de courts instants ; les tests vérifient qu'il ne suffit pas à couper Claude. Le vent et la course n'ont pas encore été mesurés avec le détecteur de voix.
 - La licence de Voxtral (CC BY-NC 4.0) n'autorise pas un usage commercial.

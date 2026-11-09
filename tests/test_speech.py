@@ -1,4 +1,4 @@
-from pont_vocal.speech import UtteranceDetector, is_noise, split_sentences
+from pont_vocal.speech import UtteranceDetector, all_of, is_noise, louder_than, split_sentences
 
 RATE = 96000
 PACKET_S = 0.02
@@ -14,7 +14,7 @@ def quiet():
 
 
 def detector(**kwargs):
-    defaults = dict(threshold=500, silence_s=0.8, max_s=30, min_voice_s=0.2, preroll_s=0.1, barge_in_s=0.1)
+    defaults = dict(is_voice=louder_than(500), silence_s=0.8, max_s=30, min_voice_s=0.2, preroll_s=0.1, barge_in_s=0.1)
     return UtteranceDetector(**{**defaults, **kwargs})
 
 
@@ -93,7 +93,7 @@ def test_is_speaking_stops_after_a_long_silence():
 
 
 def test_is_speaking_tolerates_short_dips_between_syllables():
-    d = UtteranceDetector(threshold=500)
+    d = UtteranceDetector(louder_than(500))
     now = 0.0
     for _ in range(8):
         now = feed(d, loud(), 4, now)
@@ -121,7 +121,7 @@ def test_split_sentences_ignores_blank_text():
 
 
 def test_default_barge_in_needs_half_a_second_of_voice():
-    d = UtteranceDetector(threshold=500)
+    d = UtteranceDetector(louder_than(500))
     feed(d, loud(), 20)
     assert not d.is_speaking
     feed(d, loud(), 5, start=0.4)
@@ -140,3 +140,21 @@ def test_is_noise_spots_empty_text_and_whisper_hallucinations():
 def test_is_noise_keeps_real_speech():
     assert not is_noise("Merci, on continue.")
     assert not is_noise("Est-ce que tu m'entends ?")
+
+
+def test_loud_sound_that_is_not_voice_produces_nothing():
+    d = detector(is_voice=lambda pcm: False)
+    now = feed(d, loud(), 50)
+    now = feed(d, quiet(), 45, now)
+    assert d.poll(now) is None
+
+
+def test_loud_sound_that_is_not_voice_never_interrupts():
+    d = detector(is_voice=lambda pcm: False)
+    feed(d, loud(), 50)
+    assert not d.is_speaking
+
+
+def test_all_of_needs_every_check():
+    assert not all_of(louder_than(500), lambda pcm: False)(loud())
+

@@ -1,4 +1,8 @@
+import wave
+from pathlib import Path
 from types import SimpleNamespace
+
+import numpy as np
 
 import pont_vocal.bridge as bridge_module
 from pont_vocal.bridge import VoiceBridge
@@ -125,3 +129,35 @@ def test_repeated_interruptions_do_not_duplicate_the_sentence_being_synthesized(
     bridge.interrupt(rms=900)
     bridge.handle_transcript("")
     assert [sentence for _, sentence in queued(bridge)] == ["Phrase en synthèse."]
+
+
+def mumble_packets(pcm):
+    size = 1920
+    return [SimpleNamespace(pcm=pcm[i:i + size]) for i in range(0, len(pcm) - size + 1, size)]
+
+
+def hear(bridge, pcm):
+    list(map(lambda chunk: bridge._on_sound({"name": "marc"}, chunk), mumble_packets(pcm)))
+
+
+def loud_noise():
+    return (np.clip(np.random.default_rng(3).normal(0, 0.3, 48000 * 2), -1, 1) * 32767).astype(np.int16).tobytes()
+
+
+def recorded_speech():
+    with wave.open(str(Path(__file__).parent / "fixtures" / "parole.wav")) as recording:
+        return recording.readframes(recording.getnframes())
+
+
+def test_loud_noise_does_not_interrupt_the_reply(monkeypatch):
+    bridge, _ = make_bridge(monkeypatch)
+    bridge.say("Une réponse assez longue pour être en cours.")
+    hear(bridge, loud_noise())
+    assert not bridge.interrupted
+
+
+def test_speech_interrupts_the_reply(monkeypatch):
+    bridge, _ = make_bridge(monkeypatch)
+    bridge.say("Une réponse assez longue pour être en cours.")
+    hear(bridge, recorded_speech())
+    assert bridge.interrupted
