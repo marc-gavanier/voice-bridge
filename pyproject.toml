@@ -15,6 +15,7 @@ dependencies = [
     "pydantic-settings>=2.16.2",
     "pymumble-rev==0.1.0",
     "soxr>=1.1.0",
+    "stamina>=26.1.0",
 ]
 
 [dependency-groups]
