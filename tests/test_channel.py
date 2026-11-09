@@ -10,7 +10,9 @@ def make_server():
 
 def test_initialize_declares_channel_capability():
     server, _, _ = make_server()
-    response = server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}})
+    response = server.handle(
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}}
+    )
     capabilities = response["result"]["capabilities"]
     assert capabilities["experimental"]["claude/channel"] == {}
     assert capabilities["tools"] == {}
@@ -19,13 +21,17 @@ def test_initialize_declares_channel_capability():
 
 def test_initialize_keeps_older_protocol_requested_by_client():
     server, _, _ = make_server()
-    response = server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26"}})
+    response = server.handle(
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26"}}
+    )
     assert response["result"]["protocolVersion"] == "2025-03-26"
 
 
 def test_initialize_does_not_negotiate_unsupported_newer_protocol():
     server, _, _ = make_server()
-    response = server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2026-07-28"}})
+    response = server.handle(
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2026-07-28"}}
+    )
     assert response["result"]["protocolVersion"] == "2025-06-18"
 
 
@@ -45,14 +51,23 @@ def test_tools_list_exposes_reply():
 
 def test_reply_tool_forwards_text():
     server, _, replies = make_server()
-    response = server.handle({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "reply", "arguments": {"text": "Bonjour Marc."}}})
+    response = server.handle(
+        {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "reply", "arguments": {"text": "Bonjour Marc."}},
+        }
+    )
     assert replies == ["Bonjour Marc."]
     assert response["result"]["content"][0]["text"] == "sent"
 
 
 def test_unknown_tool_is_an_error():
     server, _, replies = make_server()
-    response = server.handle({"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "other", "arguments": {}}})
+    response = server.handle(
+        {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "other", "arguments": {}}}
+    )
     assert response["result"]["isError"] is True
     assert replies == []
 
@@ -83,7 +98,10 @@ def test_push_flags_interruption():
 
 
 def test_to_speech_removes_markdown():
-    assert to_speech("**Bon** `fichier.py` : voir [la doc](https://x.y)\n- point un") == "Bon fichier.py : voir la doc\npoint un"
+    assert (
+        to_speech("**Bon** `fichier.py` : voir [la doc](https://x.y)\n- point un")
+        == "Bon fichier.py : voir la doc\npoint un"
+    )
 
 
 def test_to_speech_drops_code_blocks():
