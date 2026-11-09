@@ -1,0 +1,83 @@
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from voice_bridge.configuration.settings import load_settings
+
+MINIMAL = """
+[mumble]
+host = "voice.example.org"
+password = "secret"
+server_certificate = "/etc/voice-bridge/server.pem"
+speaker_certificate_hash = "6f0b58787b96ff978ba512c74a1c3ca4aabab441"
+"""
+
+
+@pytest.fixture
+def config_file(tmp_path: Path) -> Path:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL, encoding="utf-8")
+    return path
+
+
+def test_english_is_the_default_language(config_file: Path) -> None:
+    assert load_settings(config_file).language == "en"
+
+
+def test_the_mumble_server_comes_from_the_config_file(config_file: Path) -> None:
+    assert load_settings(config_file).mumble.host == "voice.example.org"
+
+
+def test_the_standard_mumble_port_is_the_default(config_file: Path) -> None:
+    assert load_settings(config_file).mumble.port == 64738
+
+
+def test_the_password_is_hidden_when_printed(config_file: Path) -> None:
+    assert "secret" not in repr(load_settings(config_file))
+
+
+def test_the_password_is_still_readable_on_purpose(config_file: Path) -> None:
+    assert load_settings(config_file).mumble.password.get_secret_value() == "secret"
+
+
+def test_an_environment_variable_overrides_the_config_file(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VOICE_BRIDGE_LANGUAGE", "fr")
+    assert load_settings(config_file).language == "fr"
+
+
+def test_a_nested_environment_variable_overrides_the_config_file(
+    config_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("VOICE_BRIDGE_MUMBLE__HOST", "other.example.org")
+    assert load_settings(config_file).mumble.host == "other.example.org"
+
+
+def test_an_unknown_key_stops_the_start(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + 'mystery = "value"\n', encoding="utf-8")
+    with pytest.raises(ValidationError, match="mystery"):
+        _ = load_settings(path)
+
+
+def test_a_missing_server_stops_the_start(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text("", encoding="utf-8")
+    with pytest.raises(ValidationError, match="mumble"):
+        _ = load_settings(path)
+
+
+def test_a_missing_config_file_falls_back_to_the_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "VOICE_BRIDGE_MUMBLE",
+        '{"host": "env.example.org", "password": "p", "server_certificate": "/s.pem", "speaker_certificate_hash": "a"}',
+    )
+    assert load_settings(tmp_path / "absent.toml").mumble.host == "env.example.org"
+
+
+def test_the_voice_defaults_to_the_one_of_the_language(config_file: Path) -> None:
+    assert load_settings(config_file).voxtral.voice is None
+
+
+def test_the_gain_is_neutral_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).voxtral.gain == 1.0
