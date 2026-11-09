@@ -12,11 +12,65 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest"]
+dev = [
+    "basedpyright>=1.40.2",
+    "commitizen>=4.19.3",
+    "deptry>=0.25.1",
+    "import-linter>=2.15",
+    "prek>=0.5.9",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14"]
 build-backend = "uv_build"
 
-[tool.pytest.ini_options]
-addopts = ["--import-mode=importlib"]
+[tool.uv]
+required-version = ">=0.13.7"
+exclude-newer = "10 days"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D", "CPY", "COM812"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004", "INP001"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.basedpyright]
+typeCheckingMode = "all"
+include = ["src", "tests"]
+stubPath = "typings"
+
+[tool.pytest]
+minversion = "9.2"
+strict = true
+testpaths = ["tests"]
+addopts = ["-ra", "--import-mode=importlib", "--cov", "--cov-branch", "--cov-report=term-missing:skip-covered"]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["voice_bridge"]
+
+[tool.coverage.report]
+fail_under = 100
+
+[tool.importlinter]
+root_package = "voice_bridge"
+include_external_packages = true
+
+[tool.deptry]
+known_first_party = ["voice_bridge"]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["nvidia-cublas-cu12", "nvidia-cudnn-cu12"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
