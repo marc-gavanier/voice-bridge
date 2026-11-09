@@ -21,6 +21,7 @@ class Config:
     whisper_model: str
     voice_threshold: int
     voice_user: str
+    voice_gain: float
 
 
 def load_config():
@@ -33,4 +34,5 @@ def load_config():
         whisper_model=os.environ.get("WHISPER_MODEL", "large-v3-turbo"),
         voice_threshold=int(os.environ.get("VOICE_THRESHOLD", "500")),
         voice_user=os.environ.get("VOICE_USER", "marc"),
+        voice_gain=float(os.environ.get("VOICE_GAIN", "2.5")),
     )

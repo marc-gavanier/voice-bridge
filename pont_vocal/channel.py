@@ -1,11 +1,15 @@
 import json
+import logging
 import os
 import re
 import sys
 import threading
 from pathlib import Path
 
+from pont_vocal.log import setup_log
+
 SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"]
+log = logging.getLogger(__name__)
 INSTRUCTIONS = (Path(__file__).resolve().parent.parent / "consignes-vocales.txt").read_text(encoding="utf-8").strip()
 REPLY_TOOL = {
     "name": "reply",
@@ -76,10 +80,11 @@ def main():
     log_dir = Path(__file__).resolve().parent.parent / "logs"
     log_dir.mkdir(exist_ok=True)
     sys.stdout = open(log_dir / "voix.log", "a", buffering=1, encoding="utf-8")
+    setup_log(sys.stdout)
     write_lock = threading.Lock()
 
     def send(message):
-        print(f"--> {json.dumps(message, ensure_ascii=False)[:600]}", flush=True)
+        log.info(f"--> {json.dumps(message, ensure_ascii=False)[:600]}")
         with write_lock:
             protocol_out.write(json.dumps(message) + "\n")
             protocol_out.flush()
@@ -94,7 +99,7 @@ def main():
 
     def start_bridge():
         config = load_config()
-        voice = VoxtralVoice(config.voxtral_url, config.voxtral_voice)
+        voice = VoxtralVoice(config.voxtral_url, config.voxtral_voice, config.voice_gain)
         bridge = VoiceBridge(config, Transcriber(config.whisper_model), voice, on_text=server.push, name=os.environ.get("MUMBLE_NAME", "claude"))
         holder["bridge"] = bridge
         bridge.run()
@@ -102,7 +107,7 @@ def main():
     threading.Thread(target=start_bridge, daemon=True).start()
     for line in sys.stdin:
         if line.strip():
-            print(f"<-- {line.strip()[:600]}", flush=True)
+            log.info(f"<-- {line.strip()[:600]}")
             response = server.handle(json.loads(line))
             if response is not None:
                 send(response)

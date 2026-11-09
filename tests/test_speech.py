@@ -1,4 +1,4 @@
-from pont_vocal.speech import UtteranceDetector, split_sentences
+from pont_vocal.speech import UtteranceDetector, is_noise, split_sentences
 
 RATE = 96000
 PACKET_S = 0.02
@@ -85,11 +85,20 @@ def test_is_speaking_needs_sustained_voice():
     assert d.is_speaking
 
 
-def test_is_speaking_stops_on_silence():
+def test_is_speaking_stops_after_a_long_silence():
     d = detector()
     now = feed(d, loud(), 20)
-    feed(d, quiet(), 1, now)
+    feed(d, quiet(), 60, now)
     assert not d.is_speaking
+
+
+def test_is_speaking_tolerates_short_dips_between_syllables():
+    d = UtteranceDetector(threshold=500)
+    now = 0.0
+    for _ in range(8):
+        now = feed(d, loud(), 4, now)
+        now = feed(d, quiet(), 1, now)
+    assert d.is_speaking
 
 
 def test_split_sentences_cuts_on_punctuation():
@@ -109,3 +118,25 @@ def test_split_sentences_merges_very_short_ones():
 
 def test_split_sentences_ignores_blank_text():
     assert split_sentences("   ") == []
+
+
+def test_default_barge_in_needs_half_a_second_of_voice():
+    d = UtteranceDetector(threshold=500)
+    feed(d, loud(), 20)
+    assert not d.is_speaking
+    feed(d, loud(), 5, start=0.4)
+    assert d.is_speaking
+
+
+def test_is_noise_spots_empty_text_and_whisper_hallucinations():
+    assert is_noise("")
+    assert is_noise("  ")
+    assert is_noise("Merci.")
+    assert is_noise("merci")
+    assert is_noise("– Sous-titrage ST' 501")
+    assert is_noise("Je vous prie.")
+
+
+def test_is_noise_keeps_real_speech():
+    assert not is_noise("Merci, on continue.")
+    assert not is_noise("Est-ce que tu m'entends ?")
