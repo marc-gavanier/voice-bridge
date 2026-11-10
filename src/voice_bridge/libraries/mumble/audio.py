@@ -69,12 +69,22 @@ def is_listened(users: Mapping[int, User], session: int, listened: Listened) -> 
     return user is not None and listened(user)
 
 
+def _report_ignored(users: Mapping[int, User], event: events.AudioReceived) -> None:
+    user = users.get(event.sender_session)
+    if event.is_terminator and user is not None:
+        logger.info("ignored a transmission from %r, certificate hash %s", user.name, user.cert_hash)
+
+
 async def pump_audio(
     session: Session, listened: Listened, packets: ObjectSendStream[Packet], clock: Callable[[], float]
 ) -> None:
     decoder = opus.Decoder(channels=1)
     previous: Packet | None = None
     async for event in session.events():
+        if isinstance(event, events.AudioReceived) and not is_listened(
+            session.state.users, event.sender_session, listened
+        ):
+            _report_ignored(session.state.users, event)
         if isinstance(event, events.AudioReceived) and is_listened(session.state.users, event.sender_session, listened):
             packet = Packet(
                 pcm=decoder.decode(event.opus_data),

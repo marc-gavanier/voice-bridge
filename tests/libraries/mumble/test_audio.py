@@ -173,3 +173,7 @@ async def test_a_packet_remembers_it_ended_a_transmission() -> None:
 async def test_a_stalled_packet_still_comes_through() -> None:
     arrivals = iter([1.0, 1.5])
     assert len(await pumped(audio_from(1, 0), audio_from(1, 2), clock=lambda: next(arrivals))) == 2
+
+
+async def test_the_end_of_an_ignored_transmission_is_not_passed_on() -> None:
+    assert await pumped(audio_from(2, 0, last=True), audio_from(9, 0, last=True)) == []
