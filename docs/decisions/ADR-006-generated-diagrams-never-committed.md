@@ -1,7 +1,7 @@
 # ADR-006 — Generated diagrams, never committed
 
 **Date**: 2026-11-10
-**Status**: accepted
+**Status**: accepted, partly superseded by [ADR-007](ADR-007-hand-written-mermaid-for-the-system.md) for the system diagrams
 
 ## Context
 
