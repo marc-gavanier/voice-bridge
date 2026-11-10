@@ -7,6 +7,18 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P10D"
 
 [[package]]
+name = "alint"
+version = "0.20.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6e/74/a136d7c474a10a3790843bb5d7f43f5844ef872e208f360b757b62a0cc00/alint-0.20.1-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:8bc935ea93ceb7800750b9a37bcaa010ba9ef5d9c662b22d8b0ca8cdda10de1f", size = 7889254, upload-time = "2026-10-23T22:52:35.287Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/a7/628365c8423a525e5805d4ed3ed132e7edcfdcf56320a1b377bea2bbce8c/alint-0.20.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:a3dd68f90a233aafa5a79fdca2e1bbd7ea556b1e9b616d6b6a7e901f2f67f739", size = 7276076, upload-time = "2026-10-23T22:52:37.228Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/d8/f2cbf61ca60ab13a27d0132201984b7962b501facb72567be9e1c744f0be/alint-0.20.1-py3-none-manylinux_2_17_aarch64.musllinux_1_2_aarch64.whl", hash = "sha256:efb56a773f789afde8f5deccf87cb022217120c0d677c768cb1f49cdef9fa5ca", size = 7422200, upload-time = "2026-10-23T22:52:38.868Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/dd/34e863a6082a3af3cf2e5db46d4164f0051c46f5bfe1a11c69c41ad0c969/alint-0.20.1-py3-none-manylinux_2_17_x86_64.musllinux_1_2_x86_64.whl", hash = "sha256:39d87dec0138df1d96638f60fa89e66b30afba6a2c5ee29d7a87233b2c45bda7", size = 8241448, upload-time = "2026-10-23T22:52:40.86Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/f9/2e3eb1425b6f1da764ebbb85b6de6fea81fc58702ccd9e1658490039a9e9/alint-0.20.1-py3-none-win_amd64.whl", hash = "sha256:dddd6e1388ec38d9975ef10c75234ac9a9824a4c3d59b9c3332aa5b1cbe88442", size = 8367564, upload-time = "2026-10-23T22:52:42.671Z" },
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1538,6 +1550,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "alint" },
     { name = "basedpyright" },
     { name = "commitizen" },
     { name = "deptry" },
@@ -1569,6 +1582,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "alint", specifier = ">=0.20.1" },
     { name = "basedpyright", specifier = ">=1.40.2" },
     { name = "commitizen", specifier = ">=4.19.3" },
     { name = "deptry", specifier = ">=0.25.1" },

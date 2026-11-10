@@ -28,6 +28,7 @@ voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
 
 [dependency-groups]
 dev = [
+    "alint>=0.20.1",
     "basedpyright>=1.40.2",
     "commitizen>=4.19.3",
     "deptry>=0.25.1",

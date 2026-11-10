@@ -24,6 +24,12 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      - id: alint
+        name: allowed folders
+        entry: uv run --frozen alint check
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: deptry
         name: deptry
         entry: uv run --frozen deptry src

@@ -1,0 +1,37 @@
+version: 1
+rules:
+  - id: allowed-source-folders
+    kind: dir_absent
+    level: error
+    message: "This folder is not part of the architecture: features hold abilities, domain and implementations; libraries hold one folder each."
+    paths:
+      - "src/voice_bridge/**"
+      - "!src/voice_bridge/configuration"
+      - "!src/voice_bridge/configuration/instructions"
+      - "!src/voice_bridge/entrypoints"
+      - "!src/voice_bridge/features"
+      - "!src/voice_bridge/features/*"
+      - "!src/voice_bridge/features/*/abilities"
+      - "!src/voice_bridge/features/*/domain"
+      - "!src/voice_bridge/features/*/implementations"
+      - "!src/voice_bridge/libraries"
+      - "!src/voice_bridge/libraries/*"
+      - "!**/__pycache__"
+
+  - id: allowed-test-folders
+    kind: dir_absent
+    level: error
+    message: "Tests mirror the source folders, plus fixtures."
+    paths:
+      - "tests/**"
+      - "!tests/configuration"
+      - "!tests/entrypoints"
+      - "!tests/features"
+      - "!tests/features/*"
+      - "!tests/features/*/abilities"
+      - "!tests/features/*/domain"
+      - "!tests/features/*/implementations"
+      - "!tests/libraries"
+      - "!tests/libraries/*"
+      - "!tests/fixtures"
+      - "!**/__pycache__"
