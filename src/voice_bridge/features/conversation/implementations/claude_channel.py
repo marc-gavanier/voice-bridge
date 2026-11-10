@@ -2,13 +2,17 @@ from dataclasses import dataclass
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Final, Protocol
 
+import anyio
 from mcp import types
 from mcp.server.lowlevel.server import Server
+from mcp.server.runner import serve_loop
+from mcp.server.stdio import stdio_server
 from mcp.shared.message import SessionMessage
-from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
     from anyio.abc import ObjectSendStream
     from mcp.server.context import ServerRequestContext
     from mcp.server.models import InitializationOptions
@@ -68,7 +72,7 @@ def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStr
         await replies.send(arguments.text)
         return types.CallToolResult(content=[types.TextContent(type="text", text="sent")])
 
-    server: Server[object] = Server(
+    return Server(
         SERVER_NAME,
         version=version("voice-bridge"),
         instructions=instructions,
@@ -76,20 +80,31 @@ def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStr
         on_call_tool=call_tool,
     )
 
-    async def discover(context: ServerRequestContext[object], _params: types.RequestParams) -> types.DiscoverResult:
-        capabilities = server.get_capabilities(
-            experimental_capabilities={CHANNEL_CAPABILITY: {}}, protocol_version=context.protocol_version
-        )
-        return types.DiscoverResult(
-            supported_versions=list(MODERN_PROTOCOL_VERSIONS), capabilities=capabilities, instructions=instructions
-        )
-
-    server.add_request_handler("server/discover", types.RequestParams, discover)
-    return server
-
 
 def initialization_options(server: Server[object]) -> InitializationOptions:
     return server.create_initialization_options(experimental_capabilities={CHANNEL_CAPABILITY: {}})
+
+
+class Forwarder(Protocol):
+    async def __call__(self, text: str, *, interrupted: bool) -> None: ...
+
+
+async def serve_over_stdio(
+    server: Server[object],
+    converse: Callable[[Forwarder], Coroutine[object, object, None]],
+    *,
+    stdin: anyio.AsyncFile[str] | None = None,
+    stdout: anyio.AsyncFile[str] | None = None,
+) -> None:
+    async with stdio_server(stdin, stdout) as (read, write), anyio.create_task_group() as tasks:
+
+        async def claude(text: str, *, interrupted: bool) -> None:
+            await forward(write, text, interrupted=interrupted)
+
+        _ = tasks.start_soon(converse, claude)
+        async with server.lifespan(server) as state:
+            await serve_loop(server, read, write, lifespan_state=state, init_options=initialization_options(server))
+        tasks.cancel_scope.cancel()
 
 
 async def forward(write: MessageSender, text: str, *, interrupted: bool) -> None:

@@ -3,7 +3,6 @@ import math
 import sys
 
 import anyio
-from mcp.server.stdio import stdio_server
 
 from voice_bridge.configuration.language import LanguagePack, language_pack, load_instructions
 from voice_bridge.configuration.settings import Settings, load_settings
@@ -11,10 +10,10 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.logs import configure_logging
 from voice_bridge.entrypoints.voice import converse
 from voice_bridge.features.conversation.implementations.claude_channel import (
+    Forwarder,
     ReplyTool,
     channel_server,
-    forward,
-    initialization_options,
+    serve_over_stdio,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,15 +26,16 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
         tool=ReplyTool(description=language.reply_tool_description, text_description=language.reply_text_description),
         replies=replies_in,
     )
-    async with replies_in, replies_out, stdio_server() as (read, write), anyio.create_task_group() as tasks:
+    async with replies_in, replies_out:
 
-        async def claude(text: str, *, interrupted: bool) -> None:
-            logger.info("forwarded %r%s", text, " after an interruption" if interrupted else "")
-            await forward(write, text, interrupted=interrupted)
+        async def talk_to(claude: Forwarder) -> None:
+            async def logged(text: str, *, interrupted: bool) -> None:
+                logger.info("forwarded %r%s", text, " after an interruption" if interrupted else "")
+                await claude(text, interrupted=interrupted)
 
-        _ = tasks.start_soon(converse, settings, language, claude, replies_out, settings.mumble.username)
-        await server.run(read, write, initialization_options(server))
-        tasks.cancel_scope.cancel()
+            await converse(settings, language, logged, replies_out, settings.mumble.username)
+
+        await serve_over_stdio(server, talk_to)
 
 
 def main() -> None:
