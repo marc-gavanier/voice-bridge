@@ -1,7 +1,16 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
-from voice_bridge.features.hearing.domain.utterance import Frame, Listening, UtteranceRules, close, hear, is_speaking
+from voice_bridge.features.hearing.domain.utterance import (
+    Dismissed,
+    Frame,
+    Kept,
+    Listening,
+    UtteranceRules,
+    close,
+    hear,
+    is_speaking,
+)
 from voice_bridge.features.hearing.implementations.silero import Session, Silero, Voicing, is_voiced
 from voice_bridge.features.hearing.implementations.silero import listen as score
 from voice_bridge.libraries.audio.pcm import duration
@@ -36,12 +45,20 @@ class Utterance:
     pcm: bytes
 
 
-type Heard = Speaking | Utterance
+type Heard = Speaking | Utterance | Dismissed
 
 
 def _closed(listening: Listening, now: float, rules: UtteranceRules) -> tuple[Listening, tuple[Heard, ...]]:
-    remaining, pcm = close(listening, now, rules)
-    return remaining, (Utterance(pcm=pcm),) if pcm else ()
+    remaining, closing = close(listening, now, rules)
+    match closing:
+        case Kept(pcm=pcm):
+            return remaining, (Utterance(pcm=pcm),)
+        case Dismissed():
+            return remaining, (closing,)
+        case None:
+            return remaining, ()
+        case _:
+            assert_never(closing)
 
 
 def _heard_packet(ears: Ears, state: Hearing, packet: Packet) -> tuple[Hearing, tuple[Heard, ...]]:

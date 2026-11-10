@@ -8,7 +8,7 @@ import pytest
 from faster_whisper.vad import get_vad_model
 
 from voice_bridge.features.hearing.abilities.listen import Ears, Heard, Hearing, Speaking, Utterance, advance, listen
-from voice_bridge.features.hearing.domain.utterance import UtteranceRules
+from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.libraries.mumble.audio import Packet
 
@@ -41,9 +41,17 @@ def silence_ticks(count: int) -> list[Tick]:
     ]
 
 
-def heard(ticks: list[Tick]) -> tuple[Heard, ...]:
+EARS_FOR_EVERYTHING = Ears(
+    session=get_vad_model().session,
+    voicing=Voicing(volume_threshold=0.0, probability=0.0),
+    rules=UtteranceRules(),
+    rate=RATE,
+)
+
+
+def heard(ticks: list[Tick], ears: Ears = EARS) -> tuple[Heard, ...]:
     def step(result: tuple[Hearing, tuple[Heard, ...]], tick: Tick) -> tuple[Hearing, tuple[Heard, ...]]:
-        state, reported = advance(EARS, result[0], tick[0], tick[1])
+        state, reported = advance(ears, result[0], tick[0], tick[1])
         return state, (*result[1], *reported)
 
     return reduce(step, ticks, (Hearing(), ()))[1]
@@ -77,3 +85,7 @@ async def test_listening_reports_what_it_hears() -> None:
         await listen(EARS, ticks_of(speech_ticks()), sent.send, clock=lambda: 0.0)
         first = received.receive_nowait()
     assert isinstance(first, Speaking)
+
+
+def test_a_sound_too_short_to_be_an_utterance_is_reported_as_dismissed() -> None:
+    assert heard([*silence_ticks(5), (None, 10.0)], EARS_FOR_EVERYTHING) == (Dismissed(),)

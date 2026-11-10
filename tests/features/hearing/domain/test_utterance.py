@@ -1,7 +1,10 @@
 from functools import reduce
 
 from voice_bridge.features.hearing.domain.utterance import (
+    Closing,
+    Dismissed,
     Frame,
+    Kept,
     Listening,
     UtteranceRules,
     close,
@@ -27,7 +30,7 @@ def listen(*runs: tuple[bool, int], rules: UtteranceRules = RULES) -> tuple[List
 VOICE, SILENCE = True, False
 
 
-def closed(*runs: tuple[bool, int], rules: UtteranceRules = RULES) -> bytes | None:
+def closed(*runs: tuple[bool, int], rules: UtteranceRules = RULES) -> Closing | None:
     state, now = listen(*runs, rules=rules)
     return close(state, now, rules)[1]
 
@@ -40,8 +43,12 @@ def test_an_utterance_is_closed_after_a_silence() -> None:
     assert closed((VOICE, 50), (SILENCE, 45)) is not None
 
 
+def kept(closing: Closing | None) -> bytes:
+    return closing.pcm if isinstance(closing, Kept) else b""
+
+
 def test_the_utterance_holds_all_the_voice() -> None:
-    assert len(closed((VOICE, 50), (SILENCE, 45)) or b"") >= 50 * PACKET_BYTES
+    assert len(kept(closed((VOICE, 50), (SILENCE, 45)))) >= 50 * PACKET_BYTES
 
 
 def test_an_utterance_is_closed_only_once() -> None:
@@ -49,8 +56,8 @@ def test_an_utterance_is_closed_only_once() -> None:
     assert close(close(state, now, RULES)[0], now, RULES)[1] is None
 
 
-def test_a_short_noise_is_not_an_utterance() -> None:
-    assert closed((VOICE, 3), (SILENCE, 45)) is None
+def test_a_short_noise_is_dismissed() -> None:
+    assert closed((VOICE, 3), (SILENCE, 45)) == Dismissed()
 
 
 def test_silence_alone_is_not_an_utterance() -> None:
@@ -58,7 +65,7 @@ def test_silence_alone_is_not_an_utterance() -> None:
 
 
 def test_the_utterance_keeps_the_audio_just_before_the_voice() -> None:
-    assert len(closed((SILENCE, 20), (VOICE, 50), (SILENCE, 45)) or b"") >= (50 + 45 + 5) * PACKET_BYTES
+    assert len(kept(closed((SILENCE, 20), (VOICE, 50), (SILENCE, 45)))) >= (50 + 45 + 5) * PACKET_BYTES
 
 
 def test_a_long_speech_is_closed_at_the_longest_duration() -> None:
@@ -88,3 +95,8 @@ def test_by_default_speaking_needs_more_than_four_tenths_of_a_second() -> None:
 
 def test_by_default_half_a_second_of_voice_is_speaking() -> None:
     assert is_speaking(listen((VOICE, 25), rules=UtteranceRules())[0], UtteranceRules())
+
+
+def test_a_lone_packet_long_after_the_speaker_stopped_is_not_speaking() -> None:
+    state, _ = listen((VOICE, 25), rules=UtteranceRules())
+    assert not is_speaking(hear(state, frame(voiced=True, at=3.0), UtteranceRules()), UtteranceRules())

@@ -13,7 +13,7 @@ from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, 
 from voice_bridge.features.hearing.abilities.listen import Ears, Heard, Speaking, Utterance, listen
 from voice_bridge.features.hearing.abilities.transcribe import Transcription, transcribe_utterances
 from voice_bridge.features.hearing.domain.noise import Hallucinations
-from voice_bridge.features.hearing.domain.utterance import UtteranceRules
+from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
@@ -90,6 +90,8 @@ async def converse(
                 await events_in.send(VoiceDetected(at=at))
             case Utterance(pcm=pcm):
                 await utterances_in.send(pcm)
+            case Dismissed():
+                await events_in.send(Transcribed(text="", noise=True))
             case _:
                 assert_never(each)
 

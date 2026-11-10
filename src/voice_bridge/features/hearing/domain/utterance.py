@@ -21,6 +21,19 @@ class UtteranceRules:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class Kept:
+    pcm: bytes
+
+
+@dataclass(frozen=True, slots=True)
+class Dismissed:
+    pass
+
+
+type Closing = Kept | Dismissed
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Listening:
     utterance: tuple[Frame, ...] = ()
     preroll: tuple[Frame, ...] = ()
@@ -53,8 +66,12 @@ def _on_silence(state: Listening, frame: Frame, rules: UtteranceRules) -> Listen
     return replace(state, preroll=_latest((*state.preroll, frame), rules.preroll))
 
 
+def _within(frames: tuple[Frame, ...], now: float, window: float) -> tuple[Frame, ...]:
+    return tuple(frame for frame in frames if now - frame.at < window)
+
+
 def hear(state: Listening, frame: Frame, rules: UtteranceRules) -> Listening:
-    remembered = replace(state, recent=_latest((*state.recent, frame), rules.barge_window))
+    remembered = replace(state, recent=_within((*state.recent, frame), frame.at, rules.barge_window))
     return _on_voice(remembered, frame) if frame.voiced else _on_silence(remembered, frame, rules)
 
 
@@ -67,9 +84,9 @@ def _is_over(state: Listening, now: float, rules: UtteranceRules) -> bool:
     return silent or _duration(state.utterance) >= rules.longest
 
 
-def close(state: Listening, now: float, rules: UtteranceRules) -> tuple[Listening, bytes | None]:
+def close(state: Listening, now: float, rules: UtteranceRules) -> tuple[Listening, Closing | None]:
     if not state.utterance or not _is_over(state, now, rules):
         return state, None
     enough_voice = _voice_duration(state.utterance) >= rules.shortest_voice
-    pcm = b"".join(frame.pcm for frame in state.utterance) if enough_voice else None
-    return replace(state, utterance=(), last_voice_at=None), pcm
+    closing = Kept(pcm=b"".join(frame.pcm for frame in state.utterance)) if enough_voice else Dismissed()
+    return replace(state, utterance=(), last_voice_at=None), closing
