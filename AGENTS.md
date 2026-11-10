@@ -27,6 +27,7 @@ What each gate holds:
 - **import-linter**, four contracts in `pyproject.toml` ([ADR-005](docs/decisions/ADR-005-features-and-abilities-on-a-hexagonal-core.md)): entry points sit above configuration and features, which sit above libraries; features never import each other; inside a feature, `abilities` sit above `implementations`, above `domain`; a `domain` imports nothing but the standard library. Two features cooperate only through the wiring in `entrypoints/`.
 - **alint** allows only the folders of the architecture: `features/<feature>/{abilities,domain,implementations}`, `libraries/<library>`, `configuration`, `entrypoints`. Tests mirror these folders, plus `tests/fixtures`. A new folder elsewhere fails.
 - **pytest** with warnings as errors and **100 % branch coverage**. Only the entry points and `libraries/mumble/connection.py` are omitted, because they only wire tested parts; do not add to that list to make a change pass.
+- **pytest-timeout** fails any test that runs longer than 60 seconds, so a deadlock fails instead of hanging; the slowest test takes about one second. Each CI job also has a `timeout-minutes`.
 - **deptry** checks that declared and imported dependencies match.
 - **commitizen** checks each commit message, and **uv audit** checks the dependencies before each push.
 
