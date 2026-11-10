@@ -100,3 +100,58 @@ def test_by_default_half_a_second_of_voice_is_speaking() -> None:
 def test_a_lone_packet_long_after_the_speaker_stopped_is_not_speaking() -> None:
     state, _ = listen((VOICE, 25), rules=UtteranceRules())
     assert not is_speaking(hear(state, frame(voiced=True, at=3.0), UtteranceRules()), UtteranceRules())
+
+
+QUARTER = UtteranceRules(silence=0.5, longest=1.0, shortest_voice=0.5, preroll=0.5, barge_in=0.5, barge_window=1.0)
+
+
+def quarter(*, voiced: bool, at: float, pcm: bytes = b"\x01\x00") -> Frame:
+    return Frame(pcm=pcm, voiced=voiced, at=at, duration=0.25)
+
+
+def quarters(*moments: float, voiced: bool, pcm: bytes = b"\x01\x00") -> tuple[Frame, ...]:
+    return tuple(quarter(voiced=voiced, at=at, pcm=pcm) for at in moments)
+
+
+def heard_quarters(*frames: Frame) -> Listening:
+    return reduce(lambda state, each: hear(state, each, QUARTER), frames, Listening())
+
+
+def test_the_preroll_keeps_just_enough_audio_before_the_voice() -> None:
+    state = heard_quarters(*quarters(0.25, 0.5, 0.75, 1.0, voiced=False, pcm=b"s"))
+    assert hear(state, quarter(voiced=True, at=1.25, pcm=b"v"), QUARTER).utterance == (
+        quarter(voiced=False, at=0.75, pcm=b"s"),
+        quarter(voiced=False, at=1.0, pcm=b"s"),
+        quarter(voiced=True, at=1.25, pcm=b"v"),
+    )
+
+
+def test_the_preroll_is_emptied_once_the_voice_starts() -> None:
+    state = heard_quarters(quarter(voiced=False, at=0.25), quarter(voiced=True, at=0.5))
+    assert state.preroll == ()
+
+
+def test_a_frame_exactly_one_window_old_no_longer_counts_as_recent() -> None:
+    assert heard_quarters(quarter(voiced=True, at=0.0), quarter(voiced=True, at=1.0)).recent == (
+        quarter(voiced=True, at=1.0),
+    )
+
+
+def test_an_utterance_goes_on_at_exactly_the_silence() -> None:
+    assert close(heard_quarters(quarter(voiced=True, at=0.25), quarter(voiced=True, at=0.5)), 1.0, QUARTER)[1] is None
+
+
+def test_an_utterance_reaching_exactly_the_longest_duration_is_closed() -> None:
+    assert close(heard_quarters(*quarters(0.25, 0.5, 0.75, 1.0, voiced=True)), 1.0, QUARTER)[1] == Kept(
+        pcm=b"\x01\x00" * 4
+    )
+
+
+def test_exactly_the_shortest_voice_is_an_utterance() -> None:
+    state = heard_quarters(quarter(voiced=True, at=0.25, pcm=b"a"), quarter(voiced=True, at=0.5, pcm=b"b"))
+    assert close(state, 2.0, QUARTER)[1] == Kept(pcm=b"ab")
+
+
+def test_closing_an_utterance_empties_it() -> None:
+    state = heard_quarters(quarter(voiced=True, at=0.25), quarter(voiced=True, at=0.5))
+    assert close(state, 2.0, QUARTER)[0].utterance == ()

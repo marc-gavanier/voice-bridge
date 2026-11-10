@@ -48,3 +48,21 @@ def test_a_take_is_named_after_the_day_and_time_it_started() -> None:
 def test_the_summary_tells_the_length_packets_losses_and_longest_gap() -> None:
     take = extend(begin(heard(0, 1.0)), heard(6, 1.25))
     assert summary(take, rate=48000) == "0.0s, 2 packets, 40 ms lost, longest gap 250 ms"
+
+
+def test_nothing_is_lost_over_several_packets_in_order() -> None:
+    assert extend(extend(begin(heard(0, 1.0)), heard(2, 1.02)), heard(4, 1.04)).lost == 0.0
+
+
+def test_a_take_goes_on_at_exactly_the_silence() -> None:
+    assert not is_over(begin(heard(0, 1.0)), now=2.5, silence=1.5)
+
+
+def test_the_summary_counts_seconds_of_16_bit_audio() -> None:
+    one_second = Heard(pcm=bytes(96000), at=1.0, frame_number=0, duration=1.0)
+    assert summary(begin(one_second), rate=48000).startswith("1.0s")
+
+
+def test_the_summary_tells_long_losses_and_gaps_to_the_millisecond() -> None:
+    take = extend(begin(heard(0, 1.0)), Heard(pcm=TWENTY_MS, at=3.0, frame_number=102, duration=0.02))
+    assert summary(take, rate=48000) == "0.0s, 2 packets, 1000 ms lost, longest gap 2000 ms"

@@ -26,3 +26,14 @@ def test_markdown_emphasis_code_and_links_are_read_as_plain_text() -> None:
 
 def test_code_blocks_are_not_read_aloud() -> None:
     assert for_the_ear("Voici.\n```python\nprint(1)\n```\nFini.") == "Voici.\n\nFini."
+
+
+def test_a_sentence_of_exactly_the_shortest_length_stands_alone() -> None:
+    assert split_sentences("Twelve char. Another sentence.") == ("Twelve char.", "Another sentence.")
+
+
+def test_merging_a_short_sentence_keeps_the_sentences_before_it() -> None:
+    assert split_sentences("A first long sentence. Oui. Then the rest.") == (
+        "A first long sentence.",
+        "Oui. Then the rest.",
+    )

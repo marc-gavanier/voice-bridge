@@ -1,0 +1,30 @@
+name: Mutation testing
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutmut:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: sudo apt-get install --yes --no-install-recommends libopus0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run --frozen mutmut run
+      - run: |
+          {
+            echo "## Surviving mutants"
+            echo '```'
+            uv run --frozen mutmut results
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

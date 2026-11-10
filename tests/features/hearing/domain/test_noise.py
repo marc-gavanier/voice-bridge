@@ -5,7 +5,9 @@ from voice_bridge.features.hearing.domain.noise import Hallucinations, is_noise
 FRENCH = Hallucinations(texts=frozenset({"", "merci", "je vous prie"}), prefixes=("sous-titrage",))
 
 
-@pytest.mark.parametrize("text", ["", "  ", "Merci.", "merci", "\N{EN DASH} Sous-titrage ST' 501", "Je vous prie."])
+@pytest.mark.parametrize(
+    "text", ["", "  ", "Merci.", "merci", "- Merci.", "\N{EN DASH} Sous-titrage ST' 501", "Je vous prie."]
+)
 def test_empty_text_and_whisper_hallucinations_are_noise(text: str) -> None:
     assert is_noise(text, FRENCH)
 

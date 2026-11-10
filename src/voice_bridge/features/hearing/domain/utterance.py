@@ -89,4 +89,4 @@ def close(state: Listening, now: float, rules: UtteranceRules) -> tuple[Listenin
         return state, None
     enough_voice = _voice_duration(state.utterance) >= rules.shortest_voice
     closing = Kept(pcm=b"".join(frame.pcm for frame in state.utterance)) if enough_voice else Dismissed()
-    return replace(state, utterance=(), last_voice_at=None), closing
+    return replace(state, utterance=()), closing

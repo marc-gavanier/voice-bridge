@@ -179,3 +179,90 @@ def test_a_synthesis_finished_after_an_interruption_is_not_played() -> None:
 
 def test_a_synthesis_failed_after_an_interruption_changes_nothing() -> None:
     assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0), SynthesisFailed(ticket=0)) == ()
+
+
+def test_voice_exactly_when_the_last_sentence_ends_does_not_interrupt() -> None:
+    assert (
+        last_commands(
+            Asked(sentences=(FIRST,)), Synthesized(ticket=0, pcm=SOUND, duration=1.0, at=100.0), VoiceDetected(at=101.0)
+        )
+        == ()
+    )
+
+
+def test_a_late_synthesis_is_not_played_while_another_one_is_under_way() -> None:
+    assert (
+        last_commands(
+            Asked(sentences=(FIRST,)),
+            VoiceDetected(at=1.0),
+            Transcribed(text="", noise=True),
+            Synthesized(ticket=0, pcm=SOUND, duration=1.0, at=2.0),
+        )
+        == ()
+    )
+
+
+def test_a_sentence_ending_exactly_at_an_interruption_is_not_saved() -> None:
+    assert unspoken(
+        state_after(
+            Asked(sentences=(FIRST, SECOND)),
+            Synthesized(ticket=0, pcm=SOUND, duration=1.0, at=100.0),
+            VoiceDetected(at=101.0),
+            Transcribed(text="", noise=True),
+        )
+    ) == (SECOND,)
+
+
+def test_a_sentence_playing_at_an_interruption_is_saved_only_once() -> None:
+    assert unspoken(
+        state_after(
+            Asked(sentences=(FIRST,)),
+            Synthesized(ticket=0, pcm=SOUND, duration=2.0, at=100.0),
+            VoiceDetected(at=101.0),
+            VoiceDetected(at=101.5),
+            Transcribed(text="", noise=True),
+        )
+    ) == (FIRST,)
+
+
+def test_speech_after_a_resumed_reply_is_not_marked_as_an_interruption() -> None:
+    assert last_commands(
+        Asked(sentences=(FIRST,)),
+        VoiceDetected(at=1.0),
+        Transcribed(text="", noise=True),
+        Transcribed(text="Bonjour."),
+    ) == (Forward(text="Bonjour.", interrupted=False),)
+
+
+def test_a_resumed_reply_is_not_resumed_twice() -> None:
+    assert unspoken(
+        state_after(
+            Asked(sentences=(FIRST,)),
+            VoiceDetected(at=1.0),
+            Transcribed(text="", noise=True),
+            Transcribed(text="", noise=True),
+        )
+    ) == (FIRST,)
+
+
+def test_only_the_speech_that_interrupted_is_marked_as_an_interruption() -> None:
+    assert last_commands(
+        Asked(sentences=(FIRST,)),
+        VoiceDetected(at=1.0),
+        Transcribed(text="Attends."),
+        Transcribed(text="Encore."),
+    ) == (Forward(text="Encore.", interrupted=False),)
+
+
+def test_a_reply_dropped_by_speech_never_comes_back() -> None:
+    assert (
+        unspoken(
+            state_after(
+                Asked(sentences=(FIRST,)),
+                VoiceDetected(at=1.0),
+                Transcribed(text="Attends."),
+                Transcribed(text="", noise=True),
+            )
+        )
+        == ()
+    )
