@@ -25,9 +25,10 @@ class Kept:
     pcm: bytes
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Dismissed:
-    pass
+    voice: float
+    duration: float
 
 
 type Closing = Kept | Dismissed
@@ -87,6 +88,10 @@ def _is_over(state: Listening, now: float, rules: UtteranceRules) -> bool:
 def close(state: Listening, now: float, rules: UtteranceRules) -> tuple[Listening, Closing | None]:
     if not state.utterance or not _is_over(state, now, rules):
         return state, None
-    enough_voice = _voice_duration(state.utterance) >= rules.shortest_voice
-    closing = Kept(pcm=b"".join(frame.pcm for frame in state.utterance)) if enough_voice else Dismissed()
+    voice = _voice_duration(state.utterance)
+    closing = (
+        Kept(pcm=b"".join(frame.pcm for frame in state.utterance))
+        if voice >= rules.shortest_voice
+        else Dismissed(voice=voice, duration=_duration(state.utterance))
+    )
     return replace(state, utterance=()), closing

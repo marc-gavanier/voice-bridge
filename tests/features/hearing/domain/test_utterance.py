@@ -1,5 +1,7 @@
 from functools import reduce
 
+import pytest
+
 from voice_bridge.features.hearing.domain.utterance import (
     Closing,
     Dismissed,
@@ -57,7 +59,23 @@ def test_an_utterance_is_closed_only_once() -> None:
 
 
 def test_a_short_noise_is_dismissed() -> None:
-    assert closed((VOICE, 3), (SILENCE, 45)) == Dismissed()
+    assert isinstance(closed((VOICE, 3), (SILENCE, 45)), Dismissed)
+
+
+def dismissed_voice(closing: Closing | None) -> float:
+    return closing.voice if isinstance(closing, Dismissed) else -1.0
+
+
+def test_a_dismissed_sound_tells_how_much_voice_it_held() -> None:
+    assert dismissed_voice(closed((VOICE, 3), (SILENCE, 45))) == pytest.approx(3 * PACKET)
+
+
+def dismissed_duration(closing: Closing | None) -> float:
+    return closing.duration if isinstance(closing, Dismissed) else -1.0
+
+
+def test_a_dismissed_sound_tells_how_long_it_lasted() -> None:
+    assert dismissed_duration(closed((VOICE, 3), (SILENCE, 45))) == pytest.approx(48 * PACKET)
 
 
 def test_silence_alone_is_not_an_utterance() -> None:

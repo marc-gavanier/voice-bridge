@@ -1,3 +1,4 @@
+import logging
 import math
 from functools import partial
 from typing import TYPE_CHECKING, Final, assert_never
@@ -33,6 +34,8 @@ if TYPE_CHECKING:
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 PLAYBACK_CAPACITY: Final = 600.0
 PATIENCE: Final = 0.05
@@ -96,7 +99,8 @@ async def converse(
                 await events_in.send(VoiceDetected(at=at))
             case Utterance(pcm=pcm):
                 await utterances_in.send(pcm)
-            case Dismissed():
+            case Dismissed(voice=voice, duration=lasted):
+                logger.info("dismissed a sound of %.2f s holding %.2f s of voice", lasted, voice)
                 await events_in.send(Transcribed(text="", noise=True))
             case _:
                 assert_never(each)

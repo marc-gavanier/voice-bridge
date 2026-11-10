@@ -88,4 +88,4 @@ async def test_listening_reports_what_it_hears() -> None:
 
 
 def test_a_sound_too_short_to_be_an_utterance_is_reported_as_dismissed() -> None:
-    assert heard([*silence_ticks(5), (None, 10.0)], EARS_FOR_EVERYTHING) == (Dismissed(),)
+    assert [type(each) for each in heard([*silence_ticks(5), (None, 10.0)], EARS_FOR_EVERYTHING)] == [Dismissed]
