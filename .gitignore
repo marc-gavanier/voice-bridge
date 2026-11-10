@@ -6,3 +6,4 @@ __pycache__/
 dist/
 logs/
 .idea/
+docs/architecture.svg

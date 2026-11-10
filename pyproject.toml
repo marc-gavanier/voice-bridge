@@ -31,6 +31,7 @@ dev = [
     "deptry>=0.25.1",
     "import-linter>=2.15",
     "prek>=0.5.9",
+    "pydeps>=3.0.9",
     "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.3",
@@ -150,3 +151,13 @@ DEP002 = ["nvidia-cublas-cu12", "nvidia-cudnn-cu12"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
+
+[tool.pydeps]
+only = ["voice_bridge"]
+max_module_depth = 3
+rmprefix = ["voice_bridge."]
+exclude_exact = ["voice_bridge.configuration", "voice_bridge.features", "voice_bridge.libraries"]
+rankdir = "BT"
+no_show = true
+format = "svg"
+output = "docs/architecture.svg"
