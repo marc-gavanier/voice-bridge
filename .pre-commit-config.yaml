@@ -1,7 +1,42 @@
 default_install_hook_types: [pre-commit, commit-msg, pre-push]
+default_stages: [pre-commit, pre-push]
 repos:
   - repo: local
     hooks:
+      - id: check-merge-conflict
+        name: no merge conflict markers
+        entry: uv run --frozen check-merge-conflict --assume-in-merge
+        language: system
+        types: [text]
+      - id: check-added-large-files
+        name: no large files
+        entry: uv run --frozen check-added-large-files --enforce-all
+        language: system
+      - id: end-of-file-fixer
+        name: files end with one newline
+        entry: uv run --frozen end-of-file-fixer
+        language: system
+        types: [text]
+      - id: trailing-whitespace
+        name: no trailing whitespace
+        entry: uv run --frozen trailing-whitespace-fixer --markdown-linebreak-ext=md
+        language: system
+        types: [text]
+      - id: check-toml
+        name: toml syntax
+        entry: uv run --frozen check-toml
+        language: system
+        types: [toml]
+      - id: check-yaml
+        name: yaml syntax
+        entry: uv run --frozen check-yaml
+        language: system
+        types: [yaml]
+      - id: validate-pyproject
+        name: validate pyproject.toml
+        entry: uv run --frozen validate-pyproject
+        language: system
+        files: ^pyproject\.toml$
       - id: ruff-format
         name: ruff format
         entry: uv run --frozen ruff format

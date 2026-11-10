@@ -18,7 +18,7 @@ Run them all before proposing a change; the CI runs the same ones on every pull 
 uv run prek run --all-files
 ```
 
-The Ruff hooks fix what they can, so this command may change files in the working tree: review the diff before committing.
+The Ruff, final newline and trailing whitespace hooks fix what they can, so this command may change files in the working tree: review the diff before committing.
 
 What each gate holds:
 
@@ -29,6 +29,8 @@ What each gate holds:
 - **pytest** with warnings as errors and **100 % branch coverage**. Only the entry points and `libraries/mumble/connection.py` are omitted, because they only wire tested parts; do not add to that list to make a change pass.
 - **pytest-timeout** fails any test that runs longer than 60 seconds, so a deadlock fails instead of hanging; the slowest test takes about one second. Each CI job also has a `timeout-minutes`.
 - **deptry** checks that declared and imported dependencies match.
+- **pre-commit-hooks** check every text file: no merge conflict markers, no file over 500 KB, one final newline, no trailing whitespace, and TOML and YAML that parse. `.editorconfig` sets the same rules, and the indentation, for editors.
+- **validate-pyproject** checks `pyproject.toml` against PEP 621 and the schemas of the tools it knows (Ruff, uv, among others); the sections of the other tools stay unchecked.
 - **commitizen** checks each commit message, and **uv audit** checks the dependencies before each push.
 
 ## Writing code

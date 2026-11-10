@@ -26,6 +26,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
+      - run: uv run --frozen prek run --all-files --show-diff-on-failure check-merge-conflict check-added-large-files end-of-file-fixer trailing-whitespace check-toml check-yaml
+      - run: uv run --frozen validate-pyproject pyproject.toml
       - run: uv run --frozen ruff format --check
       - run: uv run --frozen ruff check
       - run: uv run --frozen basedpyright
