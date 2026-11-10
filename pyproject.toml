@@ -51,7 +51,6 @@ build-backend = "uv_build"
 [tool.uv]
 required-version = ">=0.13.7"
 exclude-newer = "10 days"
-exclude-newer-package = { pytest-bdd = "2026-11-01T00:00:00Z" }
 
 [tool.ruff]
 line-length = 120
