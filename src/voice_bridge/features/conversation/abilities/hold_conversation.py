@@ -45,11 +45,14 @@ class Mouth:
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
+    started = mouth.clock()
     pcm = await mouth.voice(order.sentence)
     if pcm is None:
         await emit.send(SynthesisFailed(ticket=order.ticket))
         return
-    await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=duration(pcm, mouth.rate), at=mouth.clock()))
+    spoken, ready = duration(pcm, mouth.rate), mouth.clock()
+    logger.info("voice in %.2f s for %.1f s of speech: %r", ready - started, spoken, order.sentence)
+    await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=spoken, at=ready))
 
 
 async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, command: Command) -> None:
@@ -58,9 +61,11 @@ async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup
             _ = tasks.start_soon(_synthesize, mouth, emit, command)
         case Play(pcm=pcm):
             mouth.speaker.play(pcm)
-        case StopPlaying():
-            logger.info("interrupted")
+        case StopPlaying(heard_at=heard_at):
             mouth.speaker.stop()
+            logger.info(
+                "interrupted, playback stopped %.0f ms after the voice was heard", (mouth.clock() - heard_at) * 1000
+            )
         case Forward(text=text, interrupted=interrupted):
             await mouth.claude(text, interrupted=interrupted)
         case _:

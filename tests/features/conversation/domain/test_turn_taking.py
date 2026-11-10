@@ -73,7 +73,7 @@ def test_voice_while_the_bridge_is_silent_does_not_interrupt() -> None:
 
 
 def test_voice_while_the_bridge_talks_stops_the_playback() -> None:
-    assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0)) == (StopPlaying(),)
+    assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0)) == (StopPlaying(heard_at=1.0),)
 
 
 def test_noise_after_an_interruption_resumes_the_unspoken_sentences() -> None:

@@ -45,9 +45,9 @@ class Play:
     pcm: bytes
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class StopPlaying:
-    pass
+    heard_at: float
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -127,7 +127,7 @@ def _interrupt(state: Conversation, at: float) -> Step:
     unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.ends_at > at)
     stopped = (*unfinished, *unspoken(state))
     silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True)
-    return replace(silenced, paused=(*(state.paused or ()), *stopped)), (StopPlaying(),)
+    return replace(silenced, paused=(*(state.paused or ()), *stopped)), (StopPlaying(heard_at=at),)
 
 
 def _resume(state: Conversation) -> Step:

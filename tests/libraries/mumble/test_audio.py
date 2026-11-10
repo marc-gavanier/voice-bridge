@@ -102,6 +102,14 @@ def test_playing_queues_the_audio() -> None:
     assert buffer.buffered > 0
 
 
+def test_playing_while_audio_is_queued_adds_to_it() -> None:
+    buffer = PcmBuffer(capacity=10.0)
+    speaker = Loudspeaker(buffer=buffer)
+    speaker.play(TWENTY_MS)
+    speaker.play(TWENTY_MS)
+    assert buffer.buffered == pytest.approx(0.04)
+
+
 def test_stopping_drops_the_queued_audio() -> None:
     buffer = PcmBuffer(capacity=10.0)
     speaker = Loudspeaker(buffer=buffer)

@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Final, Protocol
@@ -21,6 +22,8 @@ SERVER_NAME: Final = "voice"
 TOOL_NAME: Final = "reply"
 CHANNEL_CAPABILITY: Final = "claude/channel"
 CHANNEL_NOTIFICATION: Final = "notifications/claude/channel"
+
+logger = logging.getLogger(__name__)
 
 
 class MessageSender(Protocol):
@@ -69,6 +72,7 @@ def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStr
             arguments = ReplyArguments.model_validate(params.arguments or {})
         except ValidationError as error:
             return _error(str(error))
+        logger.info("reply received from Claude: %r", arguments.text)
         await replies.send(arguments.text)
         return types.CallToolResult(content=[types.TextContent(type="text", text="sent")])
 

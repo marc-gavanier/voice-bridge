@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
@@ -10,6 +11,9 @@ if TYPE_CHECKING:
     from anyio.abc import ObjectReceiveStream, ObjectSendStream
     from pymumble_rev import ServerState, User
     from pymumble_rev.audio import PcmBuffer
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -71,6 +75,8 @@ class Loudspeaker:
     buffer: PcmBuffer
 
     def play(self, pcm: bytes) -> None:
+        if self.buffer.buffered == 0:
+            logger.info("playback starts, first packet within one 20 ms frame")
         _ = self.buffer.write(pcm, timeout=0)
 
     def stop(self) -> None:
