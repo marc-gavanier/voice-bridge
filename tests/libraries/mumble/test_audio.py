@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 
 import anyio
@@ -9,10 +9,12 @@ from pymumble_rev.audio import PcmBuffer
 from voice_bridge.libraries.mumble.audio import (
     Loudspeaker,
     Packet,
+    Stall,
     holds_certificate,
     is_listened,
     named,
     pump_audio,
+    stall,
     with_pauses,
 )
 
@@ -68,11 +70,11 @@ class FakeSession:
             yield event
 
 
-async def pumped(*received: events.Event) -> list[Packet]:
+async def pumped(*received: events.Event, clock: Callable[[], float] = lambda: 42.0) -> list[Packet]:
     sent, packets = anyio.create_memory_object_stream[Packet](10)
     async with packets:
         async with sent:
-            await pump_audio(FakeSession(received=received), holds_certificate(SPEAKER_HASH), sent, clock=lambda: 42.0)
+            await pump_audio(FakeSession(received=received), holds_certificate(SPEAKER_HASH), sent, clock=clock)
         return [packet async for packet in packets]
 
 
@@ -138,3 +140,36 @@ async def test_a_pause_comes_through_when_no_packet_arrives_in_time() -> None:
         tick = await anext(ticks)
         await ticks.aclose()
     assert tick is None
+
+
+def arrived(at: float, frame_number: int, *, last: bool = False) -> Packet:
+    return Packet(pcm=TWENTY_MS, at=at, frame_number=frame_number, last=last)
+
+
+def test_the_first_packet_is_never_a_stall() -> None:
+    assert stall(None, arrived(1.0, 0)) is None
+
+
+def test_packets_arriving_every_twenty_milliseconds_are_not_a_stall() -> None:
+    assert stall(arrived(1.0, 0), arrived(1.02, 2)) is None
+
+
+def test_a_long_wait_in_the_middle_of_speech_is_a_stall() -> None:
+    assert stall(arrived(1.0, 0), arrived(1.5, 2)) == Stall(waited=0.5, frames_skipped=0)
+
+
+def test_a_stall_tells_the_frames_skipped() -> None:
+    assert stall(arrived(1.0, 0), arrived(1.5, 8)) == Stall(waited=0.5, frames_skipped=6)
+
+
+def test_the_pause_after_the_end_of_a_transmission_is_not_a_stall() -> None:
+    assert stall(arrived(1.0, 0, last=True), arrived(5.0, 2)) is None
+
+
+async def test_a_packet_remembers_it_ended_a_transmission() -> None:
+    assert (await pumped(audio_from(1, 0, last=True)))[0].last
+
+
+async def test_a_stalled_packet_still_comes_through() -> None:
+    arrivals = iter([1.0, 1.5])
+    assert len(await pumped(audio_from(1, 0), audio_from(1, 2), clock=lambda: next(arrivals))) == 2
