@@ -4,8 +4,26 @@ Talk to a [Claude Code](https://code.claude.com) session from your phone, hands-
 
 ## How it works
 
-```
-Mumble app (phone) ⇄ Mumble server ⇄ voice-bridge ⇄ Claude Code session
+```mermaid
+flowchart LR
+    phone["Mumble app<br/>on the phone"]
+    server["Mumble server"]
+    subgraph machine["Your machine, with an NVIDIA GPU"]
+        claude["Claude Code session"]
+        bridge["voice-bridge<br/>Silero, Whisper"]
+        voxtral["Voxtral<br/>vLLM, systemd user unit"]
+    end
+    api["Anthropic API"]
+    app["Claude app"]
+
+    phone <-->|"voice, Opus over TLS"| server
+    server <-->|"voice, Opus over TLS<br/>pinned certificate"| bridge
+    claude -->|"starts, MCP over stdio"| bridge
+    bridge -->|"channel message"| claude
+    claude -->|"reply tool"| bridge
+    bridge -->|"HTTP, one sentence at a time"| voxtral
+    claude <-->|"HTTPS"| api
+    app -.->|"Remote Control, optional"| claude
 ```
 
 1. **Your Mumble app** sends your voice to a Mumble server.
@@ -15,6 +33,34 @@ Mumble app (phone) ⇄ Mumble server ⇄ voice-bridge ⇄ Claude Code session
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
 Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. Claude's work in progress goes on either way.
+
+```mermaid
+sequenceDiagram
+    actor you as You
+    participant bridge as voice-bridge
+    participant claude as Claude Code
+    participant voxtral as Voxtral
+
+    you->>bridge: speak
+    Note over bridge: Silero hears voice,<br/>0.8 s of silence ends the sentence
+    bridge->>bridge: Whisper transcribes
+    bridge->>claude: channel message
+    claude->>bridge: reply tool
+    loop each sentence
+        bridge->>voxtral: synthesize
+        voxtral-->>bridge: speech
+        bridge->>you: play, while the next sentence is synthesized
+    end
+    opt you speak while Claude talks
+        bridge->>bridge: pause the reply
+        alt only noise
+            bridge->>you: resume the reply
+        else words
+            bridge->>claude: channel message, marked as an interruption
+            Note over bridge: the rest of the reply is dropped
+        end
+    end
+```
 
 ## Requirements
 
@@ -126,6 +172,34 @@ Two more commands help test the voice path without Claude:
 | An invented sentence arrives, such as "Thank you." | Read its scores in the log; known Whisper hallucinations are filtered per language in [`language.py`](src/voice_bridge/configuration/language.py) |
 
 ## Architecture
+
+Inside the bridge, one task per stage passes events along; turn taking decides, the others carry out:
+
+```mermaid
+flowchart LR
+    mumble["Mumble server"]
+    subgraph bridge["voice-bridge"]
+        connection["Connection<br/>pinned certificate, one speaker"]
+        ears["Ears<br/>loudness and Silero VAD"]
+        whisper["Transcription<br/>faster-whisper"]
+        turns["Turn taking<br/>pure state machine"]
+        channel["Channel<br/>MCP server"]
+        mouth["Voice<br/>sentences for the ear"]
+        loudspeaker["Loudspeaker<br/>playback buffer"]
+    end
+    claude["Claude Code"]
+    voxtral["Voxtral"]
+
+    mumble -->|"speaker's audio"| connection --> ears
+    ears -->|"utterance"| whisper
+    ears -->|"voice detected, or noise"| turns
+    whisper -->|"text, or noise"| turns
+    turns -->|"forward"| channel -->|"channel message"| claude
+    claude -->|"reply"| channel -->|"sentences"| turns
+    turns -->|"synthesize"| mouth <-->|"HTTP"| voxtral
+    mouth -->|"speech"| turns
+    turns -->|"play, stop"| loudspeaker -->|"bridge's audio"| mumble
+```
 
 The code is split into features, each with a pure domain, its implementations and its abilities, on top of shared libraries; entry points only wire them together.
 
