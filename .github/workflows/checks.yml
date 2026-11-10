@@ -30,6 +30,8 @@ jobs:
       - run: uv run --frozen validate-pyproject pyproject.toml
       - run: uv run --frozen prek run --all-files actionlint
       - run: uv run --frozen zizmor .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: uv run --frozen ruff format --check
       - run: uv run --frozen ruff check
       - run: uv run --frozen basedpyright

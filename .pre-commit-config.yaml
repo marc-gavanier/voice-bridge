@@ -43,7 +43,7 @@ repos:
         files: ^pyproject\.toml$
       - id: zizmor
         name: zizmor
-        entry: uv run --frozen zizmor .
+        entry: uv run --frozen zizmor --offline .
         language: system
         files: ^\.github/
         pass_filenames: false

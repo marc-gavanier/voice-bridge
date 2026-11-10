@@ -32,7 +32,7 @@ What each gate holds:
 - **deptry** checks that declared and imported dependencies match.
 - **pre-commit-hooks** check every text file: no merge conflict markers, no file over 500 KB, one final newline, no trailing whitespace, and TOML and YAML that parse. `.editorconfig` sets the same rules, and the indentation, for editors.
 - **validate-pyproject** checks `pyproject.toml` against PEP 621 and the schemas of the tools it knows (Ruff, uv, among others); the sections of the other tools stay unchecked.
-- **actionlint** checks the syntax and expressions of the workflows, and their `run:` blocks with ShellCheck when `shellcheck` is on the `PATH`, as under `uv run prek` and in CI; the commit hook skips them silently unless the virtual environment is active or ShellCheck is installed on the system; **zizmor** checks their security (template injection, dangerous triggers, persisted credentials, unpinned actions), offline.
+- **actionlint** checks the syntax and expressions of the workflows, and their `run:` blocks with ShellCheck when `shellcheck` is on the `PATH`, as under `uv run prek` and in CI; the commit hook skips them silently unless the virtual environment is active or ShellCheck is installed on the system; **zizmor** checks their security (template injection, dangerous triggers, persisted credentials, unpinned actions), offline in the hook and online in CI, where the job's read-only token also lets it check for impostor commits and known vulnerable actions.
 - **commitizen** checks each commit message, and **uv audit** checks the dependencies before each push.
 
 ## Writing code
