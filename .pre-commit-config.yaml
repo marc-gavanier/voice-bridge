@@ -1,6 +1,10 @@
 default_install_hook_types: [pre-commit, commit-msg, pre-push]
 default_stages: [pre-commit, pre-push]
 repos:
+  - repo: https://github.com/rhysd/actionlint
+    rev: 011a6d15e749bb3f2d771eed9c7aa0e7e3e10ee7  # frozen: v1.7.12
+    hooks:
+      - id: actionlint
   - repo: local
     hooks:
       - id: check-merge-conflict
@@ -37,6 +41,12 @@ repos:
         entry: uv run --frozen validate-pyproject
         language: system
         files: ^pyproject\.toml$
+      - id: zizmor
+        name: zizmor
+        entry: uv run --frozen zizmor .
+        language: system
+        files: ^\.github/
+        pass_filenames: false
       - id: ruff-format
         name: ruff format
         entry: uv run --frozen ruff format

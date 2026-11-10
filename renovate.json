@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":timezone(Europe/Paris)", "helpers:pinGitHubActionDigests"],
-  "description": "Python dependencies through uv and GitHub Actions. Weekly, with minor and patch updates grouped; versions younger than ten days are left out, as uv's exclude-newer refuses them.",
+  "extends": ["config:recommended", ":timezone(Europe/Paris)", "helpers:pinGitHubActionDigests", ":enablePreCommit"],
+  "description": "Python dependencies through uv, GitHub Actions and prek hooks from remote repositories. Weekly, with minor and patch updates grouped; versions younger than ten days are left out, as uv's exclude-newer refuses them.",
   "schedule": ["before 8am on saturday"],
   "minimumReleaseAge": "10 days",
   "osvVulnerabilityAlerts": true,

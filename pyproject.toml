@@ -46,6 +46,7 @@ dev = [
     "shellcheck-py>=0.11.0.1",
     "validate-pyproject-schema-store>=2026.10.30",
     "validate-pyproject[all]>=0.27",
+    "zizmor>=1.31.1",
 ]
 
 [build-system]

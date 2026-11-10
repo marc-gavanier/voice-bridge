@@ -6,6 +6,7 @@ voice-bridge lets a person talk to a Claude Code session over Mumble. The [READM
 
 - `uv sync`, then `uv run prek install` to install the hooks for commit, commit message and push.
 - uv brings Python 3.14. The tests also need the system `libopus0`, and the commit hook calls a system `gitleaks`.
+- Every tool comes from the dev dependencies and runs through `uv run`, except actionlint, whose author publishes no Python package: prek builds it from its official hook, with a Go toolchain it downloads on first use ([ADR-008](docs/decisions/ADR-008-dev-tools-from-uv-and-official-hooks-pinned-with-their-version.md)).
 - uv refuses package versions younger than ten days (`exclude-newer` in `pyproject.toml`), and Renovate waits as long. Do not lift the delay without a reason given in the commit, as was done for pytest-bdd.
 - `pymumble-rev` is pinned to an exact version on purpose ([ADR-001](docs/decisions/ADR-001-pymumble-rev-as-the-mumble-client.md)).
 - Anything that runs Whisper on the GPU goes through `scripts/with-cuda.sh` ([ADR-004](docs/decisions/ADR-004-cuda-libraries-from-pip.md)). The tests do not need it.
@@ -31,6 +32,7 @@ What each gate holds:
 - **deptry** checks that declared and imported dependencies match.
 - **pre-commit-hooks** check every text file: no merge conflict markers, no file over 500 KB, one final newline, no trailing whitespace, and TOML and YAML that parse. `.editorconfig` sets the same rules, and the indentation, for editors.
 - **validate-pyproject** checks `pyproject.toml` against PEP 621 and the schemas of the tools it knows (Ruff, uv, among others); the sections of the other tools stay unchecked.
+- **actionlint** checks the syntax and expressions of the workflows, and their `run:` blocks with ShellCheck when `shellcheck` is on the `PATH`, as under `uv run prek` and in CI; the commit hook skips them silently unless the virtual environment is active or ShellCheck is installed on the system; **zizmor** checks their security (template injection, dangerous triggers, persisted credentials, unpinned actions), offline.
 - **commitizen** checks each commit message, and **uv audit** checks the dependencies before each push.
 
 ## Writing code
@@ -38,7 +40,7 @@ What each gate holds:
 - Domains are pure functions on immutable values: a decision returns new state and commands, and the loops around it carry them out. Turn taking is `step(state, event) -> (state, commands)`.
 - An ability states what it needs as a `typing.Protocol`; entry points build the implementations and pass them in, with no container.
 - Concurrency is anyio task groups and memory streams, never threads.
-- No comments or docstrings in the code. The reasoning goes in the commit message or an ADR.
+- No comments or docstrings in the code or the configuration. The reasoning goes in the commit message or an ADR. The one exception is a version annotation that a tool reads next to a pinned digest: `# frozen: vX.Y.Z` after a prek `rev`, and `# vX.Y.Z` after the SHA of a `uses:` in the workflows ([ADR-008](docs/decisions/ADR-008-dev-tools-from-uv-and-official-hooks-pinned-with-their-version.md)).
 
 ## Writing tests
 
