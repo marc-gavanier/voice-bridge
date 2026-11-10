@@ -16,7 +16,7 @@ Before a large change, open an issue to talk about it first.
 
 ## Set up
 
-You need Linux, [uv](https://docs.astral.sh/uv/), the system `libopus0` for the tests and a system `gitleaks` for the commit hook. Running the bridge for real also needs an NVIDIA GPU, a Mumble server and Claude Code, as the README's [Requirements](README.md#requirements) say; the checks do not.
+You need Linux, [uv](https://docs.astral.sh/uv/), the system `libopus0` for the tests and a system `gitleaks` for the commit hook. A system `shellcheck` is recommended (`sudo apt install shellcheck` on Debian and Ubuntu), so that the commit hook also checks the workflows' `run:` blocks; without it, only CI does. Running the bridge for real also needs an NVIDIA GPU, a Mumble server and Claude Code, as the README's [Requirements](README.md#requirements) say; the checks do not.
 
 ```bash
 uv sync
