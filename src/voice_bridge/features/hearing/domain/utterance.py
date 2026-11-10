@@ -94,4 +94,4 @@ def close(state: Listening, now: float, rules: UtteranceRules) -> tuple[Listenin
         if voice >= rules.shortest_voice
         else Dismissed(voice=voice, duration=_duration(state.utterance))
     )
-    return replace(state, utterance=()), closing
+    return replace(state, utterance=(), recent=()), closing

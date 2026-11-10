@@ -173,3 +173,11 @@ def test_exactly_the_shortest_voice_is_an_utterance() -> None:
 def test_closing_an_utterance_empties_it() -> None:
     state = heard_quarters(quarter(voiced=True, at=0.25), quarter(voiced=True, at=0.5))
     assert close(state, 2.0, QUARTER)[0].utterance == ()
+
+
+WIDE_WINDOW = UtteranceRules(silence=0.8, barge_in=0.5, barge_window=5.0)
+
+
+def test_the_voice_of_a_closed_utterance_no_longer_counts_towards_an_interruption() -> None:
+    state, now = listen((VOICE, 30), (SILENCE, 45), rules=WIDE_WINDOW)
+    assert not is_speaking(close(state, now, WIDE_WINDOW)[0], WIDE_WINDOW)

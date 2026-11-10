@@ -53,9 +53,6 @@ class HearingSettings(Section):
         if self.shortest_voice > self.barge_in:
             message = "shortest_voice must not exceed barge_in"
             raise ValueError(message)
-        if self.barge_window >= self.silence + self.barge_in:
-            message = "barge_window must be shorter than silence plus barge_in"
-            raise ValueError(message)
         return self
 
 

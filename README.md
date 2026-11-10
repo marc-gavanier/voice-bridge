@@ -99,7 +99,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `voxtral.voice` | the language's | A Voxtral voice, such as `neutral_female` or `fr_female` |
 | `voxtral.gain` | `1.0` | Loudness of the speech; values above 1 raise it without clipping |
 | `whisper.model`, `whisper.device`, `whisper.compute_type` | `large-v3-turbo`, `auto`, `default` | The faster-whisper model and how it runs |
-| `hearing.*` | see [`settings.py`](src/voice_bridge/configuration/settings.py) | Thresholds and durations of voice detection; the start stops when `shortest_voice` exceeds `barge_in`, or when `barge_window` reaches `silence` plus `barge_in`, since an interruption could then be dismissed as too short |
+| `hearing.*` | see [`settings.py`](src/voice_bridge/configuration/settings.py) | Thresholds and durations of voice detection; the start stops when `shortest_voice` exceeds `barge_in`, since an interruption could then be dismissed as too short |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
 

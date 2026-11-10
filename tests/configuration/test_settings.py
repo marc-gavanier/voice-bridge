@@ -96,10 +96,5 @@ def test_a_shortest_voice_as_long_as_the_barge_in_is_accepted() -> None:
     assert HearingSettings(shortest_voice=0.5, barge_in=0.5).shortest_voice == 0.5
 
 
-def test_a_barge_window_reaching_the_silence_plus_the_barge_in_stops_the_start() -> None:
-    with pytest.raises(ValidationError, match="barge_window"):
-        _ = HearingSettings(silence=0.5, barge_in=0.5, barge_window=1.0)
-
-
-def test_a_barge_window_shorter_than_the_silence_plus_the_barge_in_is_accepted() -> None:
-    assert HearingSettings(silence=0.6, barge_in=0.5, barge_window=1.0).barge_window == 1.0
+def test_a_barge_window_longer_than_the_silence_plus_the_barge_in_is_accepted() -> None:
+    assert HearingSettings(silence=0.3, barge_in=0.5, barge_window=1.0).barge_window == 1.0
