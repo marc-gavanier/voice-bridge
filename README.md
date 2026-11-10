@@ -1,140 +1,180 @@
-# Pont vocal
+# voice-bridge
 
-Parler avec une session Claude Code depuis son téléphone, comme au téléphone, sans regarder l'écran. Tout tourne en local, sauf le modèle Claude lui-même : le serveur Mumble sur le homelab, le reste sur le PC.
+Talk to a [Claude Code](https://code.claude.com) session from your phone, hands-free and without looking at a screen. You speak in a Mumble app; the bridge transcribes what you say, hands it to Claude Code as a [channel](https://code.claude.com/docs/en/channels-reference) message, and reads Claude's replies back into your headset. Everything but the Claude model itself runs on your own machines.
 
-## Comment ça marche
+## How it works
 
 ```
-Mumla (téléphone) ⇄ WireGuard via le Pi ⇄ serveur Mumble (Pi) ⇄ pont vocal ⇄ session Claude Code
+Mumble app (phone) ⇄ Mumble server ⇄ voice-bridge ⇄ Claude Code session
 ```
 
-1. **Mumla** envoie l'audio du téléphone au serveur Mumble, le service `mumble` du homelab.
-2. **Le pont** écoute uniquement l'utilisateur `marc`. Un son compte comme de la voix s'il dépasse `VOICE_THRESHOLD` et si Silero VAD, le détecteur de voix fourni avec faster-whisper, y reconnaît de la parole : un bruit fort seul, comme un scooter, n'est ni transcrit ni pris pour une interruption. Le pont attend environ 0,8 seconde de silence pour considérer qu'une phrase est finie.
-3. **Whisper** transcrit la phrase en français, sur la carte graphique.
-4. **Un canal Claude Code** injecte le texte dans la session.
-5. **Claude** répond avec l'outil `reply`. **Voxtral** lit la réponse phrase par phrase dans le casque.
+1. **Your Mumble app** sends your voice to a Mumble server.
+2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence.
+3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
+4. **The `voice` channel** pushes the text into the Claude Code session.
+5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
-Parler pendant que Claude parle coupe sa voix. Son travail en cours continue, et il sait qu'il a été interrompu.
+Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. Claude's work in progress goes on either way.
 
-## Lancer une session
+## Requirements
 
-### 1. Le serveur Mumble
+- Linux with an NVIDIA GPU able to hold Voxtral and Whisper together, about 14 GB of video memory.
+- [uv](https://docs.astral.sh/uv/). It brings Python 3.14 and the CUDA libraries the project needs.
+- A Mumble server, version 1.5 or later. Voice reaches the bridge through the server's TLS connection, which [pymumble-rev](https://github.com/AidenOfficial/PyMumble) requires.
+- A Mumble app on the phone, such as [Mumla](https://mumla-app.gitlab.io/) on Android.
+- Claude Code with channels enabled. Channels are a research preview: a channel outside Anthropic's allowlist loads with `--dangerously-load-development-channels`, which the launcher passes.
+- [Graphviz](https://graphviz.org/), only to draw the architecture diagram.
 
-Rien à lancer : il tourne sur le homelab et redémarre avec lui. Voir `docs/05-services/mumble.md` dans le dépôt home-lab.
-
-### 2. Lancer Claude depuis le dossier de travail
-
-Dans un vrai terminal, sur le PC :
+## Install
 
 ```bash
-cd ~/notes
-~/path/to/voice-bridge/claude-vocal.sh
-```
-
-Pour reprendre une session existante, depuis son dossier d'origine :
-
-```bash
-~/path/to/voice-bridge/claude-vocal.sh --resume <id-de-session>
-```
-
-Le script démarre Voxtral s'il ne tourne pas. Son démarrage prend de 1 min 30 à 2 min 30.
-
-Une seule session vocale à la fois : deux sessions prendraient le même nom `claude` dans Mumble et s'éjecteraient mutuellement.
-
-### 3. Accepter l'avertissement
-
-Un écran d'avertissement s'affiche à chaque lancement : choisir **I am using this for local development**.
-
-Il apparaît parce que ce canal est fait maison. Pendant la préversion, Claude Code n'accepte d'office que les canaux de sa liste officielle. L'option lève seulement cette liste : les permissions habituelles restent actives.
-
-Sous la bannière, cette ligne doit s'afficher :
-
-```
-Channels (experimental) messages from server:voix
-```
-
-### 4. Activer Remote Control, si besoin
-
-Dans la session, taper :
-
-```
-/remote-control
-```
-
-La voix n'en a pas besoin. Il sert à voir la session sur le téléphone et à valider les permissions depuis l'app Claude. Sans lui, si Claude demande une permission alors que tu es loin du PC, il reste bloqué, et tu n'entends rien.
-
-### 5. Se connecter dans Mumla
-
-Installer Mumla depuis F-Droid, puis ajouter ce serveur :
-
-| Champ | Valeur |
-|---|---|
-| Adresse | `voice.example.org` |
-| Port | `64738` |
-| Nom d'utilisateur | `marc` |
-| Mot de passe | `MUMBLE_PASSWORD` dans le fichier `.env` |
-
-- **À la maison :** le Wi-Fi suffit.
-- **Dehors :** activer WireGuard, qui passe par le Pi.
-
-Une fois Whisper chargé (jusqu'à 40 secondes), on entend **« Je t'écoute »** et l'utilisateur `claude` apparaît.
-
-Pour parler sans être entendu, mettre Mumla en sourdine.
-
-## Pendant que ça tourne
-
-- Utiliser un casque : sinon, le micro capte le haut-parleur et la voix de Claude se coupe toute seule.
-- Le PC doit rester branché, capot ouvert : fermer le capot le met en veille.
-- Un silence prolongé veut souvent dire que Claude attend une permission : regarder l'app.
-
-## Arrêter
-
-- Quitter la session avec `/exit`.
-- Libérer la carte graphique, car Voxtral occupe 12,6 Go de mémoire vidéo tant qu'il tourne :
-
-```bash
-~/path/to/voice-bridge/voxtral.sh stop
-```
-
-Voxtral et Whisper utilisent ensemble environ 13,9 Go sur 16.
-
-## Commandes utiles
-
-```bash
-./voxtral.sh start|stop|status|logs
-tail -f logs/voix.log
-./run.sh -m voice_bridge.recorder
-uv run pytest
-```
-
-`logs/voix.log` contient les transcriptions, avec pour chaque segment ses scores Whisper (probabilité d'absence de parole et confiance moyenne), et les messages échangés avec Claude Code, chaque ligne précédée de sa date et de son heure à la milliseconde : il reste sur le PC et n'est pas versionné.
-
-L'enregistreur de diagnostic se connecte au serveur Mumble comme un second auditeur et enregistre ce que le serveur renvoie de la voix de Claude : un fichier `logs/enregistreur/AAAA-MM-JJ/HHMMSS.wav` par réponse, et une ligne par réponse dans `logs/enregistreur/journal.log` (durée, paquets reçus et perdus, plus long trou entre deux paquets). En comparant avec `voix.log`, on sait si un son coupé s'est perdu avant le serveur, côté PC, ou après, entre le serveur et le téléphone. Le lancer pendant les essais, l'arrêter avec Ctrl+C.
-
-## Dépannage
-
-| Symptôme | Piste |
-|---|---|
-| Pas de « Je t'écoute » | `./voxtral.sh status`, puis `logs/voix.log` |
-| Mot de passe refusé dans Mumla | Vérifier les majuscules et les espaces ajoutés par le clavier |
-| Claude dit ne pas avoir d'outil vocal | La session n'a pas été lancée avec `claude-vocal.sh` |
-| Sa voix se coupe toute seule | Son pris pour de la parole : `interruption` en série dans le journal. Vérifier le casque, ou relever `VOICE_THRESHOLD` dans `.env` |
-| Une phrase inventée arrive (« Merci. », « Sous-titrage… ») | Relever ses scores dans la ligne `scores` du journal, pour régler un filtre sur des données réelles |
-| Sa voix arrive hachée, sans `interruption` dans le journal | Comparer avec l'enregistreur : si son fichier est complet, le son se perd entre le serveur et le téléphone (réseau mobile, Mumla) |
-| Mumla ne se connecte pas | Voir le dépannage de `docs/05-services/mumble.md` dans le dépôt home-lab |
-
-## Installation sur une nouvelle machine
-
-```bash
-cp .env.example .env
 uv sync
 ```
 
-Renseigner ensuite `MUMBLE_PASSWORD` dans `.env` : c'est le mot de passe du serveur Mumble du homelab. `mcp.json` contient un chemin absolu vers ce dossier, à adapter si le projet change de place.
+## Configure
 
-## Limites actuelles
+The bridge reads `~/.config/voice-bridge/config.toml`; `--config` points at another file. Variables named `VOICE_BRIDGE_<KEY>`, or `VOICE_BRIDGE_<SECTION>__<KEY>` for a key inside a section, override the file. An unknown key or a missing value stops the bridge at start. Start from [`config.example.toml`](config.example.toml) and keep the file readable by you only, since it holds the server password:
 
-- Les permissions ne passent pas par la voix.
-- Interrompre Claude coupe sa voix, pas sa tâche.
-- Un bourdonnement régulier, comme un moteur, peut ressembler à une voix pendant de courts instants ; les tests vérifient qu'il ne suffit pas à couper Claude. Le vent et la course n'ont pas encore été mesurés avec le détecteur de voix.
-- La licence de Voxtral (CC BY-NC 4.0) n'autorise pas un usage commercial.
+```bash
+mkdir -p ~/.config/voice-bridge
+cp config.example.toml ~/.config/voice-bridge/config.toml
+chmod 600 ~/.config/voice-bridge/config.toml
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `language` | `en` | `en` or `fr`: the language Whisper transcribes, the default voice, the greeting and the default instructions |
+| `mumble.host`, `mumble.port` | required, `64738` | The Mumble server |
+| `mumble.password` | required | The server password |
+| `mumble.username` | `claude` | The bridge's name on the server |
+| `mumble.server_certificate` | required | The server certificate the bridge trusts; see below |
+| `mumble.speaker_certificate_hash` | required | The certificate hash of the one person the bridge listens to; see below |
+| `voxtral.url` | `http://127.0.0.1:8123` | The Voxtral server |
+| `voxtral.voice` | the language's | A Voxtral voice, such as `neutral_female` or `fr_female` |
+| `voxtral.gain` | `1.0` | Loudness of the speech; values above 1 raise it without clipping |
+| `whisper.model`, `whisper.device`, `whisper.compute_type` | `large-v3-turbo`, `auto`, `default` | The faster-whisper model and how it runs |
+| `hearing.*` | see [`settings.py`](src/voice_bridge/configuration/settings.py) | Thresholds and durations of voice detection |
+| `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
+| `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
+
+### The server certificate
+
+The bridge trusts one certificate only: the server's, pinned like a known SSH host. It refuses anything older than TLS 1.2, and skips the host name check that a self-signed Murmur certificate cannot pass. Export the certificate once, and again whenever the server generates a new one:
+
+```bash
+openssl s_client -connect voice.example.org:64738 </dev/null 2>/dev/null \
+  | openssl x509 -outform PEM > ~/.config/voice-bridge/server.pem
+```
+
+### The speaker's certificate
+
+A Mumble user name proves nothing: anyone with the server password can take it. The bridge only listens to the client certificate your Mumble app holds. To find its hash, start the bridge with any value, connect from your phone and say something: the bridge ignores you and logs the hash to copy into `speaker_certificate_hash`.
+
+```
+ignored a transmission from 'you', certificate hash 6f0b58787b96ff978ba512c74a1c3ca4aabab441
+```
+
+## Run
+
+From the folder you want Claude Code to work in:
+
+```bash
+~/path/to/voice-bridge/scripts/claude-voice.sh
+```
+
+The launcher starts Voxtral when it is not running, which takes a few minutes the first time, then starts Claude Code with the `voice` channel. Arguments go to Claude Code, so `--resume <session>` works.
+
+1. **Accept the warning.** Claude Code shows a full-screen warning about development channels at every start: choose *I am using this for local development*. Below the banner, `Channels (experimental) messages from server:voice` confirms the channel is registered.
+2. **Connect from the phone.** Once Whisper is loaded and Voxtral answers, you hear the greeting and the bridge's user appears in the channel.
+3. **Optionally, turn on Remote Control** with `/remote-control`. The voice does not need it, but it lets you see the session and answer permission prompts from the Claude app; without it, Claude waits silently when it needs a permission.
+
+While it runs:
+
+- Wear headphones: otherwise the microphone hears Claude and Claude cuts itself off.
+- Keep the machine awake; a laptop closing its lid goes to sleep.
+- Run one voice session at a time: two bridges with the same name on the server push each other off.
+
+To stop, leave Claude Code with `/exit`, then free the GPU from Voxtral:
+
+```bash
+scripts/voxtral.sh stop
+```
+
+`scripts/voxtral.sh` also takes `start`, `status` and `logs`; it runs Voxtral with [vLLM](https://docs.vllm.ai) as a systemd user unit.
+
+## Diagnose
+
+The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, what was forwarded to Claude, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, and every stall of more than 100 ms in the audio reaching the bridge.
+
+```bash
+tail -f ~/.local/state/voice-bridge/log/voice-bridge.log
+```
+
+Two more commands help test the voice path without Claude:
+
+- `scripts/with-cuda.sh uv run voice-bridge-rehearsal` joins the server as `rehearsal` and repeats everything you say: hearing, transcription, synthesis and interruptions, without a Claude Code session.
+- `uv run voice-bridge-recorder` joins as `recorder` and records the bridge's voice as the server sends it: one WAV per answer in `~/.local/state/voice-bridge/log/recordings/`, and for each one its length, packets, lost audio and longest gap in `recorder.log`. A recording that is complete while the phone heard gaps puts the loss between the server and the phone.
+
+| Symptom | Where to look |
+|---|---|
+| No greeting | `scripts/voxtral.sh status`, then the log |
+| `server:voice · no MCP server configured with that name` | The session was not started with `scripts/claude-voice.sh` |
+| The bridge hears you but Claude never answers | `/mcp` in the session, then the log for `forwarded` lines |
+| Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
+| `certificate verify failed` | The server has a new certificate: export it again |
+| Claude's voice cuts itself off | Lines `interrupted` with no one speaking: use headphones, or raise `hearing.volume_threshold` |
+| An invented sentence arrives, such as "Thank you." | Read its scores in the log; known Whisper hallucinations are filtered per language in [`language.py`](src/voice_bridge/configuration/language.py) |
+
+## Architecture
+
+The code is split into features, each with a pure domain, its implementations and its abilities, on top of shared libraries; entry points only wire them together.
+
+```
+src/voice_bridge/
+  features/
+    hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
+    speaking/      sentences written for the ear, synthesis (Voxtral)
+    conversation/  turn taking, interruptions, the Claude channel (MCP)
+    recording/     the diagnostic recorder
+  libraries/
+    audio/         PCM and WAV with numpy and soxr
+    mumble/        pinned connection, speaker audio, loudspeaker (pymumble-rev)
+  configuration/   settings (pydantic-settings), languages, default instructions
+  entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder
+```
+
+Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Four [import-linter](https://import-linter.readthedocs.io) contracts in [`pyproject.toml`](pyproject.toml) enforce the layout: features never import each other, domains import nothing beyond the standard library, abilities sit above implementations, and entry points above everything.
+
+The diagram of the dependencies between these parts is drawn from the imports, never committed, so it cannot fall out of date:
+
+```bash
+uv run pydeps src/voice_bridge
+```
+
+It writes `docs/architecture.svg`.
+
+## Develop
+
+```bash
+uv sync
+uv run prek install
+```
+
+[prek](https://prek.j178.dev) then checks every commit with Ruff, basedpyright in its strictest mode, the import-linter contracts, deptry, the tests with full branch coverage, the lockfile, ShellCheck and gitleaks; every commit message against [Conventional Commits](https://www.conventionalcommits.org) with commitizen; and the dependencies with `uv audit` before every push. The CI runs the same checks on every pull request.
+
+```bash
+uv run prek run --all-files
+uv run pytest
+```
+
+## Limits
+
+- Permissions are not answered by voice.
+- Interrupting Claude cuts its voice, not its task.
+- Voice reaches the bridge over TCP only, the one transport pymumble-rev implements, so a lossy mobile link can delay it.
+- Channels are a Claude Code research preview: the bridge serves them on the MCP handshake protocol, since Claude Code does not deliver channel messages on the 2026-07-28 protocol.
+- Voxtral's licence, [CC BY-NC 4.0](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603), forbids commercial use.
+
+## License
+
+[MIT](LICENSE)
