@@ -153,6 +153,8 @@ uv run pydeps src/voice_bridge
 
 It writes `docs/architecture.svg`.
 
+The decisions behind this design, and the alternatives they set aside, are recorded in [`docs/decisions/`](docs/decisions).
+
 ## Develop
 
 ```bash
