@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from voice_bridge.configuration.settings import load_settings
+from voice_bridge.configuration.settings import default_config_file, load_settings
 
 MINIMAL = """
 [mumble]
@@ -81,3 +81,7 @@ def test_the_voice_defaults_to_the_one_of_the_language(config_file: Path) -> Non
 
 def test_the_gain_is_neutral_by_default(config_file: Path) -> None:
     assert load_settings(config_file).voxtral.gain == 1.0
+
+
+def test_the_default_config_file_is_named_after_the_bridge() -> None:
+    assert default_config_file().parts[-2:] == ("voice-bridge", "config.toml")

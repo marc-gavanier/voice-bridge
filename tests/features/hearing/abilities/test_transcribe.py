@@ -43,7 +43,11 @@ async def one_utterance() -> AsyncIterator[bytes]:
 async def reported(words: str) -> tuple[str, bool]:
     sent, received = anyio.create_memory_object_stream[tuple[str, bool]](1)
     async with sent, received:
-        await transcribe_utterances(transcription(words), one_utterance(), lambda text, noise: sent.send((text, noise)))
+
+        async def report(text: str, *, noise: bool) -> None:
+            await sent.send((text, noise))
+
+        await transcribe_utterances(transcription(words), one_utterance(), report)
         return received.receive_nowait()
 
 

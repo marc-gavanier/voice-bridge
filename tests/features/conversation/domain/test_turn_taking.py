@@ -175,3 +175,7 @@ def test_a_synthesis_finished_after_an_interruption_is_not_played() -> None:
         )
         == ()
     )
+
+
+def test_a_synthesis_failed_after_an_interruption_changes_nothing() -> None:
+    assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0), SynthesisFailed(ticket=0)) == ()

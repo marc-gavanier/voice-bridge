@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from importlib.resources import files
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -53,6 +53,8 @@ def language_pack(language: Language) -> LanguagePack:
                 hallucination_prefixes=("sous-titrage",),
                 instructions=_packaged_instructions(language),
             )
+        case _:
+            assert_never(language)
 
 
 def load_instructions(path: Path, default: str) -> str:

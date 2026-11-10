@@ -3,14 +3,20 @@ from dataclasses import dataclass
 from typing import Final
 
 import httpx
+import stamina
 
 from voice_bridge.libraries.audio.pcm import boost
 from voice_bridge.libraries.audio.wav import decode
 
 HEALTH_TIMEOUT: Final = 2.0
+LONGEST_WAIT_FOR_READINESS: Final = 5.0
 
 
 class SynthesisError(Exception):
+    pass
+
+
+class NotReadyError(Exception):
     pass
 
 
@@ -38,3 +44,12 @@ async def is_ready(voxtral: Voxtral) -> bool:
     except httpx.HTTPError:
         return False
     return response.is_success
+
+
+async def wait_until_ready(voxtral: Voxtral) -> None:
+    async for attempt in stamina.retry_context(
+        on=NotReadyError, attempts=None, timeout=None, wait_max=LONGEST_WAIT_FOR_READINESS
+    ):
+        with attempt:
+            if not await is_ready(voxtral):
+                raise NotReadyError

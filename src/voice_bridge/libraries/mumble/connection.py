@@ -1,10 +1,11 @@
-import ssl
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
 import stamina
 from pymumble_rev import ClientConfig, MumbleClient, MumbleError
+
+from voice_bridge.libraries.mumble.tls import pinned_context
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable, Callable
@@ -24,13 +25,6 @@ class Access:
     username: str
     password: str
     server_certificate: Path
-
-
-def pinned_context(certificate: Path) -> ssl.SSLContext:
-    context = ssl.create_default_context(cafile=str(certificate))
-    context.check_hostname = False
-    context.minimum_version = ssl.TLSVersion.TLSv1_2
-    return context
 
 
 @asynccontextmanager

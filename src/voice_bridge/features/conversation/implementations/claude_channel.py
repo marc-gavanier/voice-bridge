@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from importlib.metadata import version
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Protocol
 
 from mcp import types
 from mcp.server.lowlevel.server import Server
@@ -16,6 +16,10 @@ SERVER_NAME: Final = "voice"
 TOOL_NAME: Final = "reply"
 CHANNEL_CAPABILITY: Final = "claude/channel"
 CHANNEL_NOTIFICATION: Final = "notifications/claude/channel"
+
+
+class MessageSender(Protocol):
+    async def send(self, item: SessionMessage, /) -> None: ...
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -76,7 +80,7 @@ def initialization_options(server: Server[object]) -> InitializationOptions:
     return server.create_initialization_options(experimental_capabilities={CHANNEL_CAPABILITY: {}})
 
 
-async def forward(write: ObjectSendStream[SessionMessage], text: str, *, interrupted: bool) -> None:
+async def forward(write: MessageSender, text: str, *, interrupted: bool) -> None:
     meta = {"interrupted": "true"} if interrupted else {}
     notification = types.JSONRPCNotification(
         jsonrpc="2.0", method=CHANNEL_NOTIFICATION, params={"content": text, "meta": meta}

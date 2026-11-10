@@ -3,8 +3,15 @@ import json
 import httpx
 import numpy as np
 import pytest
+import stamina
 
-from voice_bridge.features.speaking.implementations.voxtral import SynthesisError, Voxtral, is_ready, synthesize
+from voice_bridge.features.speaking.implementations.voxtral import (
+    SynthesisError,
+    Voxtral,
+    is_ready,
+    synthesize,
+    wait_until_ready,
+)
 from voice_bridge.libraries.audio.wav import encode
 
 pytestmark = pytest.mark.anyio
@@ -80,3 +87,17 @@ async def test_the_server_is_ready_when_its_health_answers() -> None:
 
 async def test_the_server_is_not_ready_when_unreachable() -> None:
     assert not await is_ready(voxtral(httpx.MockTransport(refusing)))
+
+
+async def test_waiting_for_a_ready_server_returns_at_once() -> None:
+    assert await wait_until_ready(voxtral(httpx.MockTransport(healthy))) is None
+
+
+def ready_on_second_call() -> httpx.MockTransport:
+    answers = iter([httpx.Response(503), httpx.Response(200)])
+    return httpx.MockTransport(lambda _request: next(answers))
+
+
+async def test_waiting_retries_until_the_server_is_ready() -> None:
+    with stamina.set_testing(True, attempts=2):
+        assert await wait_until_ready(voxtral(ready_on_second_call())) is None

@@ -8,7 +8,7 @@ from anyio.abc import ObjectReceiveStream, ObjectSendStream
 from anyio.streams.memory import MemoryObjectSendStream
 
 from voice_bridge.features.conversation.abilities.hold_conversation import Mouth, hold_conversation
-from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, Transcribed
+from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, Transcribed, VoiceDetected
 
 pytestmark = pytest.mark.anyio
 
@@ -82,3 +82,11 @@ async def test_a_transcript_is_forwarded_to_claude() -> None:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
         forwarded = await talk.forwarded.receive()
     assert forwarded == ("Tu en es où ?", False)
+
+
+async def test_an_interruption_stops_the_speaker() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        await talk.say.send(VoiceDetected(at=0.0))
+        played = await talk.played.receive()
+    assert played == b""

@@ -126,10 +126,8 @@ def _interrupt(state: Conversation, at: float) -> Step:
         return state, ()
     unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.ends_at > at)
     stopped = (*unfinished, *unspoken(state))
-    silenced = replace(state, waiting=(), synthesizing=None, playing=())
-    if state.paused is not None and not stopped:
-        return silenced, (StopPlaying(),)
-    return replace(silenced, paused=(*(state.paused or ()), *stopped), interrupted=True), (StopPlaying(),)
+    silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True)
+    return replace(silenced, paused=(*(state.paused or ()), *stopped)), (StopPlaying(),)
 
 
 def _resume(state: Conversation) -> Step:

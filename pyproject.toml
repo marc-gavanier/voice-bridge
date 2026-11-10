@@ -18,6 +18,11 @@ dependencies = [
     "stamina>=26.1.0",
 ]
 
+[project.scripts]
+voice-bridge-channel = "voice_bridge.entrypoints.channel:main"
+voice-bridge-rehearsal = "voice_bridge.entrypoints.rehearsal:main"
+voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
+
 [dependency-groups]
 dev = [
     "basedpyright>=1.40.2",
@@ -68,9 +73,18 @@ filterwarnings = ["error"]
 
 [tool.coverage.run]
 source = ["voice_bridge"]
+omit = [
+    "*/voice_bridge/entrypoints/channel.py",
+    "*/voice_bridge/entrypoints/logs.py",
+    "*/voice_bridge/entrypoints/recorder.py",
+    "*/voice_bridge/entrypoints/rehearsal.py",
+    "*/voice_bridge/entrypoints/voice.py",
+    "*/voice_bridge/libraries/mumble/connection.py",
+]
 
 [tool.coverage.report]
 fail_under = 100
+exclude_also = ["assert_never\\("]
 
 [tool.importlinter]
 root_package = "voice_bridge"

@@ -1,7 +1,7 @@
 import ssl
 from pathlib import Path
 
-from voice_bridge.libraries.mumble.connection import pinned_context
+from voice_bridge.libraries.mumble.tls import pinned_context
 
 SERVER_CERTIFICATE = Path(__file__).parents[2] / "fixtures" / "server.pem"
 
