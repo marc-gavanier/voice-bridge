@@ -32,6 +32,7 @@ dev = [
     "basedpyright>=1.40.2",
     "commitizen>=4.19.3",
     "deptry>=0.25.1",
+    "hypothesis>=6.170.14",
     "import-linter>=2.15",
     "prek>=0.5.9",
     "pydeps>=3.0.9",

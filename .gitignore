@@ -7,3 +7,4 @@ dist/
 logs/
 .idea/
 docs/architecture.svg
+.hypothesis/
