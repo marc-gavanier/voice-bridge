@@ -192,7 +192,7 @@ flowchart LR
 
     mumble -->|"speaker's audio"| connection --> ears
     ears -->|"utterance"| whisper
-    ears -->|"voice detected, or noise"| turns
+    ears -->|"voice detected"| turns
     whisper -->|"text, or noise"| turns
     turns -->|"forward"| channel -->|"channel message"| claude
     claude -->|"reply"| channel -->|"sentences"| turns

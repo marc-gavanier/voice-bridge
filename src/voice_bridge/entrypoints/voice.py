@@ -101,7 +101,6 @@ async def converse(
                 await utterances_in.send(pcm)
             case Dismissed(voice=voice, duration=lasted):
                 logger.info("dismissed a sound of %.2f s holding %.2f s of voice", lasted, voice)
-                await events_in.send(Transcribed(text="", noise=True))
             case _:
                 assert_never(each)
 
