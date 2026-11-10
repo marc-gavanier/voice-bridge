@@ -17,7 +17,14 @@ from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceR
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
-from voice_bridge.libraries.mumble.audio import Loudspeaker, Packet, holds_certificate, pump_audio, with_pauses
+from voice_bridge.libraries.mumble.audio import (
+    MUMBLE_RATE,
+    Loudspeaker,
+    Packet,
+    holds_certificate,
+    pump_audio,
+    with_pauses,
+)
 from voice_bridge.libraries.mumble.connection import Access, stay_connected
 
 if TYPE_CHECKING:
@@ -27,7 +34,6 @@ if TYPE_CHECKING:
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
 
-MUMBLE_RATE: Final = 48000
 PLAYBACK_CAPACITY: Final = 600.0
 PATIENCE: Final = 0.05
 

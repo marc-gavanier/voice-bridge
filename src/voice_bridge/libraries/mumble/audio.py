@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Final, Protocol
 import anyio
 from pymumble_rev import events, opus
 
+from voice_bridge.libraries.audio.pcm import duration
+
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping
 
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 STALL_THRESHOLD: Final = 0.1
 FRAME_DURATION: Final = 0.01
-MUMBLE_RATE: Final = 48000
+MUMBLE_RATE: Final = opus.SAMPLE_RATE
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -35,7 +37,7 @@ class Stall:
 
 
 def _frames_in(packet: Packet) -> int:
-    return round(len(packet.pcm) / 2 / MUMBLE_RATE / FRAME_DURATION)
+    return round(duration(packet.pcm, MUMBLE_RATE) / FRAME_DURATION)
 
 
 def stall(previous: Packet | None, packet: Packet) -> Stall | None:
