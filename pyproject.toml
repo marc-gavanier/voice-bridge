@@ -12,6 +12,7 @@ dependencies = [
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12",
     "platformdirs>=4.14.0",
+    "pydantic>=2.14.2",
     "pydantic-settings>=2.16.2",
     "pymumble-rev==0.1.0",
     "soxr>=1.1.0",
@@ -89,6 +90,56 @@ exclude_also = ["assert_never\\("]
 [tool.importlinter]
 root_package = "voice_bridge"
 include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Entry points wire configuration and features, which rest on libraries"
+type = "layers"
+layers = [
+    "voice_bridge.entrypoints",
+    "voice_bridge.configuration | voice_bridge.features",
+    "voice_bridge.libraries",
+]
+
+[[tool.importlinter.contracts]]
+name = "Features do not know each other"
+type = "independence"
+modules = [
+    "voice_bridge.features.conversation",
+    "voice_bridge.features.hearing",
+    "voice_bridge.features.recording",
+    "voice_bridge.features.speaking",
+]
+
+[[tool.importlinter.contracts]]
+name = "Inside a feature, abilities use implementations, which use the domain"
+type = "layers"
+containers = [
+    "voice_bridge.features.conversation",
+    "voice_bridge.features.hearing",
+    "voice_bridge.features.recording",
+    "voice_bridge.features.speaking",
+]
+layers = ["abilities", "(implementations)", "domain"]
+exhaustive = false
+
+[[tool.importlinter.contracts]]
+name = "Domains are pure Python"
+type = "forbidden"
+source_modules = ["voice_bridge.features.*.domain"]
+forbidden_modules = [
+    "voice_bridge.libraries",
+    "anyio",
+    "faster_whisper",
+    "httpx",
+    "mcp",
+    "numpy",
+    "platformdirs",
+    "pydantic",
+    "pydantic_settings",
+    "pymumble_rev",
+    "soxr",
+    "stamina",
+]
 
 [tool.deptry]
 known_first_party = ["voice_bridge"]
