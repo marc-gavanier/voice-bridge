@@ -118,3 +118,37 @@ async def test_forwarding_an_interruption_flags_it() -> None:
         method="notifications/claude/channel",
         params={"content": "attends", "meta": {"interrupted": "true"}},
     )
+
+
+@asynccontextmanager
+async def discovered() -> AsyncGenerator[types.DiscoverResult]:
+    replies_in, replies_out = anyio.create_memory_object_stream[str](10)
+    server = channel_server(instructions="Answer with reply.", tool=TOOL, replies=replies_in)
+    async with (
+        replies_in,
+        replies_out,
+        create_client_server_memory_streams() as (client_streams, server_streams),
+        anyio.create_task_group() as tasks,
+    ):
+        _ = tasks.start_soon(server.run, server_streams[0], server_streams[1], initialization_options(server))
+        async with ClientSession(client_streams[0], client_streams[1]) as session:
+            yield await session.discover()
+        tasks.cancel_scope.cancel()
+
+
+async def test_the_server_declares_itself_a_claude_channel_to_modern_clients() -> None:
+    async with discovered() as discovery:
+        capabilities = discovery.capabilities
+    assert capabilities.experimental == {"claude/channel": {}}
+
+
+async def test_the_server_still_offers_its_tools_to_modern_clients() -> None:
+    async with discovered() as discovery:
+        capabilities = discovery.capabilities
+    assert capabilities.tools is not None
+
+
+async def test_the_server_gives_its_instructions_to_modern_clients() -> None:
+    async with discovered() as discovery:
+        instructions = discovery.instructions
+    assert instructions == "Answer with reply."

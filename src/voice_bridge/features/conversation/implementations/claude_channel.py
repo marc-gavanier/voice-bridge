@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Final, Protocol
 from mcp import types
 from mcp.server.lowlevel.server import Server
 from mcp.shared.message import SessionMessage
+from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
@@ -67,13 +68,24 @@ def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStr
         await replies.send(arguments.text)
         return types.CallToolResult(content=[types.TextContent(type="text", text="sent")])
 
-    return Server(
+    server: Server[object] = Server(
         SERVER_NAME,
         version=version("voice-bridge"),
         instructions=instructions,
         on_list_tools=list_tools,
         on_call_tool=call_tool,
     )
+
+    async def discover(context: ServerRequestContext[object], _params: types.RequestParams) -> types.DiscoverResult:
+        capabilities = server.get_capabilities(
+            experimental_capabilities={CHANNEL_CAPABILITY: {}}, protocol_version=context.protocol_version
+        )
+        return types.DiscoverResult(
+            supported_versions=list(MODERN_PROTOCOL_VERSIONS), capabilities=capabilities, instructions=instructions
+        )
+
+    server.add_request_handler("server/discover", types.RequestParams, discover)
+    return server
 
 
 def initialization_options(server: Server[object]) -> InitializationOptions:
