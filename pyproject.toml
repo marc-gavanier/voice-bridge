@@ -38,6 +38,7 @@ dev = [
     "prek>=0.5.9",
     "pydeps>=3.0.9",
     "pytest>=9.2.0",
+    "pytest-bdd>=9.0.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.3",
     "shellcheck-py>=0.11.0.1",
@@ -50,6 +51,7 @@ build-backend = "uv_build"
 [tool.uv]
 required-version = ">=0.13.7"
 exclude-newer = "10 days"
+exclude-newer-package = { pytest-bdd = "2026-11-01T00:00:00Z" }
 
 [tool.ruff]
 line-length = 120

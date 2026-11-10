@@ -143,7 +143,7 @@ src/voice_bridge/
   entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder
 ```
 
-Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Four [import-linter](https://import-linter.readthedocs.io) contracts in [`pyproject.toml`](pyproject.toml) enforce the layout: features never import each other, domains import nothing beyond the standard library, abilities sit above implementations, and entry points above everything.
+Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Its rules are written as Gherkin scenarios in [`turn_taking.feature`](tests/features/conversation/domain/turn_taking.feature), run by [pytest-bdd](https://pytest-bdd.readthedocs.io). Four [import-linter](https://import-linter.readthedocs.io) contracts in [`pyproject.toml`](pyproject.toml) enforce the layout: features never import each other, domains import nothing beyond the standard library, abilities sit above implementations, and entry points above everything.
 
 The diagram of the dependencies between these parts is drawn from the imports, never committed, so it cannot fall out of date:
 

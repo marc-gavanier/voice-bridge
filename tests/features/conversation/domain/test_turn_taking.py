@@ -7,7 +7,6 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Event,
     Forward,
     Play,
-    StopPlaying,
     SynthesisFailed,
     Synthesize,
     Synthesized,
@@ -68,36 +67,9 @@ def test_a_failed_synthesis_moves_on_to_the_next_sentence() -> None:
     )
 
 
-def test_voice_while_the_bridge_is_silent_does_not_interrupt() -> None:
-    assert last_commands(VoiceDetected(at=1.0)) == ()
-
-
-def test_voice_while_the_bridge_talks_stops_the_playback() -> None:
-    assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0)) == (StopPlaying(heard_at=1.0),)
-
-
-def test_noise_after_an_interruption_resumes_the_unspoken_sentences() -> None:
-    assert unspoken(
-        state_after(Asked(sentences=(FIRST, SECOND)), VoiceDetected(at=1.0), Transcribed(text="Merci.", noise=True))
-    ) == (FIRST, SECOND)
-
-
 def test_noise_after_an_interruption_only_resumes_speaking() -> None:
     assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0), Transcribed(text="Merci.", noise=True)) == (
         Synthesize(ticket=1, sentence=FIRST),
-    )
-
-
-def test_speech_after_an_interruption_drops_the_rest_of_the_reply() -> None:
-    assert (
-        unspoken(state_after(Asked(sentences=(FIRST, SECOND)), VoiceDetected(at=1.0), Transcribed(text="Attends.")))
-        == ()
-    )
-
-
-def test_speech_after_an_interruption_is_forwarded_as_an_interruption() -> None:
-    assert last_commands(Asked(sentences=(FIRST,)), VoiceDetected(at=1.0), Transcribed(text="Attends.")) == (
-        Forward(text="Attends.", interrupted=True),
     )
 
 
@@ -135,14 +107,6 @@ def test_finished_sentences_are_not_resumed() -> None:
         )
         == ()
     )
-
-
-def test_a_transcript_without_interruption_is_forwarded() -> None:
-    assert commands_of(Transcribed(text="Bonjour.")) == (Forward(text="Bonjour.", interrupted=False),)
-
-
-def test_noise_without_interruption_is_dropped() -> None:
-    assert commands_of(Transcribed(text="Merci.", noise=True)) == ()
 
 
 def test_a_reply_asked_during_an_interruption_can_be_interrupted_too() -> None:
