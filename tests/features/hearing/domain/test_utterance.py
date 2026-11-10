@@ -12,6 +12,8 @@ from voice_bridge.features.hearing.domain.utterance import (
     close,
     hear,
     is_speaking,
+    needs_turn_check,
+    turn_checked,
 )
 
 PACKET = 0.02
@@ -181,3 +183,59 @@ WIDE_WINDOW = UtteranceRules(silence=0.8, barge_in=0.5, barge_window=5.0)
 def test_the_voice_of_a_closed_utterance_no_longer_counts_towards_an_interruption() -> None:
     state, now = listen((VOICE, 30), (SILENCE, 45), rules=WIDE_WINDOW)
     assert not is_speaking(close(state, now, WIDE_WINDOW)[0], WIDE_WINDOW)
+
+
+TURNS = UtteranceRules(silence=0.8, shortest_voice=0.2, short_pause=0.2)
+
+
+def awaits_check(*runs: tuple[bool, int], rules: UtteranceRules = TURNS) -> bool:
+    state, now = listen(*runs, rules=rules)
+    return needs_turn_check(state, now, rules)
+
+
+def test_no_turn_check_while_the_speaker_talks() -> None:
+    assert not awaits_check((VOICE, 50))
+
+
+def test_a_short_pause_calls_for_a_turn_check() -> None:
+    assert awaits_check((VOICE, 50), (SILENCE, 11))
+
+
+def test_a_pause_shorter_than_the_short_pause_calls_for_no_turn_check() -> None:
+    assert not awaits_check((VOICE, 50), (SILENCE, 9))
+
+
+def test_without_a_short_pause_no_turn_check_is_ever_called_for() -> None:
+    assert not awaits_check((VOICE, 50), (SILENCE, 30), rules=RULES)
+
+
+def test_silence_alone_calls_for_no_turn_check() -> None:
+    assert not awaits_check((SILENCE, 30))
+
+
+def test_a_pause_is_checked_only_once() -> None:
+    state, now = listen((VOICE, 50), (SILENCE, 11), rules=TURNS)
+    assert not needs_turn_check(turn_checked(state), now + 0.1, TURNS)
+
+
+def test_a_new_pause_after_more_voice_is_checked_again() -> None:
+    state, now = listen((VOICE, 50), (SILENCE, 11), rules=TURNS)
+    resumed = hear(
+        hear(turn_checked(state), frame(voiced=True, at=now + PACKET), TURNS), frame(voiced=False, at=now + 0.3), TURNS
+    )
+    assert needs_turn_check(resumed, now + 0.3, TURNS)
+
+
+def test_a_finished_turn_closes_the_utterance_after_a_short_pause() -> None:
+    state, now = listen((VOICE, 50), (SILENCE, 11), rules=TURNS)
+    assert close(state, now, TURNS, finished=True)[1] is not None
+
+
+def test_an_unfinished_turn_keeps_the_utterance_open_before_the_silence() -> None:
+    state, now = listen((VOICE, 50), (SILENCE, 11), rules=TURNS)
+    assert close(state, now, TURNS, finished=False)[1] is None
+
+
+def test_a_finished_turn_without_an_utterance_closes_nothing() -> None:
+    state, now = listen((SILENCE, 20), rules=TURNS)
+    assert close(state, now, TURNS, finished=True)[1] is None

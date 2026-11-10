@@ -98,3 +98,16 @@ def test_a_shortest_voice_as_long_as_the_barge_in_is_accepted() -> None:
 
 def test_a_barge_window_longer_than_the_silence_plus_the_barge_in_is_accepted() -> None:
     assert HearingSettings(silence=0.3, barge_in=0.5, barge_window=1.0).barge_window == 1.0
+
+
+def test_the_end_of_turn_model_is_off_by_default() -> None:
+    assert not HearingSettings().smart_turn
+
+
+def test_a_short_pause_as_long_as_the_silence_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="short_pause"):
+        _ = HearingSettings(short_pause=0.8, silence=0.8)
+
+
+def test_a_short_pause_shorter_than_the_silence_is_accepted() -> None:
+    assert HearingSettings(short_pause=0.3, silence=0.8).short_pause == 0.3

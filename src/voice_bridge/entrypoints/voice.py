@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 from functools import partial
 from typing import TYPE_CHECKING, Final, assert_never
 
@@ -11,11 +12,12 @@ from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.features.conversation.abilities.hold_conversation import Claude, Mouth, hold_conversation
 from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, Transcribed, VoiceDetected
-from voice_bridge.features.hearing.abilities.listen import Ears, Heard, Speaking, Utterance, listen
+from voice_bridge.features.hearing.abilities.listen import Ears, Heard, Speaking, Turn, TurnChecked, Utterance, listen
 from voice_bridge.features.hearing.abilities.transcribe import Transcription, transcribe_utterances
 from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.hearing.implementations.silero import Voicing
+from voice_bridge.features.hearing.implementations.smart_turn import completion, load_session
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
 from voice_bridge.libraries.mumble.audio import (
@@ -29,6 +31,8 @@ from voice_bridge.libraries.mumble.audio import (
 from voice_bridge.libraries.mumble.connection import Access, stay_connected
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from anyio.abc import ObjectReceiveStream
     from pymumble_rev import MumbleClient
 
@@ -51,6 +55,40 @@ def access(settings: Settings, username: str) -> Access:
     )
 
 
+def _timed(judge: Callable[[bytes], float]) -> Callable[[bytes], float]:
+    def timed(pcm: bytes) -> float:
+        started = time.perf_counter()
+        probability = judge(pcm)
+        logger.info("end of turn judged in %.0f ms", (time.perf_counter() - started) * 1000)
+        return probability
+
+    return timed
+
+
+def _turn(settings: Settings) -> Turn | None:
+    hearing = settings.hearing
+    if not hearing.smart_turn:
+        return None
+    return Turn(judge=_timed(partial(completion, load_session(), rate=MUMBLE_RATE)), threshold=hearing.turn_threshold)
+
+
+def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
+    match each:
+        case Dismissed(voice=voice, duration=lasted):
+            logger.info("dismissed a sound of %.2f s holding %.2f s of voice", lasted, voice)
+        case TurnChecked(probability=probability, pause=pause, finished=True):
+            logger.info(
+                "turn finished (p=%.2f) after %.2f s of silence, %.2f s sooner than the silence rule",
+                probability,
+                pause,
+                silence - pause,
+            )
+        case TurnChecked(probability=probability, pause=pause):
+            logger.info("turn not finished (p=%.2f) after %.2f s of silence", probability, pause)
+        case _:
+            assert_never(each)
+
+
 def _ears(settings: Settings) -> Ears:
     hearing = settings.hearing
     return Ears(
@@ -63,8 +101,10 @@ def _ears(settings: Settings) -> Ears:
             preroll=hearing.preroll,
             barge_in=hearing.barge_in,
             barge_window=hearing.barge_window,
+            short_pause=hearing.short_pause if hearing.smart_turn else None,
         ),
         rate=MUMBLE_RATE,
+        turn=_turn(settings),
     )
 
 
@@ -99,8 +139,8 @@ async def converse(
                 await events_in.send(VoiceDetected(at=at))
             case Utterance(pcm=pcm):
                 await utterances_in.send(pcm)
-            case Dismissed(voice=voice, duration=lasted):
-                logger.info("dismissed a sound of %.2f s holding %.2f s of voice", lasted, voice)
+            case Dismissed() | TurnChecked():
+                _log_hearing(each, settings.hearing.silence)
             case _:
                 assert_never(each)
 

@@ -47,11 +47,21 @@ class HearingSettings(Section):
     preroll: float = 0.3
     barge_in: float = 0.5
     barge_window: float = 1.0
+    smart_turn: bool = False
+    short_pause: float = 0.2
+    turn_threshold: float = 0.5
 
     @model_validator(mode="after")
     def _an_interruption_is_never_dismissed(self) -> Self:
         if self.shortest_voice > self.barge_in:
             message = "shortest_voice must not exceed barge_in"
+            raise ValueError(message)
+        return self
+
+    @model_validator(mode="after")
+    def _a_short_pause_comes_before_the_silence(self) -> Self:
+        if self.short_pause >= self.silence:
+            message = "short_pause must be shorter than silence"
             raise ValueError(message)
         return self
 

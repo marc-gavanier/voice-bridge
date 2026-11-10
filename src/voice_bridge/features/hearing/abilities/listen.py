@@ -10,6 +10,10 @@ from voice_bridge.features.hearing.domain.utterance import (
     close,
     hear,
     is_speaking,
+    needs_turn_check,
+    silent_for,
+    turn_checked,
+    utterance_audio,
 )
 from voice_bridge.features.hearing.implementations.silero import Session, Silero, Voicing, is_voiced
 from voice_bridge.features.hearing.implementations.silero import listen as score
@@ -22,11 +26,18 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class Turn:
+    judge: Callable[[bytes], float]
+    threshold: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Ears:
     session: Session
     voicing: Voicing
     rules: UtteranceRules
     rate: int
+    turn: Turn | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -45,18 +56,37 @@ class Utterance:
     pcm: bytes
 
 
-type Heard = Speaking | Utterance | Dismissed
+@dataclass(frozen=True, slots=True, kw_only=True)
+class TurnChecked:
+    probability: float
+    pause: float
+    finished: bool
 
 
-def _closed(listening: Listening, now: float, rules: UtteranceRules) -> tuple[Listening, tuple[Heard, ...]]:
-    remaining, closing = close(listening, now, rules)
+type Heard = Speaking | Utterance | Dismissed | TurnChecked
+
+
+def _judged(ears: Ears, listening: Listening, now: float) -> tuple[Listening, tuple[TurnChecked, ...]]:
+    if ears.turn is None or not needs_turn_check(listening, now, ears.rules):
+        return listening, ()
+    probability = ears.turn.judge(utterance_audio(listening))
+    checked = TurnChecked(
+        probability=probability, pause=silent_for(listening, now), finished=probability > ears.turn.threshold
+    )
+    return turn_checked(listening), (checked,)
+
+
+def _closed(ears: Ears, listening: Listening, now: float) -> tuple[Listening, tuple[Heard, ...]]:
+    judged, checks = _judged(ears, listening, now)
+    finished = any(check.finished for check in checks)
+    remaining, closing = close(judged, now, ears.rules, finished=finished)
     match closing:
         case Kept(pcm=pcm):
-            return remaining, (Utterance(pcm=pcm),)
+            return remaining, (*checks, Utterance(pcm=pcm))
         case Dismissed():
-            return remaining, (closing,)
+            return remaining, (*checks, closing)
         case None:
-            return remaining, ()
+            return remaining, checks
         case _:
             assert_never(closing)
 
@@ -71,13 +101,13 @@ def _heard_packet(ears: Ears, state: Hearing, packet: Packet) -> tuple[Hearing, 
     )
     listening = hear(state.listening, frame, ears.rules)
     speaking = (Speaking(at=packet.at),) if is_speaking(listening, ears.rules) else ()
-    remaining, utterance = _closed(listening, packet.at, ears.rules)
+    remaining, utterance = _closed(ears, listening, packet.at)
     return Hearing(silero=silero, listening=remaining), (*speaking, *utterance)
 
 
 def advance(ears: Ears, state: Hearing, tick: Packet | None, now: float) -> tuple[Hearing, tuple[Heard, ...]]:
     if tick is None:
-        listening, utterance = _closed(state.listening, now, ears.rules)
+        listening, utterance = _closed(ears, state.listening, now)
         return Hearing(silero=state.silero, listening=listening), utterance
     return _heard_packet(ears, state, tick)
 

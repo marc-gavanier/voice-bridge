@@ -18,6 +18,7 @@ class UtteranceRules:
     preroll: float = 0.3
     barge_in: float = 0.5
     barge_window: float = 1.0
+    short_pause: float | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -40,6 +41,7 @@ class Listening:
     preroll: tuple[Frame, ...] = ()
     recent: tuple[Frame, ...] = ()
     last_voice_at: float | None = None
+    checked_at: float | None = None
 
 
 def _duration(frames: tuple[Frame, ...]) -> float:
@@ -80,17 +82,35 @@ def is_speaking(state: Listening, rules: UtteranceRules) -> bool:
     return _voice_duration(state.recent) >= rules.barge_in
 
 
+def silent_for(state: Listening, now: float) -> float:
+    return 0.0 if state.last_voice_at is None else now - state.last_voice_at
+
+
+def utterance_audio(state: Listening) -> bytes:
+    return b"".join(frame.pcm for frame in state.utterance)
+
+
+def needs_turn_check(state: Listening, now: float, rules: UtteranceRules) -> bool:
+    paused = rules.short_pause is not None and silent_for(state, now) >= rules.short_pause
+    return bool(state.utterance) and paused and state.checked_at != state.last_voice_at
+
+
+def turn_checked(state: Listening) -> Listening:
+    return replace(state, checked_at=state.last_voice_at)
+
+
 def _is_over(state: Listening, now: float, rules: UtteranceRules) -> bool:
-    silent = state.last_voice_at is not None and now - state.last_voice_at > rules.silence
-    return silent or _duration(state.utterance) >= rules.longest
+    return silent_for(state, now) > rules.silence or _duration(state.utterance) >= rules.longest
 
 
-def close(state: Listening, now: float, rules: UtteranceRules) -> tuple[Listening, Closing | None]:
-    if not state.utterance or not _is_over(state, now, rules):
+def close(
+    state: Listening, now: float, rules: UtteranceRules, *, finished: bool = False
+) -> tuple[Listening, Closing | None]:
+    if not state.utterance or not (finished or _is_over(state, now, rules)):
         return state, None
     voice = _voice_duration(state.utterance)
     closing = (
-        Kept(pcm=b"".join(frame.pcm for frame in state.utterance))
+        Kept(pcm=utterance_audio(state))
         if voice >= rules.shortest_voice
         else Dismissed(voice=voice, duration=_duration(state.utterance))
     )

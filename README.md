@@ -27,7 +27,7 @@ flowchart LR
 ```
 
 1. **Your Mumble app** sends your voice to a Mumble server.
-2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence.
+2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence; with `hearing.smart_turn` on, [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges from the audio after a 0.2 s pause whether you have finished, and ends the sentence there when you have.
 3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
 4. **The `voice` channel** pushes the text into the Claude Code session.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
@@ -42,7 +42,7 @@ sequenceDiagram
     participant voxtral as Voxtral
 
     you->>bridge: speak
-    Note over bridge: Silero hears voice,<br/>0.8 s of silence ends the sentence
+    Note over bridge: Silero hears voice,<br/>Smart Turn after a short pause,<br/>or 0.8 s of silence, ends the sentence
     bridge->>bridge: Whisper transcribes
     bridge->>claude: channel message
     claude->>bridge: reply tool
@@ -99,6 +99,8 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `voxtral.voice` | the language's | A Voxtral voice, such as `neutral_female` or `fr_female` |
 | `voxtral.gain` | `1.0` | Loudness of the speech; values above 1 raise it without clipping |
 | `whisper.model`, `whisper.device`, `whisper.compute_type` | `large-v3-turbo`, `auto`, `default` | The faster-whisper model and how it runs |
+| `hearing.smart_turn` | `false` | Ends a sentence when [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges, after a short pause, that you have finished; the 0.8 s silence stays as a fallback. The model, 9 MB, is downloaded from Hugging Face on first start |
+| `hearing.short_pause`, `hearing.turn_threshold` | `0.2`, `0.5` | The pause after which Smart Turn is asked, shorter than `hearing.silence`, and the probability above which the turn counts as finished |
 | `hearing.*` | see [`settings.py`](src/voice_bridge/configuration/settings.py) | Thresholds and durations of voice detection; the start stops when `shortest_voice` exceeds `barge_in`, since an interruption could then be dismissed as too short |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
@@ -150,7 +152,7 @@ scripts/voxtral.sh stop
 
 ## Diagnose
 
-The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, what was forwarded to Claude, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, and every stall of more than 100 ms in the audio reaching the bridge.
+The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, and every stall of more than 100 ms in the audio reaching the bridge.
 
 ```bash
 tail -f ~/.local/state/voice-bridge/log/voice-bridge.log
@@ -169,6 +171,7 @@ Two more commands help test the voice path without Claude:
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
 | `certificate verify failed` | The server has a new certificate: export it again |
 | Claude's voice cuts itself off | Lines `interrupted` with no one speaking: use headphones, or raise `hearing.volume_threshold` |
+| With `hearing.smart_turn`, sentences are cut while you pause mid-thought | Lines `turn finished (p=…)` before the cut: raise `hearing.turn_threshold` or `hearing.short_pause`; `end of turn judged in … ms` tells what each decision costs |
 | An invented sentence arrives, such as "Thank you." | Read its scores in the log; known Whisper hallucinations are filtered per language in [`language.py`](src/voice_bridge/configuration/language.py) |
 
 ## Architecture
@@ -180,7 +183,7 @@ flowchart LR
     mumble["Mumble server"]
     subgraph bridge["voice-bridge"]
         connection["Connection<br/>pinned certificate, one speaker"]
-        ears["Ears<br/>loudness and Silero VAD"]
+        ears["Ears<br/>loudness, Silero VAD,<br/>Smart Turn"]
         whisper["Transcription<br/>faster-whisper"]
         turns["Turn taking<br/>pure state machine"]
         channel["Channel<br/>MCP server"]

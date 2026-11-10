@@ -7,7 +7,17 @@ import anyio
 import pytest
 from faster_whisper.vad import get_vad_model
 
-from voice_bridge.features.hearing.abilities.listen import Ears, Heard, Hearing, Speaking, Utterance, advance, listen
+from voice_bridge.features.hearing.abilities.listen import (
+    Ears,
+    Heard,
+    Hearing,
+    Speaking,
+    Turn,
+    TurnChecked,
+    Utterance,
+    advance,
+    listen,
+)
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.libraries.mumble.audio import Packet
@@ -89,3 +99,41 @@ async def test_listening_reports_what_it_hears() -> None:
 
 def test_a_sound_too_short_to_be_an_utterance_is_reported_as_dismissed() -> None:
     assert [type(each) for each in heard([*silence_ticks(5), (None, 10.0)], EARS_FOR_EVERYTHING)] == [Dismissed]
+
+
+def ears_judging(probability: float) -> Ears:
+    return Ears(
+        session=get_vad_model().session,
+        voicing=Voicing(volume_threshold=0.0, probability=0.0),
+        rules=UtteranceRules(short_pause=0.2),
+        rate=RATE,
+        turn=Turn(judge=lambda _: probability, threshold=0.5),
+    )
+
+
+def after_a_short_pause(ears: Ears) -> tuple[Heard, ...]:
+    return heard([*silence_ticks(50), (None, 1.25)], ears)
+
+
+def test_a_finished_turn_ends_the_utterance_after_a_short_pause() -> None:
+    assert [type(each) for each in after_a_short_pause(ears_judging(0.9))[-2:]] == [TurnChecked, Utterance]
+
+
+def test_an_unfinished_turn_keeps_listening_after_a_short_pause() -> None:
+    assert isinstance(after_a_short_pause(ears_judging(0.1))[-1], TurnChecked)
+
+
+def last_check(heard_so_far: tuple[Heard, ...]) -> TurnChecked:
+    return next(each for each in reversed(heard_so_far) if isinstance(each, TurnChecked))
+
+
+def test_the_turn_check_reports_the_probability() -> None:
+    assert last_check(after_a_short_pause(ears_judging(0.9))).probability == 0.9
+
+
+def test_the_turn_check_reports_how_long_the_pause_lasted() -> None:
+    assert last_check(after_a_short_pause(ears_judging(0.9))).pause == pytest.approx(0.27)
+
+
+def test_without_a_turn_judge_no_turn_is_checked() -> None:
+    assert TurnChecked not in [type(each) for each in after_a_short_pause(EARS_FOR_EVERYTHING)]
