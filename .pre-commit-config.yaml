@@ -1,0 +1,66 @@
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix
+        language: system
+        types_or: [python, pyi]
+      - id: basedpyright
+        name: basedpyright
+        entry: uv run --frozen basedpyright
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      - id: import-linter
+        name: architecture contracts
+        entry: uv run --frozen lint-imports
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: deptry
+        name: deptry
+        entry: uv run --frozen deptry src
+        language: system
+        files: ^(src/|pyproject\.toml$)
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run --frozen pytest --quiet
+        language: system
+        types_or: [python, pyi, toml]
+        pass_filenames: false
+      - id: uv-lock
+        name: uv lock is up to date
+        entry: uv lock --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock)$
+        pass_filenames: false
+      - id: shellcheck
+        name: shellcheck
+        entry: uv run --frozen shellcheck
+        language: system
+        types: [shell]
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks git --pre-commit --staged --redact --no-banner
+        language: system
+        pass_filenames: false
+      - id: commitizen
+        name: conventional commit message
+        entry: uv run --frozen cz check --allow-abort --commit-msg-file
+        language: system
+        stages: [commit-msg]
+      - id: uv-audit
+        name: uv audit
+        entry: uv audit --frozen --preview-features audit-command
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
