@@ -167,7 +167,10 @@ uv run prek install
 ```bash
 uv run prek run --all-files
 uv run pytest
+uv run mutmut run
 ```
+
+Besides example tests, [Hypothesis](https://hypothesis.readthedocs.io) checks properties of the domains over generated cases, and [mutmut](https://mutmut.readthedocs.io) injects faults into the domains to check the tests catch them; a weekly workflow lists the surviving mutants in its summary. Three survive by design, since they change no behaviour. [Renovate](https://docs.renovatebot.com) keeps the dependencies and the actions up to date.
 
 ## Limits
 
