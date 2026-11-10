@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from voice_bridge.configuration.settings import default_config_file, load_settings
+from voice_bridge.configuration.settings import HearingSettings, default_config_file, load_settings
 
 MINIMAL = """
 [mumble]
@@ -85,3 +85,21 @@ def test_the_gain_is_neutral_by_default(config_file: Path) -> None:
 
 def test_the_default_config_file_is_named_after_the_bridge() -> None:
     assert default_config_file().parts[-2:] == ("voice-bridge", "config.toml")
+
+
+def test_a_shortest_voice_longer_than_the_barge_in_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="shortest_voice"):
+        _ = HearingSettings(shortest_voice=0.6, barge_in=0.5)
+
+
+def test_a_shortest_voice_as_long_as_the_barge_in_is_accepted() -> None:
+    assert HearingSettings(shortest_voice=0.5, barge_in=0.5).shortest_voice == 0.5
+
+
+def test_a_barge_window_reaching_the_silence_plus_the_barge_in_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="barge_window"):
+        _ = HearingSettings(silence=0.5, barge_in=0.5, barge_window=1.0)
+
+
+def test_a_barge_window_shorter_than_the_silence_plus_the_barge_in_is_accepted() -> None:
+    assert HearingSettings(silence=0.6, barge_in=0.5, barge_window=1.0).barge_window == 1.0

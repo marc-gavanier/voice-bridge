@@ -1,9 +1,9 @@
 import tomllib
 from pathlib import Path
-from typing import ClassVar, Literal, override
+from typing import ClassVar, Literal, Self, override
 
 from platformdirs import user_config_path, user_log_path
-from pydantic import BaseModel, ConfigDict, HttpUrl, SecretStr
+from pydantic import BaseModel, ConfigDict, HttpUrl, SecretStr, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 APP_NAME = "voice-bridge"
@@ -47,6 +47,16 @@ class HearingSettings(Section):
     preroll: float = 0.3
     barge_in: float = 0.5
     barge_window: float = 1.0
+
+    @model_validator(mode="after")
+    def _an_interruption_is_never_dismissed(self) -> Self:
+        if self.shortest_voice > self.barge_in:
+            message = "shortest_voice must not exceed barge_in"
+            raise ValueError(message)
+        if self.barge_window >= self.silence + self.barge_in:
+            message = "barge_window must be shorter than silence plus barge_in"
+            raise ValueError(message)
+        return self
 
 
 class Settings(BaseSettings):
