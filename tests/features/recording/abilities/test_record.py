@@ -5,7 +5,7 @@ import anyio
 import pytest
 
 from voice_bridge.features.recording.abilities.record import Recorder, advance, record, save
-from voice_bridge.features.recording.domain.take import Heard, Take, begin, extend
+from voice_bridge.features.recording.domain.take import Heard, Take, begin, extend, file_name
 from voice_bridge.libraries.audio.wav import decode
 from voice_bridge.libraries.mumble.audio import Packet
 
@@ -60,8 +60,18 @@ async def two_takes() -> AsyncIterator[Packet | None]:
     yield None
 
 
-@pytest.mark.anyio
-async def test_recording_saves_each_finished_take(tmp_path: Path) -> None:
+async def recorded(directory: Path) -> None:
     times = iter([1.0, 5.0, 10.0])
-    await record(Recorder(directory=tmp_path, rate=48000), two_takes(), clock=lambda: next(times))
-    assert len([wav async for wav in anyio.Path(tmp_path).rglob("*.wav")]) == 2
+    await record(Recorder(directory=directory, rate=48000), two_takes(), clock=lambda: next(times))
+
+
+@pytest.mark.anyio
+async def test_recording_saves_a_take_when_the_next_one_begins(tmp_path: Path) -> None:
+    await recorded(tmp_path)
+    assert await anyio.Path(tmp_path / file_name(take_started_at(1.0))).exists()
+
+
+@pytest.mark.anyio
+async def test_recording_saves_the_last_take_after_a_long_pause(tmp_path: Path) -> None:
+    await recorded(tmp_path)
+    assert await anyio.Path(tmp_path / file_name(take_started_at(5.0))).exists()

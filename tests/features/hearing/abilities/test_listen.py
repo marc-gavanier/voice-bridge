@@ -58,11 +58,11 @@ def heard(ticks: list[Tick], ears: Ears = EARS) -> tuple[Heard, ...]:
 
 
 def test_speech_is_reported_as_speaking() -> None:
-    assert Speaking in {type(each) for each in heard(speech_ticks())}
+    assert isinstance(heard(speech_ticks())[0], Speaking)
 
 
 def test_speech_followed_by_a_pause_is_an_utterance() -> None:
-    assert Utterance in {type(each) for each in heard([*speech_ticks(), (None, 10.0)])}
+    assert isinstance(heard([*speech_ticks(), (None, 10.0)])[-1], Utterance)
 
 
 def test_silence_is_never_reported() -> None:
