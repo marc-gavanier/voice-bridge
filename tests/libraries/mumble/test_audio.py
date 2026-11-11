@@ -215,3 +215,47 @@ async def test_a_new_stall_logs_the_recovery_of_the_previous_one(caplog: pytest.
     arrivals = iter([1.0, 1.5, 1.65])
     _ = await pumped(audio_from(1, 0), audio_from(1, 2), audio_from(1, 4), clock=lambda: next(arrivals))
     assert "after the stall, 0.02 s of audio arrived within 200 ms (0.1x real time)" in caplog.text
+
+
+async def test_a_user_joining_is_logged_with_their_session(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    _ = await pumped(events.UserJoined(user=USERS[3]))
+    assert "'claude' joined, session 3" in caplog.text
+
+
+async def test_the_speaker_joining_is_logged_as_the_speaker(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    _ = await pumped(events.UserJoined(user=USERS[1]))
+    assert "'marc' joined, session 1, the speaker" in caplog.text
+
+
+async def test_the_speaker_leaving_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    _ = await pumped(events.UserLeft(user=USERS[1], actor=None, reason="", ban=False))
+    assert "'marc' left, session 1, the speaker" in caplog.text
+
+
+async def test_a_user_removed_by_another_is_logged_with_who_and_why(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    _ = await pumped(events.UserLeft(user=USERS[2], actor=3, reason="spam", ban=True))
+    assert "'marc' left, session 2, banned by session 3: 'spam'" in caplog.text
+
+
+async def test_a_user_kicked_by_another_is_logged_as_kicked(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    _ = await pumped(events.UserLeft(user=USERS[2], actor=3, reason="", ban=False))
+    assert "'marc' left, session 2, kicked by session 3: ''" in caplog.text
+
+
+async def test_a_user_moving_to_another_channel_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    moved = User(session=1, name="marc", cert_hash=SPEAKER_HASH, channel_id=4)
+    _ = await pumped(events.UserUpdated(user=moved, previous=USERS[1], changed=frozenset({"channel_id"}), actor=None))
+    assert "'marc' moved to channel 4, session 1, the speaker" in caplog.text
+
+
+async def test_other_user_changes_are_not_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    muted = User(session=1, name="marc", cert_hash=SPEAKER_HASH, self_mute=True)
+    _ = await pumped(events.UserUpdated(user=muted, previous=USERS[1], changed=frozenset({"self_mute"}), actor=None))
+    assert caplog.text == ""

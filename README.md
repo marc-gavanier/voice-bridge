@@ -172,7 +172,7 @@ scripts/voxtral.sh stop
 
 ## Diagnose
 
-The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, which acknowledgement was played, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, and every stall of more than 100 ms in the audio reaching the bridge.
+The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, which acknowledgement was played, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, every stall of more than 100 ms in the audio reaching the bridge with how much audio arrived in the 200 ms after it, about 1x real time after a pause of the client and well above after a network stall, and every user joining, leaving or changing channel on the Mumble server with their session, the speaker marked as such: a disconnection and a reconnection of the speaker leave two lines, the second with a new session.
 
 ```bash
 tail -f ~/.local/state/voice-bridge/log/voice-bridge.log

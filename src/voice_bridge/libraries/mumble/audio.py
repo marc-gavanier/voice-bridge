@@ -106,6 +106,29 @@ def _report_ignored(users: Mapping[int, User], event: events.AudioReceived) -> N
         logger.info("ignored a transmission from %r, certificate hash %s", user.name, user.cert_hash)
 
 
+def _who(user: User, listened: Listened) -> str:
+    return f"session {user.session}, the speaker" if listened(user) else f"session {user.session}"
+
+
+def _removal(event: events.UserLeft) -> str:
+    if event.actor is None:
+        return ""
+    how = "banned" if event.ban else "kicked"
+    return f", {how} by session {event.actor}: {event.reason!r}"
+
+
+def _report_presence(event: events.Event, listened: Listened) -> None:
+    match event:
+        case events.UserJoined(user=user):
+            logger.info("%r joined, %s", user.name, _who(user, listened))
+        case events.UserLeft(user=user):
+            logger.info("%r left, %s%s", user.name, _who(user, listened), _removal(event))
+        case events.UserUpdated(user=user, changed=changed) if "channel_id" in changed:
+            logger.info("%r moved to channel %d, %s", user.name, user.channel_id, _who(user, listened))
+        case _:
+            pass
+
+
 async def pump_audio(
     session: Session, listened: Listened, packets: ObjectSendStream[Packet], clock: Callable[[], float]
 ) -> None:
@@ -113,6 +136,7 @@ async def pump_audio(
     previous: Packet | None = None
     recovery: Recovery | None = None
     async for event in session.events():
+        _report_presence(event, listened)
         if isinstance(event, events.AudioReceived) and not is_listened(
             session.state.users, event.sender_session, listened
         ):
