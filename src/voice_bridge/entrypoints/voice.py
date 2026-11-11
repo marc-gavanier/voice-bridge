@@ -42,8 +42,8 @@ from voice_bridge.features.speaking.abilities.hold_music import HoldMusic
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.domain.track import Track
 from voice_bridge.features.speaking.implementations.clip_cache import CachedVoice
+from voice_bridge.features.speaking.implementations.openai_speech import SpeechEngine, wait_until_ready
 from voice_bridge.features.speaking.implementations.track_file import read_track
-from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
 from voice_bridge.features.understanding.abilities.understand import StopFlag, Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
 from voice_bridge.features.understanding.implementations.embeddings import load_encoder, router
@@ -221,7 +221,7 @@ async def converse(
     speaker = Loudspeaker(buffer=buffer)
     hold_music = await _hold_music(settings, speaker)
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
-    voxtral_settings = settings.voxtral
+    speech_settings = settings.speech
 
     async def connected(client: MumbleClient) -> None:
         _ = client.play(buffer)
@@ -246,19 +246,20 @@ async def converse(
         packets_out,
         utterances_in,
         utterances_out,
-        httpx.AsyncClient(base_url=str(voxtral_settings.url), timeout=voxtral_settings.timeout) as http,
+        httpx.AsyncClient(base_url=str(speech_settings.url), timeout=speech_settings.timeout) as http,
         anyio.create_task_group() as tasks,
     ):
-        voxtral = Voxtral(
+        engine = SpeechEngine(
             client=http,
-            model=voxtral_settings.model,
-            voice=voxtral_settings.voice or language.voice,
-            gain=voxtral_settings.gain,
+            model=speech_settings.model,
+            voice=speech_settings.voice or language.voice,
+            gain=speech_settings.gain,
             rate=MUMBLE_RATE,
+            health=speech_settings.health,
         )
         clips = Clips(kind=lambda words: understanding(words).route)
         mouth = Mouth(
-            voice=partial(voice_of, voxtral),
+            voice=partial(voice_of, engine),
             speaker=speaker,
             claude=_following_stops(claude, understanding, StopFlag(settings.understanding.stop_flag)),
             rate=MUMBLE_RATE,
@@ -271,14 +272,14 @@ async def converse(
         )
 
         async def greet() -> None:
-            await wait_until_ready(voxtral)
+            await wait_until_ready(engine)
             await events_in.send(Asked(sentences=sentences_of(language.greeting)))
             await record_acknowledgements(
                 clips,
                 CachedVoice(
-                    voice=partial(voice_of, voxtral),
+                    voice=partial(voice_of, engine),
                     directory=settings.cache_directory / "acknowledgements",
-                    key=f"{voxtral.model} {voxtral.voice} {voxtral.gain} {MUMBLE_RATE}",
+                    key=f"{engine.model} {engine.voice} {engine.gain} {MUMBLE_RATE}",
                 ),
                 [*(route.sentences for route in language.acknowledgements), language.neutral_acknowledgements],
             )

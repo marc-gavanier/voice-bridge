@@ -7,7 +7,7 @@ username = "claude"
 server_certificate = "/home/user/.config/voice-bridge/server.pem"
 speaker_certificate_hash = ""
 
-[voxtral]
+[speech]
 url = "http://127.0.0.1:8123"
 gain = 1.0
 

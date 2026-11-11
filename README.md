@@ -111,9 +111,11 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `mumble.username` | `claude` | The bridge's name on the server |
 | `mumble.server_certificate` | required | The server certificate the bridge trusts; see below |
 | `mumble.speaker_certificate_hash` | required | The certificate hash of the one person the bridge listens to; see below |
-| `voxtral.url` | `http://127.0.0.1:8123` | The Voxtral server |
-| `voxtral.voice` | the language's | A Voxtral voice, such as `neutral_female` or `fr_female` |
-| `voxtral.gain` | `1.0` | Loudness of the speech; values above 1 raise it without clipping |
+| `speech.url` | `http://127.0.0.1:8123` | The speech server: Voxtral by default, or any server with the OpenAI speech API (`POST /v1/audio/speech`, WAV out) |
+| `speech.model` | `mistralai/Voxtral-4B-TTS-2603` | The model the speech server is asked for |
+| `speech.voice` | the language's | A voice of the speech server, such as Voxtral's `neutral_female` or `fr_female` |
+| `speech.gain` | `1.0` | Loudness of the speech; values above 1 raise it without clipping |
+| `speech.health` | `/health` | The route the bridge polls at start until the speech server answers; empty for a server without one, which is then taken as ready |
 | `whisper.model`, `whisper.device`, `whisper.compute_type` | `large-v3-turbo`, `auto`, `default` | The faster-whisper model and how it runs |
 | `hearing.smart_turn` | `false` | Ends a sentence when [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges, after a short pause, that you have finished; the 0.8 s silence stays as a fallback. The model, 9 MB, is downloaded from Hugging Face on first start |
 | `hearing.short_pause`, `hearing.turn_threshold` | `0.2`, `0.5` | The pause after which Smart Turn is asked, shorter than `hearing.silence`, and the probability above which the turn counts as finished |
@@ -239,7 +241,7 @@ The code is split into features, each with a pure domain, its implementations an
 src/voice_bridge/
   features/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
-    speaking/      sentences written for the ear, synthesis (Voxtral)
+    speaking/      sentences written for the ear, synthesis (OpenAI speech API, Voxtral by default)
     conversation/  turn taking, interruptions, the Claude channel (MCP)
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder

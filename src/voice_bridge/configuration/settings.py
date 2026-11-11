@@ -24,12 +24,13 @@ class MumbleSettings(Section):
     speaker_certificate_hash: str
 
 
-class VoxtralSettings(Section):
+class SpeechSettings(Section):
     url: HttpUrl = HttpUrl("http://127.0.0.1:8123")
     model: str = "mistralai/Voxtral-4B-TTS-2603"
     voice: str | None = None
     gain: float = 1.0
     timeout: float = 120.0
+    health: str = "/health"
 
 
 class WhisperSettings(Section):
@@ -93,7 +94,7 @@ class Settings(BaseSettings):
 
     language: Language = "en"
     mumble: MumbleSettings
-    voxtral: VoxtralSettings = VoxtralSettings()
+    speech: SpeechSettings = SpeechSettings()
     whisper: WhisperSettings = WhisperSettings()
     hearing: HearingSettings = HearingSettings()
     hold_music: HoldMusicSettings = HoldMusicSettings()

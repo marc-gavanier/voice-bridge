@@ -2,7 +2,7 @@ import httpx
 import pytest
 
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
-from voice_bridge.features.speaking.implementations.voxtral import Voxtral
+from voice_bridge.features.speaking.implementations.openai_speech import SpeechEngine
 
 
 def test_a_reply_becomes_sentences_written_for_the_ear() -> None:
@@ -18,6 +18,6 @@ def failing(request: httpx.Request) -> httpx.Response:
 
 @pytest.mark.anyio
 async def test_a_sentence_without_voice_is_skipped() -> None:
-    client = httpx.AsyncClient(transport=httpx.MockTransport(failing), base_url="http://voxtral")
-    voxtral = Voxtral(client=client, model="m", voice="fr_female", gain=1.0, rate=48000)
-    assert await voice_of(voxtral, "Hello.") is None
+    client = httpx.AsyncClient(transport=httpx.MockTransport(failing), base_url="http://speech")
+    engine = SpeechEngine(client=client, model="m", voice="fr_female", gain=1.0, rate=48000, health="/health")
+    assert await voice_of(engine, "Hello.") is None

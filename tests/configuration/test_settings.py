@@ -85,11 +85,11 @@ def test_a_missing_config_file_falls_back_to_the_environment(tmp_path: Path, mon
 
 
 def test_the_voice_defaults_to_the_one_of_the_language(config_file: Path) -> None:
-    assert load_settings(config_file).voxtral.voice is None
+    assert load_settings(config_file).speech.voice is None
 
 
 def test_the_gain_is_neutral_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).voxtral.gain == 1.0
+    assert load_settings(config_file).speech.gain == 1.0
 
 
 def test_the_default_config_file_is_named_after_the_bridge() -> None:
@@ -135,3 +135,7 @@ def test_the_hold_music_comes_from_the_config_file(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     _ = path.write_text(MINIMAL + '[hold_music]\nfile = "/music/hold.mp3"\n', encoding="utf-8")
     assert load_settings(path).hold_music.file == Path("/music/hold.mp3")
+
+
+def test_the_speech_engine_is_checked_on_its_health_route_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).speech.health == "/health"
