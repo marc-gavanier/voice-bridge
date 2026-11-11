@@ -40,6 +40,9 @@ from voice_bridge.features.speaking.domain.track import Track
 from voice_bridge.features.speaking.implementations.clip_cache import CachedVoice
 from voice_bridge.features.speaking.implementations.track_file import read_track
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
+from voice_bridge.features.understanding.abilities.understand import StopFlag, Understanding
+from voice_bridge.features.understanding.domain.meaning import Route
+from voice_bridge.features.understanding.implementations.embeddings import load_encoder, router
 from voice_bridge.libraries.mumble.audio import (
     MUMBLE_RATE,
     Loudspeaker,
@@ -166,6 +169,31 @@ async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | N
     return HoldMusic(track=Track(pcm=pcm), speaker=speaker, rate=MUMBLE_RATE)
 
 
+def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
+    routes = language.acknowledgements
+    understanding = Understanding(
+        scores=router(load_encoder(), [route.examples for route in routes]),
+        routes=tuple(
+            Route(
+                name=route.name,
+                threshold=settings.understanding.threshold if route.threshold is None else route.threshold,
+                stops=route.stops,
+            )
+            for route in routes
+        ),
+    )
+    logger.info("%d routes understood from %d examples", len(routes), sum(len(route.examples) for route in routes))
+    return understanding
+
+
+def _following_stops(claude: Claude, understanding: Understanding, flag: StopFlag) -> Claude:
+    async def forward(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
+        flag.follow(understanding(text))
+        await claude(text, interrupted=interrupted, acknowledgement=acknowledgement)
+
+    return forward
+
+
 async def converse(
     settings: Settings, language: LanguagePack, claude: Claude, replies: ObjectReceiveStream[Reply], username: str
 ) -> None:
@@ -176,6 +204,7 @@ async def converse(
     transcription = await _transcription(settings, language)
     speaker = Loudspeaker(buffer=buffer)
     hold_music = await _hold_music(settings, speaker)
+    understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     voxtral_settings = settings.voxtral
 
     async def connected(client: MumbleClient) -> None:
@@ -211,11 +240,11 @@ async def converse(
             gain=voxtral_settings.gain,
             rate=MUMBLE_RATE,
         )
-        clips = Clips()
+        clips = Clips(kind=lambda words: understanding(words).route)
         mouth = Mouth(
             voice=partial(voice_of, voxtral),
             speaker=speaker,
-            claude=claude,
+            claude=_following_stops(claude, understanding, StopFlag(settings.understanding.stop_flag)),
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,
@@ -234,7 +263,7 @@ async def converse(
                     directory=settings.cache_directory / "acknowledgements",
                     key=f"{voxtral.model} {voxtral.voice} {voxtral.gain} {MUMBLE_RATE}",
                 ),
-                language.acknowledgements,
+                [*(route.sentences for route in language.acknowledgements), language.neutral_acknowledgements],
             )
 
         _ = tasks.start_soon(stay_connected, access(settings, username), connected)

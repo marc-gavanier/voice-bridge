@@ -21,12 +21,14 @@ dependencies = [
     "pymumble-rev==0.1.0",
     "soxr>=1.1.0",
     "stamina>=26.1.0",
+    "tokenizers>=0.23.3",
 ]
 
 [project.scripts]
 voice-bridge-channel = "voice_bridge.entrypoints.channel:main"
 voice-bridge-rehearsal = "voice_bridge.entrypoints.rehearsal:main"
 voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
+voice-bridge-stop-hook = "voice_bridge.entrypoints.stop_hook:main"
 
 [dependency-groups]
 dev = [
@@ -95,6 +97,7 @@ omit = [
     "*/voice_bridge/entrypoints/logs.py",
     "*/voice_bridge/entrypoints/recorder.py",
     "*/voice_bridge/entrypoints/rehearsal.py",
+    "*/voice_bridge/entrypoints/stop_hook.py",
     "*/voice_bridge/entrypoints/voice.py",
     "*/voice_bridge/libraries/mumble/connection.py",
 ]
@@ -124,6 +127,7 @@ modules = [
     "voice_bridge.features.hearing",
     "voice_bridge.features.recording",
     "voice_bridge.features.speaking",
+    "voice_bridge.features.understanding",
 ]
 
 [[tool.importlinter.contracts]]
@@ -134,6 +138,7 @@ containers = [
     "voice_bridge.features.hearing",
     "voice_bridge.features.recording",
     "voice_bridge.features.speaking",
+    "voice_bridge.features.understanding",
 ]
 layers = ["abilities", "(implementations)", "domain"]
 exhaustive = false
@@ -155,6 +160,7 @@ forbidden_modules = [
     "pymumble_rev",
     "soxr",
     "stamina",
+    "tokenizers",
 ]
 
 [tool.deptry]

@@ -21,5 +21,5 @@ class InferenceSession:
         self, path_or_bytes: str, sess_options: SessionOptions | None = None, providers: Sequence[str] | None = None
     ) -> None: ...
     def run(
-        self, output_names: None, input_feed: Mapping[str, npt.NDArray[np.float32]]
+        self, output_names: None, input_feed: Mapping[str, npt.NDArray[np.float32] | npt.NDArray[np.int64]]
     ) -> Sequence[npt.NDArray[np.float32]]: ...

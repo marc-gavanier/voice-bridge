@@ -10,8 +10,10 @@ flowchart LR
     server["Mumble server"]
     subgraph machine["Your machine, with an NVIDIA GPU"]
         claude["Claude Code session"]
-        bridge["voice-bridge<br/>Silero, Whisper"]
+        bridge["voice-bridge<br/>Silero, Whisper, MiniLM"]
         voxtral["Voxtral<br/>vLLM, systemd user unit"]
+        hook["voice-bridge-stop-hook<br/>PreToolUse hook"]
+        flag[("stop flag")]
     end
     api["Anthropic API"]
     app["Claude app"]
@@ -21,6 +23,8 @@ flowchart LR
     claude -->|"starts, MCP over stdio"| bridge
     bridge -->|"channel message"| claude
     claude -->|"reply tool"| bridge
+    bridge -->|"creates, removes"| flag
+    claude -->|"before each tool"| hook -->|"reads"| flag
     bridge -->|"HTTP, one sentence at a time"| voxtral
     claude <-->|"HTTPS"| api
     app -.->|"Remote Control, optional"| claude
@@ -29,7 +33,8 @@ flowchart LR
 1. **Your Mumble app** sends your voice to a Mumble server.
 2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence; with `hearing.smart_turn` on, [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges from the audio after a 0.2 s pause whether you have finished: it ends the sentence there when you have, and waits up to 2 s of silence when you have not.
 3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
-4. **The `voice` channel** pushes the text into the Claude Code session, and once you have kept silent for `hearing.acknowledgement_delay`, 0.5 s by default, the bridge plays a short acknowledgement in Claude's voice, without waiting for Claude: none if you speak again, if Claude's reply comes first, if Claude is still voicing or saying a reply, or if one already played since Claude last replied, otherwise one suited to what you said: rules of regular expressions, set per language in [`language.py`](src/voice_bridge/configuration/language.py) and tried in order, tell a request, a question, a reported problem, an unfinished sentence and a dozen kinds apart, each with five to eight sentences, and the same one never plays twice in a row. The sentences are synthesized once, when Voxtral is ready, kept in memory, and cached on disk under `cache_directory`, so later starts do not voice them again. The acknowledgement is chosen as your words are pushed, and they reach Claude with it in an `acknowledgement` attribute, so the instructions tell Claude not to acknowledge a second time; it may still not play, if you speak again or Claude's reply comes first.
+4. **The `voice` channel** pushes the text into the Claude Code session, and once you have kept silent for `hearing.acknowledgement_delay`, 0.5 s by default, the bridge plays a short acknowledgement in Claude's voice, without waiting for Claude: none if you speak again, if Claude's reply comes first, if Claude is still voicing or saying a reply, or if one already played since Claude last replied, otherwise one suited to what you said: a small multilingual model, MiniLM, turns your words into a vector of their meaning and compares it with the example sentences of a dozen routes set per language in [`language.py`](src/voice_bridge/configuration/language.py), such as a request, a question, a reported problem, an unfinished sentence or a stop; the closest route above its threshold gives one of its four to eight sentences, a neutral one plays when no route is close enough, and the same one never plays twice in a row ([ADR-010](docs/decisions/ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md)). The sentences are synthesized once, when Voxtral is ready, kept in memory, and cached on disk under `cache_directory`, so later starts do not voice them again. The acknowledgement is chosen as your words are pushed, and they reach Claude with it in an `acknowledgement` attribute, so the instructions tell Claude not to acknowledge a second time; it may still not play, if you speak again or Claude's reply comes first.
+   When your words ask to stop, such as « stop », « laisse tomber » or « ne fais pas ça », the bridge creates the file `understanding.stop_flag`, and the next sentence that does not ask to stop removes it. While it exists, `voice-bridge-stop-hook`, a `PreToolUse` hook the launcher registers, refuses Claude every tool but `reply` and `TaskStop`, so Claude stops from its next tool call; a tool already running still runs to its end.
    With `hold_music.file` set, music fills the wait while Claude works on what it announced: when Claude calls `reply` with `working` set to true, the music starts `hold_music.delay`, 2 s by default, after that sentence ends, stops when the first sentence of the next reply is ready to play or when you speak, comes back after another wait if you spoke, and picks up the track where it left off, looping at its end. The acknowledgement alone brings no music.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
@@ -111,6 +116,8 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `hearing.*` | see [`settings.py`](src/voice_bridge/configuration/settings.py) | Thresholds and durations of voice detection; the start stops when `shortest_voice` exceeds `barge_in`, since an interruption could then be dismissed as too short |
 | `hold_music.file` | none | An audio file, in any format FFmpeg reads, played while you wait for a reply; decoded once at startup |
 | `hold_music.delay`, `hold_music.volume` | `2.0`, `0.3` | How long after the end of an announcement of work the music starts, and its loudness, below the voice's |
+| `understanding.threshold` | `0.5` | The cosine similarity to its closest example a sentence needs to take a route; the stop route asks 0.75, set in [`language.py`](src/voice_bridge/configuration/language.py). The model, 220 MB, is downloaded from Hugging Face on first start |
+| `understanding.stop_flag` | `$XDG_RUNTIME_DIR/voice-bridge/stop` | The file whose presence makes `voice-bridge-stop-hook` refuse Claude's tools after a stop |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
@@ -176,6 +183,8 @@ Two more commands help test the voice path without Claude:
 | Symptom | Where to look |
 |---|---|
 | No greeting | `scripts/voxtral.sh status`, then the log |
+| The wrong acknowledgement, or a stop missed or wrongly taken | Lines `understood '…' as <route> (<score>)`: add the sentence to the right route's examples in [`language.py`](src/voice_bridge/configuration/language.py), or adjust `understanding.threshold` and the stop route's threshold |
+| Claude's tools are refused after a stop | `stop asked` and `stop lifted` in the log: any sentence that does not ask to stop lifts it |
 | No acknowledgement after you speak | `acknowledgements ready` in the log: until Voxtral has voiced them, the bridge has none to play |
 | `server:voice · no MCP server configured with that name` | The session was not started with `scripts/claude-voice.sh` |
 | The bridge hears you but Claude never answers | `/mcp` in the session, then the log for `forwarded` lines |
@@ -197,6 +206,7 @@ flowchart LR
         ears["Ears<br/>loudness, Silero VAD,<br/>Smart Turn"]
         whisper["Transcription<br/>faster-whisper"]
         turns["Turn taking<br/>pure state machine"]
+        understanding["Understanding<br/>MiniLM routes, stop flag"]
         channel["Channel<br/>MCP server"]
         mouth["Voice<br/>sentences for the ear"]
         loudspeaker["Loudspeaker<br/>playback buffer"]
@@ -208,7 +218,7 @@ flowchart LR
     ears -->|"utterance"| whisper
     ears -->|"voice detected"| turns
     whisper -->|"text, or noise"| turns
-    turns -->|"forward"| channel -->|"channel message"| claude
+    turns -->|"forward"| understanding -->|"route, stop"| channel -->|"channel message"| claude
     claude -->|"reply"| channel -->|"sentences"| turns
     turns -->|"synthesize"| mouth <-->|"HTTP"| voxtral
     mouth -->|"speech"| turns
@@ -223,12 +233,13 @@ src/voice_bridge/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
     speaking/      sentences written for the ear, synthesis (Voxtral)
     conversation/  turn taking, interruptions, the Claude channel (MCP)
+    understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
   libraries/
     audio/         PCM and WAV with numpy and soxr
     mumble/        pinned connection, speaker audio, loudspeaker (pymumble-rev)
   configuration/   settings (pydantic-settings), languages, default instructions
-  entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder
+  entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder, voice-bridge-stop-hook
 ```
 
 Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Its rules are written as Gherkin scenarios in [`turn_taking.feature`](tests/features/conversation/domain/turn_taking.feature), run by [pytest-bdd](https://pytest-bdd.readthedocs.io). Four [import-linter](https://import-linter.readthedocs.io) contracts in [`pyproject.toml`](pyproject.toml) enforce the layout: features never import each other, domains import nothing beyond the standard library, abilities sit above implementations, and entry points above everything.
@@ -278,8 +289,8 @@ The last command succeeds once the checks have passed on the rebased branch; Git
 ## Limits
 
 - Permissions are not answered by voice.
-- Interrupting Claude cuts its voice, not its task.
-- Speaking over an acknowledgement does not cut it, and the rules read only the words, so a sentence they misread, such as a complaint that starts with « non », gets the acknowledgement of another kind.
+- Interrupting Claude cuts its voice, not its task; asking it to stop refuses its next tools, not the one already running.
+- Speaking over an acknowledgement does not cut it, and the routes read only the words: about a third of real sentences got another kind than a person would pick in the measurements of [ADR-010](docs/decisions/ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md), and a sentence that quotes or denies a stop, such as « je n'ai pas dit stop », comes close to the stop route.
 - Voice reaches the bridge over TCP only, the one transport pymumble-rev implements, so a lossy mobile link can delay it.
 - Channels are a Claude Code research preview: the bridge serves them on the MCP handshake protocol, since Claude Code does not deliver channel messages on the 2026-07-28 protocol.
 - Voxtral's licence, [CC BY-NC 4.0](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603), forbids commercial use.

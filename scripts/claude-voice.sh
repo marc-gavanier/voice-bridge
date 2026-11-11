@@ -16,4 +16,20 @@ jq --null-input --arg project "$project" '{
     }
   }
 }' >"$config"
-exec claude --mcp-config "$config" --allowedTools mcp__voice__reply --dangerously-load-development-channels server:voice "$@"
+settings="${XDG_RUNTIME_DIR:-/tmp}/voice-bridge-settings.json"
+jq --null-input --arg project "$project" '{
+  hooks: {
+    PreToolUse: [
+      {
+        matcher: "*",
+        hooks: [
+          {
+            type: "command",
+            command: ("uv run --project " + ($project | @sh) + " --frozen --quiet voice-bridge-stop-hook")
+          }
+        ]
+      }
+    ]
+  }
+}' >"$settings"
+exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply --dangerously-load-development-channels server:voice "$@"

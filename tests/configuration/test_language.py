@@ -1,10 +1,12 @@
-import re
 from pathlib import Path
 
 import pytest
 
-from voice_bridge.configuration.language import language_pack, load_instructions
+from voice_bridge.configuration.language import STOP_THRESHOLD, language_pack, load_instructions
 from voice_bridge.configuration.settings import Language
+from voice_bridge.features.understanding.abilities.understand import Understanding
+from voice_bridge.features.understanding.domain.meaning import Route
+from voice_bridge.features.understanding.implementations.embeddings import Encoder, load_encoder, router
 
 
 def test_english_is_transcribed_as_english() -> None:
@@ -41,58 +43,101 @@ def test_instructions_fall_back_to_the_default_without_a_user_file(tmp_path: Pat
     assert load_instructions(tmp_path / "absent.md", default="Be brief.") == "Be brief."
 
 
-def kind(language: Language, words: str) -> tuple[str, ...]:
-    rules = language_pack(language).acknowledgements
-    return next(sentences for pattern, sentences in rules if re.search(pattern, words.strip(), re.IGNORECASE))
+@pytest.fixture(scope="module")
+def encoder() -> Encoder:
+    return load_encoder()
+
+
+def route_of(language: Language, words: str, encoder: Encoder) -> str:
+    pack = language_pack(language)
+    routes = tuple(
+        Route(name=route.name, threshold=route.threshold or 0.5, stops=route.stops) for route in pack.acknowledgements
+    )
+    scores = router(encoder, [route.examples for route in pack.acknowledgements])
+    meaning = Understanding(scores=scores, routes=routes)(words)
+    return "neutral" if meaning.route is None else routes[meaning.route].name
 
 
 @pytest.mark.parametrize(
     ("words", "expected"),
     [
-        ("Est-ce que tu m'entends ?", "Je t'entends."),
-        ("Est-ce que tu peux regarder les journaux ?", "Je regarde."),
-        ("Pourquoi ça coupe ?", "Je vérifie."),
-        ("Là, il y a une coupure.", "Ah, je regarde ça."),
-        ("Oui, j'aimerais bien...", "Je t'écoute."),
-        ("Donc,", "Je t'écoute."),
-        ("Bon travail.", "Merci !"),
-        ("Ok, on va mettre fin à la conversation.", "À plus tard."),
-        ("Là, j'ai redémarré le pont.", "Bien reçu."),
-        ("Comment on fait ?", "Voyons."),
-        ("Je me demande si on pourrait faire une règle.", "Intéressant."),
-        ("Non, pas besoin.", "Compris."),
-        ("Ouais, vas-y.", "Parfait."),
-        ("Je suis dehors.", "D'accord."),
+        ("Stop, est-ce que tu peux arrêter ?", "stop"),
+        ("Arrête !", "stop"),
+        ("Bon, on laisse ça de côté, arrête de chercher.", "stop"),
+        ("Hé, tu peux t'arrêter là ?", "stop"),
+        ("Est-ce que tu m'entends ?", "presence"),
+        ("Il y a un truc qui coupe.", "problem"),
+        ("Tu es...", "unfinished"),
+        ("Bon travail.", "thanks"),
+        ("Ok, on va mettre fin à la conversation.", "end"),
+        ("Là, j'ai redémarré le pont.", "restarted"),
+        ("Est-ce que tu peux lire le Wikipédia sur la Savoie ?", "request"),
+        ("Et donc, qu'est-ce que c'est la suite ?", "question"),
+        ("Non.", "no"),
+        ("C'est exactement ça.", "yes"),
     ],
 )
-def test_french_acknowledges_after_what_was_said(words: str, expected: str) -> None:
-    assert expected in kind("fr", words)
+def test_french_words_take_the_route_of_their_meaning(words: str, expected: str, encoder: Encoder) -> None:
+    assert route_of("fr", words, encoder) == expected
+
+
+@pytest.mark.parametrize(
+    "words",
+    [
+        "Mais sans que ce soit nécessairement stop.",
+        "J'ai pas dit stop parce que t'es allé super vite, donc il n'y avait rien à stopper.",
+        "Oui, ça s'est bien arrêté.",
+        "Est-ce que tu as eu le temps de lire l'article sur la Savoie ou tu t'es arrêté avant ?",
+        "Ok on commence par le stop",
+    ],
+)
+def test_french_words_about_stopping_do_not_stop(words: str, encoder: Encoder) -> None:
+    assert route_of("fr", words, encoder) != "stop"
 
 
 @pytest.mark.parametrize(
     ("words", "expected"),
     [
-        ("Can you hear me?", "I can hear you."),
-        ("Could you check the logs?", "On it."),
-        ("Why is it so slow?", "Let's see."),
-        ("There is a glitch.", "I'll check."),
-        ("So...", "Go on."),
-        ("Thanks.", "Thanks!"),
-        ("Yeah, go ahead.", "Perfect."),
-        ("No need.", "Understood."),
-        ("I'm outside.", "Okay."),
+        ("Stop, can you stop?", "stop"),
+        ("Can you hear me?", "presence"),
+        ("Could you check the logs?", "request"),
+        ("There is a glitch.", "problem"),
+        ("Thanks.", "thanks"),
+        ("Goodbye.", "end"),
     ],
 )
-def test_english_acknowledges_after_what_was_said(words: str, expected: str) -> None:
-    assert expected in kind("en", words)
+def test_english_words_take_the_route_of_their_meaning(words: str, expected: str, encoder: Encoder) -> None:
+    assert route_of("en", words, encoder) == expected
 
 
 @pytest.mark.parametrize("language", ["en", "fr"])
-def test_anything_gets_an_acknowledgement(language: Language) -> None:
-    assert kind(language, "Zzz")
+def test_every_route_has_enough_examples(language: Language) -> None:
+    assert min(len(route.examples) for route in language_pack(language).acknowledgements) >= 15
+
+
+@pytest.mark.parametrize("language", ["en", "fr"])
+def test_only_the_stop_route_stops(language: Language) -> None:
+    stopping = {route.name for route in language_pack(language).acknowledgements if route.stops}
+    assert stopping == {"stop"}
+
+
+@pytest.mark.parametrize("language", ["en", "fr"])
+def test_a_stop_needs_a_close_match(language: Language) -> None:
+    stop = next(route for route in language_pack(language).acknowledgements if route.name == "stop")
+    assert stop.threshold == STOP_THRESHOLD
+
+
+@pytest.mark.parametrize("language", ["en", "fr"])
+def test_every_route_has_acknowledgements(language: Language) -> None:
+    assert all(route.sentences for route in language_pack(language).acknowledgements)
 
 
 @pytest.mark.parametrize("language", ["en", "fr"])
 def test_no_acknowledgement_is_one_voxtral_derails_on(language: Language) -> None:
-    sentences = {sentence for _, pool in language_pack(language).acknowledgements for sentence in pool}
-    assert not sentences & {"Top.", "OK.", "Ok."}
+    pack = language_pack(language)
+    sentences = {sentence for route in pack.acknowledgements for sentence in route.sentences}
+    assert not (sentences | set(pack.neutral_acknowledgements)) & {"Top.", "OK.", "Ok."}
+
+
+def test_french_refuses_tools_in_french() -> None:
+    assert "arrêter" in language_pack("fr").stop_refusal

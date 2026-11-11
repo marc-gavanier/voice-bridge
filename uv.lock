@@ -1887,6 +1887,7 @@ dependencies = [
     { name = "pymumble-rev" },
     { name = "soxr" },
     { name = "stamina" },
+    { name = "tokenizers" },
 ]
 
 [package.dev-dependencies]
@@ -1929,6 +1930,7 @@ requires-dist = [
     { name = "pymumble-rev", specifier = "==0.1.0" },
     { name = "soxr", specifier = ">=1.1.0" },
     { name = "stamina", specifier = ">=26.1.0" },
+    { name = "tokenizers", specifier = ">=0.23.3" },
 ]
 
 [package.metadata.requires-dev]

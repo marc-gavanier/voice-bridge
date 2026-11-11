@@ -2,18 +2,20 @@ from collections.abc import Sequence
 
 import pytest
 
-from voice_bridge.features.speaking.abilities.acknowledge import AcknowledgementRule, Clips, record_acknowledgements
+from voice_bridge.features.speaking.abilities.acknowledge import Clips, record_acknowledgements
 
 SOUND = b"\x01\x00" * 480
-RULES: tuple[AcknowledgementRule, ...] = (
-    (r"\?$", ("Voyons.", "Bonne question.")),
-    (r"^non\b", ("Silencieux.",)),
-    ("", ("D'accord.", "Silencieux.")),
-)
+POOLS = (("Voyons.", "Bonne question."), ("Silencieux.",), ("D'accord.", "Silencieux."))
 
 
 def first(pool: Sequence[str]) -> str:
     return pool[0]
+
+
+def kind(words: str) -> int | None:
+    if words.endswith("?"):
+        return 0
+    return 1 if words.startswith("Non") else None
 
 
 async def voiced(sentence: str) -> bytes | None:
@@ -21,28 +23,30 @@ async def voiced(sentence: str) -> bytes | None:
 
 
 async def recorded() -> Clips:
-    clips = Clips(choose=first)
-    await record_acknowledgements(clips, voiced, RULES)
+    clips = Clips(kind=kind, choose=first)
+    await record_acknowledgements(clips, voiced, POOLS)
     return clips
 
 
 def test_no_clip_is_chosen_before_they_are_recorded() -> None:
-    assert Clips(choose=first)("On en est où ?") is None
+    assert Clips(kind=kind, choose=first)("On en est où ?") is None
 
 
 @pytest.mark.anyio
-async def test_the_words_choose_the_kind_of_clip() -> None:
+async def test_the_kind_of_the_words_chooses_the_pool() -> None:
     assert (await recorded())("On en est où ?") == ("Voyons.", SOUND)
 
 
 @pytest.mark.anyio
-async def test_words_no_specific_rule_matches_get_the_last_rule_clip() -> None:
+async def test_words_of_no_kind_get_the_last_pool() -> None:
     assert (await recorded())("Le dépôt est propre.") == ("D'accord.", SOUND)
 
 
 @pytest.mark.anyio
-async def test_the_rules_ignore_case() -> None:
-    assert (await recorded())("NON, ça va.") is None
+async def test_without_a_kind_every_words_get_the_last_pool() -> None:
+    clips = Clips(choose=first)
+    await record_acknowledgements(clips, voiced, POOLS)
+    assert clips("On en est où ?") == ("D'accord.", SOUND)
 
 
 @pytest.mark.anyio
