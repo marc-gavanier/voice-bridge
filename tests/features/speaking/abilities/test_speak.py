@@ -6,9 +6,9 @@ from voice_bridge.features.speaking.implementations.voxtral import Voxtral
 
 
 def test_a_reply_becomes_sentences_written_for_the_ear() -> None:
-    assert sentences_of("**D'accord**, je regarde ça. Voir [la doc](https://x.y) maintenant.") == (
-        "D'accord, je regarde ça.",
-        "Voir la doc maintenant.",
+    assert sentences_of("**Alright**, I am looking into it. See [the docs](https://x.y) right now.") == (
+        "Alright, I am looking into it.",
+        "See the docs right now.",
     )
 
 
@@ -20,4 +20,4 @@ def failing(request: httpx.Request) -> httpx.Response:
 async def test_a_sentence_without_voice_is_skipped() -> None:
     client = httpx.AsyncClient(transport=httpx.MockTransport(failing), base_url="http://voxtral")
     voxtral = Voxtral(client=client, model="m", voice="fr_female", gain=1.0, rate=48000)
-    assert await voice_of(voxtral, "Bonjour.") is None
+    assert await voice_of(voxtral, "Hello.") is None

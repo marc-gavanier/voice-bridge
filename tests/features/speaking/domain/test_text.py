@@ -2,16 +2,18 @@ from voice_bridge.features.speaking.domain.text import for_the_ear, split_senten
 
 
 def test_sentences_are_cut_on_their_final_punctuation() -> None:
-    text = "D'accord, je regarde ça maintenant. Il reste deux points à trancher ! Tu préfères lequel ?"
+    text = "Alright, I am looking into it right away. Two points are left to settle ! Which one do you prefer ?"
     assert split_sentences(text) == (
-        "D'accord, je regarde ça maintenant.",
-        "Il reste deux points à trancher !",
-        "Tu préfères lequel ?",
+        "Alright, I am looking into it right away.",
+        "Two points are left to settle !",
+        "Which one do you prefer ?",
     )
 
 
 def test_a_very_short_sentence_is_merged_with_the_next_one() -> None:
-    assert split_sentences("Oui. Je lance la commande tout de suite.") == ("Oui. Je lance la commande tout de suite.",)
+    assert split_sentences("Yes. I am running the command right away.") == (
+        "Yes. I am running the command right away.",
+    )
 
 
 def test_blank_text_has_no_sentence() -> None:
@@ -19,13 +21,13 @@ def test_blank_text_has_no_sentence() -> None:
 
 
 def test_markdown_emphasis_code_and_links_are_read_as_plain_text() -> None:
-    assert for_the_ear("**Bon** `fichier.py` : voir [la doc](https://x.y)\n- point un") == (
-        "Bon fichier.py : voir la doc\npoint un"
+    assert for_the_ear("**Good** `file.py` : see [the docs](https://x.y)\n- point one") == (
+        "Good file.py : see the docs\npoint one"
     )
 
 
 def test_code_blocks_are_not_read_aloud() -> None:
-    assert for_the_ear("Voici.\n```python\nprint(1)\n```\nFini.") == "Voici.\n\nFini."
+    assert for_the_ear("Here.\n```python\nprint(1)\n```\nDone.") == "Here.\n\nDone."
 
 
 def test_a_sentence_of_exactly_the_shortest_length_stands_alone() -> None:
@@ -33,7 +35,7 @@ def test_a_sentence_of_exactly_the_shortest_length_stands_alone() -> None:
 
 
 def test_merging_a_short_sentence_keeps_the_sentences_before_it() -> None:
-    assert split_sentences("A first long sentence. Oui. Then the rest.") == (
+    assert split_sentences("A first long sentence. Yes. Then the rest.") == (
         "A first long sentence.",
-        "Oui. Then the rest.",
+        "Yes. Then the rest.",
     )

@@ -2,16 +2,17 @@ import pytest
 
 from voice_bridge.features.hearing.domain.noise import Hallucinations, is_noise
 
-FRENCH = Hallucinations(texts=frozenset({"", "merci", "je vous prie"}), prefixes=("sous-titrage",))
+HALLUCINATIONS = Hallucinations(texts=frozenset({"", "thank you", "you"}), prefixes=("subtitles by",))
 
 
 @pytest.mark.parametrize(
-    "text", ["", "  ", "Merci.", "merci", "- Merci.", "\N{EN DASH} Sous-titrage ST' 501", "Je vous prie."]
+    "text",
+    ["", "  ", "Thank you.", "thank you", "- Thank you.", "\N{EN DASH} Subtitles by the Amara.org community", "You."],
 )
 def test_empty_text_and_whisper_hallucinations_are_noise(text: str) -> None:
-    assert is_noise(text, FRENCH)
+    assert is_noise(text, HALLUCINATIONS)
 
 
-@pytest.mark.parametrize("text", ["Merci, on continue.", "Est-ce que tu m'entends ?"])
+@pytest.mark.parametrize("text", ["Thank you, let us go on.", "Can you hear me?"])
 def test_real_speech_is_not_noise(text: str) -> None:
-    assert not is_noise(text, FRENCH)
+    assert not is_noise(text, HALLUCINATIONS)

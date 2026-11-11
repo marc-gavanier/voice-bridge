@@ -93,6 +93,12 @@ repos:
         language: system
         files: ^(pyproject\.toml|uv\.lock)$
         pass_filenames: false
+      - id: typos
+        name: spelling
+        entry: uv run --frozen typos
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: shellcheck
         name: shellcheck
         entry: uv run --frozen shellcheck

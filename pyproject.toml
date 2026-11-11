@@ -48,6 +48,7 @@ dev = [
     "pytest-timeout>=2.4.0",
     "ruff>=0.17.3",
     "shellcheck-py>=0.11.0.1",
+    "typos>=1.51.1",
     "validate-pyproject-schema-store>=2026.10.30",
     "validate-pyproject[all]>=0.27",
     "zizmor>=1.31.1",
@@ -187,3 +188,7 @@ source_paths = ["src/voice_bridge"]
 only_mutate = ["src/voice_bridge/features/*/domain/*"]
 pytest_add_cli_args = ["--no-cov"]
 do_not_mutate_patterns = ["assert_never\\(", "case _:"]
+
+[tool.typos.type.french]
+extend-glob = ["fr.toml", "fr.md", "*_fr.py"]
+check-file = false

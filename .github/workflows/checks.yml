@@ -40,6 +40,7 @@ jobs:
       - run: uv run --frozen deptry src
       - run: uv run --frozen pytest
       - run: uv run --frozen shellcheck scripts/*.sh
+      - run: uv run --frozen typos
       - run: uv audit --frozen --preview-features audit-command
       - if: github.event_name == 'pull_request'
         run: uv run --frozen cz check --rev-range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
