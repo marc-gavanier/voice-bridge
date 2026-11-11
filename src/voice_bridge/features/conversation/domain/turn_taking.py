@@ -56,7 +56,12 @@ class Forward:
     interrupted: bool
 
 
-type Command = Synthesize | Play | StopPlaying | Forward
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Acknowledge:
+    question: bool
+
+
+type Command = Synthesize | Play | StopPlaying | Forward | Acknowledge
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -139,7 +144,8 @@ def _resume(state: Conversation) -> Step:
 
 def _forward(state: Conversation, text: str) -> Step:
     forwarded = replace(state, paused=None, interrupted=False)
-    return forwarded, (Forward(text=text, interrupted=state.interrupted),)
+    acknowledged = Acknowledge(question=text.rstrip().endswith("?"))
+    return forwarded, (acknowledged, Forward(text=text, interrupted=state.interrupted))
 
 
 def step(state: Conversation, event: Event) -> Step:

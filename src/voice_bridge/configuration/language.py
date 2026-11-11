@@ -13,6 +13,8 @@ class LanguagePack:
     whisper_code: str
     voice: str
     greeting: str
+    question_acknowledgements: tuple[str, ...]
+    statement_acknowledgements: tuple[str, ...]
     reply_tool_description: str
     reply_text_description: str
     hallucinations: frozenset[str]
@@ -36,6 +38,8 @@ def language_pack(language: Language) -> LanguagePack:
                 whisper_code="en",
                 voice="neutral_female",
                 greeting="I'm listening.",
+                question_acknowledgements=("Let's see.", "Good question.", "Let me check."),
+                statement_acknowledgements=("Okay.", "Got it.", "I see."),
                 reply_tool_description="Speak a reply aloud in the user's headset",
                 reply_text_description="The text to speak, written for the ear",
                 hallucinations=frozenset({"", "you", "thank you", "thanks for watching"}),
@@ -47,6 +51,8 @@ def language_pack(language: Language) -> LanguagePack:
                 whisper_code="fr",
                 voice="fr_female",
                 greeting="Je t'écoute.",
+                question_acknowledgements=("Voyons.", "Bonne question.", "Je regarde."),
+                statement_acknowledgements=("D'accord.", "Entendu.", "Je vois."),
                 reply_tool_description="Dire une réponse à voix haute dans le casque de l'utilisateur",
                 reply_text_description="Le texte à prononcer, rédigé pour l'oreille",
                 hallucinations=frozenset({"", "merci", "je vous prie"}),

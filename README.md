@@ -29,7 +29,7 @@ flowchart LR
 1. **Your Mumble app** sends your voice to a Mumble server.
 2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence; with `hearing.smart_turn` on, [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges from the audio after a 0.2 s pause whether you have finished, and ends the sentence there when you have.
 3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
-4. **The `voice` channel** pushes the text into the Claude Code session.
+4. **The `voice` channel** pushes the text into the Claude Code session, and the bridge at once plays a short acknowledgement in Claude's voice, without waiting for Claude: one of three for a question, when the transcription ends with a question mark, and one of three for anything else. These six sentences, set per language in [`language.py`](src/voice_bridge/configuration/language.py), are synthesized once, when Voxtral is ready, and kept in memory.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
 Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. Claude's work in progress goes on either way.
@@ -44,6 +44,7 @@ sequenceDiagram
     you->>bridge: speak
     Note over bridge: Silero hears voice,<br/>Smart Turn after a short pause,<br/>or 0.8 s of silence, ends the sentence
     bridge->>bridge: Whisper transcribes
+    bridge->>you: acknowledgement, recorded at startup
     bridge->>claude: channel message
     claude->>bridge: reply tool
     loop each sentence
@@ -152,7 +153,7 @@ scripts/voxtral.sh stop
 
 ## Diagnose
 
-The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, and every stall of more than 100 ms in the audio reaching the bridge.
+The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, which acknowledgement was played, when its reply arrived, how long each sentence took to synthesize, when playback started, how fast an interruption stopped it, and every stall of more than 100 ms in the audio reaching the bridge.
 
 ```bash
 tail -f ~/.local/state/voice-bridge/log/voice-bridge.log
@@ -166,6 +167,7 @@ Two more commands help test the voice path without Claude:
 | Symptom | Where to look |
 |---|---|
 | No greeting | `scripts/voxtral.sh status`, then the log |
+| No acknowledgement after you speak | `acknowledgements ready` in the log: until Voxtral has voiced them, the bridge has none to play |
 | `server:voice · no MCP server configured with that name` | The session was not started with `scripts/claude-voice.sh` |
 | The bridge hears you but Claude never answers | `/mcp` in the session, then the log for `forwarded` lines |
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
@@ -268,6 +270,7 @@ The last command succeeds once the checks have passed on the rebased branch; Git
 
 - Permissions are not answered by voice.
 - Interrupting Claude cuts its voice, not its task.
+- Speaking over an acknowledgement does not cut it, and a question asked without a question mark in its transcription gets a statement's acknowledgement.
 - Voice reaches the bridge over TCP only, the one transport pymumble-rev implements, so a lossy mobile link can delay it.
 - Channels are a Claude Code research preview: the bridge serves them on the MCP handshake protocol, since Claude Code does not deliver channel messages on the 2026-07-28 protocol.
 - Voxtral's licence, [CC BY-NC 4.0](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603), forbids commercial use.

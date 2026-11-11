@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Protocol, assert_never
 import anyio
 
 from voice_bridge.features.conversation.domain.turn_taking import (
+    Acknowledge,
     Command,
     Conversation,
     Event,
@@ -30,6 +31,10 @@ class Claude(Protocol):
     async def __call__(self, text: str, *, interrupted: bool) -> None: ...
 
 
+class Acknowledgement(Protocol):
+    def __call__(self, *, question: bool) -> tuple[str, bytes] | None: ...
+
+
 class Speaker(Protocol):
     def play(self, pcm: bytes) -> None: ...
     def stop(self) -> None: ...
@@ -42,6 +47,7 @@ class Mouth:
     claude: Claude
     rate: int
     clock: Callable[[], float]
+    acknowledgement: Acknowledgement
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
@@ -55,6 +61,15 @@ async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthe
     await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=spoken, at=ready))
 
 
+def _acknowledge(mouth: Mouth, *, question: bool) -> None:
+    clip = mouth.acknowledgement(question=question)
+    if clip is None:
+        return
+    sentence, pcm = clip
+    mouth.speaker.play(pcm)
+    logger.info("acknowledged with %r", sentence)
+
+
 async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, command: Command) -> None:
     match command:
         case Synthesize():
@@ -66,6 +81,8 @@ async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup
             logger.info(
                 "interrupted, playback stopped %.0f ms after the voice was heard", (mouth.clock() - heard_at) * 1000
             )
+        case Acknowledge(question=question):
+            _acknowledge(mouth, question=question)
         case Forward(text=text, interrupted=interrupted):
             await mouth.claude(text, interrupted=interrupted)
         case _:

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from voice_bridge.features.conversation.domain.turn_taking import (
+    Acknowledge,
     Asked,
     Command,
     Conversation,
@@ -24,6 +25,10 @@ SPEAKING_AT = 1.0
 class Turn:
     state: Conversation
     commands: tuple[Command, ...] = ()
+
+
+def acknowledgements(commands: tuple[Command, ...]) -> tuple[Acknowledge, ...]:
+    return tuple(command for command in commands if isinstance(command, Acknowledge))
 
 
 def after(turn: Turn, event: Event) -> Turn:
@@ -83,9 +88,24 @@ def claude_has_nothing_left_to_say(turn: Turn) -> None:
 
 @then(parsers.parse('Claude hears "{words}" as an interruption'))
 def claude_hears_an_interruption(turn: Turn, words: str) -> None:
-    assert turn.commands == (Forward(text=words, interrupted=True),)
+    assert Forward(text=words, interrupted=True) in turn.commands
 
 
 @then(parsers.parse('Claude hears "{words}"'))
 def claude_hears(turn: Turn, words: str) -> None:
-    assert turn.commands == (Forward(text=words, interrupted=False),)
+    assert Forward(text=words, interrupted=False) in turn.commands
+
+
+@then("the bridge acknowledges a question")
+def the_bridge_acknowledges_a_question(turn: Turn) -> None:
+    assert Acknowledge(question=True) in turn.commands
+
+
+@then("the bridge acknowledges a statement")
+def the_bridge_acknowledges_a_statement(turn: Turn) -> None:
+    assert Acknowledge(question=False) in turn.commands
+
+
+@then("the bridge acknowledges nothing")
+def the_bridge_acknowledges_nothing(turn: Turn) -> None:
+    assert acknowledgements(turn.commands) == ()

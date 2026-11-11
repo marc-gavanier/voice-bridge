@@ -45,3 +45,21 @@ Feature: Turn taking
       Given Claude is silent
       When the speaker says "Where are we?"
       Then Claude hears "Where are we?"
+
+  Rule: Words are acknowledged at once, as a question or as a statement
+
+    Scenario: A question is acknowledged as a question
+      Given Claude is silent
+      When the speaker says "Where are we?"
+      Then the bridge acknowledges a question
+
+    Scenario: A statement is acknowledged as a statement
+      Given Claude is silent
+      When the speaker says "The repository is clean."
+      Then the bridge acknowledges a statement
+
+    Scenario: A noise is not acknowledged
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And the speaker cut Claude off
+      When the speaker only makes a noise
+      Then the bridge acknowledges nothing

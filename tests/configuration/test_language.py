@@ -35,3 +35,11 @@ def test_instructions_come_from_the_user_file_when_it_exists(tmp_path: Path) -> 
 
 def test_instructions_fall_back_to_the_default_without_a_user_file(tmp_path: Path) -> None:
     assert load_instructions(tmp_path / "absent.md", default="Be brief.") == "Be brief."
+
+
+def test_french_acknowledges_a_question_by_looking_into_it() -> None:
+    assert "Je regarde." in language_pack("fr").question_acknowledgements
+
+
+def test_french_acknowledges_a_statement_without_promising_to_look() -> None:
+    assert "Je regarde." not in language_pack("fr").statement_acknowledgements

@@ -18,6 +18,7 @@ from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.features.hearing.implementations.smart_turn import completion, load_session
+from voice_bridge.features.speaking.abilities.acknowledge import Acknowledgements, Clips, record_acknowledgements
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
 from voice_bridge.libraries.mumble.audio import (
@@ -168,17 +169,26 @@ async def converse(
             gain=voxtral_settings.gain,
             rate=MUMBLE_RATE,
         )
+        clips = Clips()
         mouth = Mouth(
             voice=partial(voice_of, voxtral),
             speaker=Loudspeaker(buffer=buffer),
             claude=claude,
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
+            acknowledgement=clips,
         )
 
         async def greet() -> None:
             await wait_until_ready(voxtral)
             await events_in.send(Asked(sentences=sentences_of(language.greeting)))
+            await record_acknowledgements(
+                clips,
+                partial(voice_of, voxtral),
+                Acknowledgements(
+                    questions=language.question_acknowledgements, statements=language.statement_acknowledgements
+                ),
+            )
 
         _ = tasks.start_soon(stay_connected, access(settings, username), connected)
         _ = tasks.start_soon(listen, _ears(settings), with_pauses(packets_out, PATIENCE), heard, anyio.current_time)

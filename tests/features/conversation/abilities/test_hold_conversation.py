@@ -13,6 +13,8 @@ from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, 
 pytestmark = pytest.mark.anyio
 
 SOUND = b"\x01\x00" * 4800
+QUESTION_CLIP = b"\x02\x00" * 480
+STATEMENT_CLIP = b"\x03\x00" * 480
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,19 @@ class StreamedSpeaker:
 
     def stop(self) -> None:
         self.played.send_nowait(b"")
+
+
+@dataclass(frozen=True)
+class Clips:
+    question: tuple[str, bytes] | None
+    statement: tuple[str, bytes] | None
+
+    def __call__(self, *, question: bool) -> tuple[str, bytes] | None:
+        return self.question if question else self.statement
+
+
+READY = Clips(question=("Voyons.", QUESTION_CLIP), statement=("D'accord.", STATEMENT_CLIP))
+NOT_READY = Clips(question=None, statement=None)
 
 
 async def voiced(sentence: str) -> bytes | None:
@@ -38,7 +53,7 @@ class Talk:
 
 
 @asynccontextmanager
-async def talking() -> AsyncGenerator[Talk]:
+async def talking(acknowledgement: Clips = READY) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
     forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool]](100)
@@ -46,7 +61,14 @@ async def talking() -> AsyncGenerator[Talk]:
     async def claude(text: str, *, interrupted: bool) -> None:
         await forwarded_in.send((text, interrupted))
 
-    mouth = Mouth(voice=voiced, speaker=StreamedSpeaker(played_in), claude=claude, rate=48000, clock=lambda: 0.0)
+    mouth = Mouth(
+        voice=voiced,
+        speaker=StreamedSpeaker(played_in),
+        claude=claude,
+        rate=48000,
+        clock=lambda: 0.0,
+        acknowledgement=acknowledgement,
+    )
     emit = say.clone()
     async with (
         say,
@@ -90,3 +112,25 @@ async def test_an_interruption_stops_the_speaker() -> None:
         await talk.say.send(VoiceDetected(at=0.0))
         played = await talk.played.receive()
     assert played == b""
+
+
+async def test_a_question_is_acknowledged_with_a_question_clip() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Tu en es où ?"))
+        played = await talk.played.receive()
+    assert played == QUESTION_CLIP
+
+
+async def test_a_statement_is_acknowledged_with_a_statement_clip() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        played = await talk.played.receive()
+    assert played == STATEMENT_CLIP
+
+
+async def test_nothing_is_played_before_the_clips_are_ready() -> None:
+    async with talking(NOT_READY) as talk:
+        await talk.say.send(Transcribed(text="Tu en es où ?"))
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        played = await talk.played.receive()
+    assert played == SOUND
