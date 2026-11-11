@@ -69,6 +69,8 @@ def route_of(language: Language, words: str, encoder: Encoder) -> str:
     ("words", "expected"),
     [
         ("Stop, est-ce que tu peux arrêter ?", "stop"),
+        ("C'est parti.", "yes"),
+        ("Lance-toi.", "yes"),
         ("Arrête !", "stop"),
         ("Bon, on laisse ça de côté, arrête de chercher.", "stop"),
         ("Hé, tu peux t'arrêter là ?", "stop"),
@@ -96,6 +98,8 @@ def test_french_words_take_the_route_of_their_meaning(words: str, expected: str,
         "Oui, ça s'est bien arrêté.",
         "Est-ce que tu as eu le temps de lire l'article sur la Savoie ou tu t'es arrêté avant ?",
         "Ok on commence par le stop",
+        "Allez, c'est parti.",
+        "Vas-y, lance.",
     ],
 )
 def test_french_words_about_stopping_do_not_stop(words: str, encoder: Encoder) -> None:
