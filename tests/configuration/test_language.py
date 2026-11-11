@@ -4,6 +4,7 @@ import pytest
 
 from voice_bridge.configuration.language import STOP_THRESHOLD, language_pack, load_instructions
 from voice_bridge.configuration.settings import Language
+from voice_bridge.features.hearing.domain.noise import Hallucinations, is_noise
 from voice_bridge.features.understanding.abilities.understand import Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
 from voice_bridge.features.understanding.implementations.embeddings import Encoder, load_encoder, router
@@ -27,6 +28,12 @@ def test_french_greets_in_french() -> None:
 
 def test_french_knows_the_subtitle_credit_hallucination() -> None:
     assert "sous-titrage" in language_pack("fr").hallucination_prefixes
+
+
+def test_french_knows_the_thanks_for_watching_hallucination() -> None:
+    pack = language_pack("fr")
+    hallucinations = Hallucinations(texts=pack.hallucinations, prefixes=pack.hallucination_prefixes)
+    assert is_noise("Merci d'avoir regardé cette vidéo !", hallucinations)
 
 
 def test_default_instructions_are_written_in_the_language() -> None:

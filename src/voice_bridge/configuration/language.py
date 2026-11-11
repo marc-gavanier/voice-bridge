@@ -720,7 +720,7 @@ def language_pack(language: Language) -> LanguagePack:
                     "une musique d'attente joue alors jusqu'à ta réponse suivante"
                 ),
                 hallucinations=frozenset({"", "merci", "je vous prie"}),
-                hallucination_prefixes=("sous-titrage",),
+                hallucination_prefixes=("sous-titrage", "merci d'avoir regardé"),
                 instructions=_packaged_instructions(language),
             )
         case _:
