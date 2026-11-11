@@ -29,7 +29,7 @@ flowchart LR
 1. **Your Mumble app** sends your voice to a Mumble server.
 2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence; with `hearing.smart_turn` on, [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges from the audio after a 0.2 s pause whether you have finished: it ends the sentence there when you have, and waits up to 2 s of silence when you have not.
 3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
-4. **The `voice` channel** pushes the text into the Claude Code session, and once you have kept silent for `hearing.acknowledgement_delay`, 0.5 s by default, the bridge plays a short acknowledgement in Claude's voice, without waiting for Claude: none if you speak again, if Claude's reply comes first, if Claude is still voicing or saying a reply, or if one already played since Claude last replied, otherwise one of three for a question, when the transcription ends with a question mark, and one of three for anything else. These six sentences, set per language in [`language.py`](src/voice_bridge/configuration/language.py), are synthesized once, when Voxtral is ready, and kept in memory.
+4. **The `voice` channel** pushes the text into the Claude Code session, and once you have kept silent for `hearing.acknowledgement_delay`, 0.5 s by default, the bridge plays a short acknowledgement in Claude's voice, without waiting for Claude: none if you speak again, if Claude's reply comes first, if Claude is still voicing or saying a reply, or if one already played since Claude last replied, otherwise one suited to what you said: rules of regular expressions, set per language in [`language.py`](src/voice_bridge/configuration/language.py) and tried in order, tell a request, a question, a reported problem, an unfinished sentence and a dozen kinds apart, each with five to eight sentences, and the same one never plays twice in a row. The sentences are synthesized once, when Voxtral is ready, kept in memory, and cached on disk under `cache_directory`, so later starts do not voice them again.
    With `hold_music.file` set, music fills the wait when Claude's reply is long to come: it starts `hold_music.delay`, 2 s by default, after the acknowledgement, stops when the first sentence of the reply is ready to play or when you speak, comes back after another wait if you spoke, and picks up the track where it left off, looping at its end.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
@@ -112,6 +112,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `hold_music.file` | none | An audio file, in any format FFmpeg reads, played while you wait for a reply; decoded once at startup |
 | `hold_music.delay`, `hold_music.volume` | `2.0`, `0.3` | How long after the acknowledgement the music starts, and its loudness, below the voice's |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
+| `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
 
 ### The server certificate
@@ -278,7 +279,7 @@ The last command succeeds once the checks have passed on the rebased branch; Git
 
 - Permissions are not answered by voice.
 - Interrupting Claude cuts its voice, not its task.
-- Speaking over an acknowledgement does not cut it, and a question asked without a question mark in its transcription gets a statement's acknowledgement.
+- Speaking over an acknowledgement does not cut it, and the rules read only the words, so a sentence they misread, such as a complaint that starts with « non », gets the acknowledgement of another kind.
 - Voice reaches the bridge over TCP only, the one transport pymumble-rev implements, so a lossy mobile link can delay it.
 - Channels are a Claude Code research preview: the bridge serves them on the MCP handshake protocol, since Claude Code does not deliver channel messages on the 2026-07-28 protocol.
 - Voxtral's licence, [CC BY-NC 4.0](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603), forbids commercial use.

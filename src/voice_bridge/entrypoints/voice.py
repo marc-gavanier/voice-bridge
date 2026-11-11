@@ -33,10 +33,11 @@ from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.features.hearing.implementations.smart_turn import completion, load_session
-from voice_bridge.features.speaking.abilities.acknowledge import Acknowledgements, Clips, record_acknowledgements
+from voice_bridge.features.speaking.abilities.acknowledge import Clips, record_acknowledgements
 from voice_bridge.features.speaking.abilities.hold_music import HoldMusic
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.domain.track import Track
+from voice_bridge.features.speaking.implementations.clip_cache import CachedVoice
 from voice_bridge.features.speaking.implementations.track_file import read_track
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
 from voice_bridge.libraries.mumble.audio import (
@@ -227,10 +228,12 @@ async def converse(
             await events_in.send(Asked(sentences=sentences_of(language.greeting)))
             await record_acknowledgements(
                 clips,
-                partial(voice_of, voxtral),
-                Acknowledgements(
-                    questions=language.question_acknowledgements, statements=language.statement_acknowledgements
+                CachedVoice(
+                    voice=partial(voice_of, voxtral),
+                    directory=settings.cache_directory / "acknowledgements",
+                    key=f"{voxtral.model} {voxtral.voice} {voxtral.gain} {MUMBLE_RATE}",
                 ),
+                language.acknowledgements,
             )
 
         _ = tasks.start_soon(stay_connected, access(settings, username), connected)

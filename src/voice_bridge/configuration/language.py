@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from importlib.resources import files
-from typing import TYPE_CHECKING, assert_never
+from typing import TYPE_CHECKING, Final, assert_never
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -13,13 +13,172 @@ class LanguagePack:
     whisper_code: str
     voice: str
     greeting: str
-    question_acknowledgements: tuple[str, ...]
-    statement_acknowledgements: tuple[str, ...]
+    acknowledgements: tuple[tuple[str, tuple[str, ...]], ...]
     reply_tool_description: str
     reply_text_description: str
     hallucinations: frozenset[str]
     hallucination_prefixes: tuple[str, ...]
     instructions: str
+
+
+def _words(*words: str) -> str:
+    return rf"\b({'|'.join(words)})\b"
+
+
+ENGLISH_ACKNOWLEDGEMENTS: Final = (
+    (r"(\.\.\.|…)$|^(and|so|but|or|well)[ .,]*$", ("Yes?", "I'm listening.", "Go on.", "Carry on.", "And then?")),
+    (
+        r"\b(can you hear me|do you hear me|are you there|are you still|are you waiting)\b",
+        ("Yes, I'm here.", "I can hear you.", "Still here.", "I'm here, yes.", "Loud and clear."),
+    ),
+    (
+        r"\b(thanks|thank you|well done|great job|nice work)\b",
+        ("Thanks!", "My pleasure.", "Glad it helps.", "Anytime."),
+    ),
+    (
+        r"\b(let's stop|we can stop|goodbye|bye|that's all|we're done)\b",
+        ("Alright, let's stop.", "Sounds good.", "See you later.", "Fine, we stop here."),
+    ),
+    (
+        r"\b(cut|cuts|broken|bug|weird|strange|problem|issue|glitch|latency|delay|lag|i counted|too fast)\b",
+        ("Let me look into that.", "I'll check.", "Noted, I'm looking.", "I'll have a look.", "Oh, let me see."),
+    ),
+    (
+        r"\b(i (re)?started|i restarted|i relaunched|restarting)\b",
+        ("Got it.", "Great, noted.", "Alright, here we go.", "Good."),
+    ),
+    (
+        _words(
+            "can you",
+            "could you",
+            "please",
+            "look at",
+            "check",
+            "analy[sz]e",
+            "i'd like you to",
+            "i want you to",
+            "make",
+            "run",
+            "prepare",
+            "explain",
+            "list",
+            "show",
+        ),
+        ("On it.", "Let me look.", "I'm on it.", "Here we go.", "Sure, looking now.", "Let me see to that."),
+    ),
+    (
+        r"\?$|^(is|are|do|does|did|can|could|why|how|what|when|where|which|who)\b",
+        ("Let's see.", "Good question.", "Let me think.", "Let me check.", "Hold on, I'll look."),
+    ),
+    (
+        r"\b(i wonder|the idea|we could|i think|i feel|it would be|i have an idea)\b",
+        ("Interesting.", "I see the idea.", "Oh, I see.", "I'm listening.", "That makes sense."),
+    ),
+    (r"^(no|nope|no need|never mind)\b", ("Alright.", "Understood.", "Fine, we leave it.", "No problem.", "Got it.")),
+    (
+        r"^(yes|yeah|yep|ok|okay|sure|go ahead|sounds good|fine)\b",
+        ("Perfect.", "Great.", "Alright.", "Very well.", "Here we go."),
+    ),
+    ("", ("Okay.", "Got it.", "I see.", "Noted.", "Understood.", "Right.")),
+)
+
+FRENCH_ACKNOWLEDGEMENTS: Final = (
+    (
+        r"(\.\.\.|…)$|^(et|donc|mais|ou|alors|enfin)[ .,]*$",
+        ("Oui ?", "Je t'écoute.", "Vas-y.", "Continue.", "Et donc ?"),
+    ),
+    (
+        r"\b(tu m'entends|tu ne m'entends|tu n'entends|tu m'as entendu|tu es encore en train|tu attends|tu es là)\b",
+        ("Oui, je suis là.", "Je t'entends.", "Je suis là, oui.", "Toujours là.", "Oui, je t'entends bien."),
+    ),
+    (
+        r"\b(merci|bravo|bon travail|bien joué)\b",
+        ("Merci !", "Avec plaisir.", "Merci, ça fait plaisir.", "De rien.", "Content que ça te plaise."),
+    ),
+    (
+        r"\b(on arrête|on peut arrêter|fin à la conversation|au revoir|c'est fini|arrêter la session)\b",
+        ("D'accord, on s'arrête.", "Très bien.", "Ça marche.", "À plus tard.", "Entendu, on s'arrête là."),
+    ),
+    (
+        _words(
+            "coupé",
+            "coupure",
+            "je ne t'entends",
+            "je ne reçois",
+            "bug",
+            "bizarre",
+            "problème",
+            "artefacts?",
+            "latence",
+            "délai",
+            "j'ai compté",
+            "trop vite",
+            "erratiques?",
+            "ne marche",
+        ),
+        (
+            "Ah, je regarde ça.",
+            "Je vérifie.",
+            "Noté, je cherche.",
+            "Je vais voir ça.",
+            "Ah, mince.",
+            "Je jette un œil.",
+        ),
+    ),
+    (
+        r"\b(j'ai (re)?démarré|j'ai (re)?lancé|je relance|redémarré)\b",
+        ("Bien reçu.", "Parfait, c'est noté.", "Super.", "D'accord, on y va.", "Très bien."),
+    ),
+    (
+        _words(
+            "tu peux",
+            "peux-tu",
+            "regarde",
+            "analyse",
+            "je voudrais que tu",
+            "je veux que tu",
+            "fais",
+            "lance",
+            "prépare",
+            "commence",
+            "explique",
+            "donne",
+            "liste",
+            "vérifie",
+            "cherche",
+            "ajoute",
+            "répète",
+            "montre",
+        ),
+        (
+            "Je regarde.",
+            "Je m'en occupe.",
+            "Je m'y mets.",
+            "C'est parti.",
+            "Ça marche, je regarde.",
+            "D'accord, je lance.",
+            "Je vois ça.",
+            "Laisse-moi regarder.",
+        ),
+    ),
+    (
+        r"\?$|^(est-ce|pourquoi|comment|qu'est-ce|quel|quelle|quand|où|combien)\b",
+        ("Voyons.", "Bonne question.", "Je réfléchis.", "Laisse-moi voir.", "Je vérifie.", "Attends, je regarde."),
+    ),
+    (
+        r"\b(je me demande|l'idée|on pourrait|je pense que|je trouve que|ce serait|j'ai une idée)\b",
+        ("Intéressant.", "Je vois l'idée.", "Ah, d'accord.", "Je t'écoute.", "Ça se tient."),
+    ),
+    (
+        r"^(non|pas besoin|pas nécessairement|tant pis)\b",
+        ("D'accord.", "Compris.", "Très bien, on laisse.", "Pas de souci.", "Entendu.", "Ça marche."),
+    ),
+    (
+        r"^(oui|ouais|ok|d'accord|ça me va|on fait|on garde|vas-y|parfait|c'est bon)\b",
+        ("Parfait.", "Ça marche.", "Super.", "Très bien.", "C'est parti.", "Bien."),
+    ),
+    ("", ("D'accord.", "Entendu.", "Je vois.", "Noté.", "Compris.", "Je note.", "Ah, d'accord.")),
+)
 
 
 def _packaged_instructions(language: Language) -> str:
@@ -38,8 +197,7 @@ def language_pack(language: Language) -> LanguagePack:
                 whisper_code="en",
                 voice="neutral_female",
                 greeting="I'm listening.",
-                question_acknowledgements=("Let's see.", "Good question.", "Let me check."),
-                statement_acknowledgements=("Okay.", "Got it.", "I see."),
+                acknowledgements=ENGLISH_ACKNOWLEDGEMENTS,
                 reply_tool_description="Speak a reply aloud in the user's headset",
                 reply_text_description="The text to speak, written for the ear",
                 hallucinations=frozenset({"", "you", "thank you", "thanks for watching"}),
@@ -51,8 +209,7 @@ def language_pack(language: Language) -> LanguagePack:
                 whisper_code="fr",
                 voice="fr_female",
                 greeting="Je t'écoute.",
-                question_acknowledgements=("Voyons.", "Bonne question.", "Je regarde."),
-                statement_acknowledgements=("D'accord.", "Entendu.", "Je vois."),
+                acknowledgements=FRENCH_ACKNOWLEDGEMENTS,
                 reply_tool_description="Dire une réponse à voix haute dans le casque de l'utilisateur",
                 reply_text_description="Le texte à prononcer, rédigé pour l'oreille",
                 hallucinations=frozenset({"", "merci", "je vous prie"}),

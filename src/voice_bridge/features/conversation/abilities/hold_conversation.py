@@ -38,7 +38,7 @@ class Claude(Protocol):
 
 
 class Acknowledgement(Protocol):
-    def __call__(self, *, question: bool) -> tuple[str, bytes] | None: ...
+    def __call__(self, words: str) -> tuple[str, bytes] | None: ...
 
 
 class Speaker(Protocol):
@@ -75,8 +75,8 @@ async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthe
     await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=spoken, at=ready))
 
 
-def _acknowledge(mouth: Mouth, *, question: bool) -> None:
-    clip = mouth.acknowledgement(question=question)
+def _acknowledge(mouth: Mouth, words: str) -> None:
+    clip = mouth.acknowledgement(words)
     if clip is None:
         return
     sentence, pcm = clip
@@ -133,8 +133,8 @@ async def _execute(
             )
         case AwaitSilence():
             _ = tasks.start_soon(_await_silence, mouth, emit, command)
-        case Acknowledge(question=question):
-            _acknowledge(mouth, question=question)
+        case Acknowledge(words=words):
+            _acknowledge(mouth, words)
         case AwaitHold():
             _ = tasks.start_soon(_await_hold, mouth, emit, command)
         case StartHoldMusic():

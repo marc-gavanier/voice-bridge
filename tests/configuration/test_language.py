@@ -1,6 +1,10 @@
+import re
 from pathlib import Path
 
+import pytest
+
 from voice_bridge.configuration.language import language_pack, load_instructions
+from voice_bridge.configuration.settings import Language
 
 
 def test_english_is_transcribed_as_english() -> None:
@@ -37,9 +41,58 @@ def test_instructions_fall_back_to_the_default_without_a_user_file(tmp_path: Pat
     assert load_instructions(tmp_path / "absent.md", default="Be brief.") == "Be brief."
 
 
-def test_french_acknowledges_a_question_by_looking_into_it() -> None:
-    assert "Je regarde." in language_pack("fr").question_acknowledgements
+def kind(language: Language, words: str) -> tuple[str, ...]:
+    rules = language_pack(language).acknowledgements
+    return next(sentences for pattern, sentences in rules if re.search(pattern, words.strip(), re.IGNORECASE))
 
 
-def test_french_acknowledges_a_statement_without_promising_to_look() -> None:
-    assert "Je regarde." not in language_pack("fr").statement_acknowledgements
+@pytest.mark.parametrize(
+    ("words", "expected"),
+    [
+        ("Est-ce que tu m'entends ?", "Je t'entends."),
+        ("Est-ce que tu peux regarder les journaux ?", "Je regarde."),
+        ("Pourquoi ça coupe ?", "Je vérifie."),
+        ("Là, il y a une coupure.", "Ah, je regarde ça."),
+        ("Oui, j'aimerais bien...", "Je t'écoute."),
+        ("Donc,", "Je t'écoute."),
+        ("Bon travail.", "Merci !"),
+        ("Ok, on va mettre fin à la conversation.", "À plus tard."),
+        ("Là, j'ai redémarré le pont.", "Bien reçu."),
+        ("Comment on fait ?", "Voyons."),
+        ("Je me demande si on pourrait faire une règle.", "Intéressant."),
+        ("Non, pas besoin.", "Compris."),
+        ("Ouais, vas-y.", "Parfait."),
+        ("Je suis dehors.", "D'accord."),
+    ],
+)
+def test_french_acknowledges_after_what_was_said(words: str, expected: str) -> None:
+    assert expected in kind("fr", words)
+
+
+@pytest.mark.parametrize(
+    ("words", "expected"),
+    [
+        ("Can you hear me?", "I can hear you."),
+        ("Could you check the logs?", "On it."),
+        ("Why is it so slow?", "Let's see."),
+        ("There is a glitch.", "I'll check."),
+        ("So...", "Go on."),
+        ("Thanks.", "Thanks!"),
+        ("Yeah, go ahead.", "Perfect."),
+        ("No need.", "Understood."),
+        ("I'm outside.", "Okay."),
+    ],
+)
+def test_english_acknowledges_after_what_was_said(words: str, expected: str) -> None:
+    assert expected in kind("en", words)
+
+
+@pytest.mark.parametrize("language", ["en", "fr"])
+def test_anything_gets_an_acknowledgement(language: Language) -> None:
+    assert kind(language, "Zzz")
+
+
+@pytest.mark.parametrize("language", ["en", "fr"])
+def test_no_acknowledgement_is_one_voxtral_derails_on(language: Language) -> None:
+    sentences = {sentence for _, pool in language_pack(language).acknowledgements for sentence in pool}
+    assert not sentences & {"Top.", "OK.", "Ok."}

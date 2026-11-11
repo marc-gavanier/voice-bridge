@@ -41,8 +41,8 @@ class Clips:
     question: tuple[str, bytes] | None
     statement: tuple[str, bytes] | None
 
-    def __call__(self, *, question: bool) -> tuple[str, bytes] | None:
-        return self.question if question else self.statement
+    def __call__(self, words: str) -> tuple[str, bytes] | None:
+        return self.question if words.endswith("?") else self.statement
 
 
 READY = Clips(question=("Voyons.", QUESTION_CLIP), statement=("D'accord.", STATEMENT_CLIP))

@@ -72,19 +72,13 @@ Feature: Turn taking
       When the speaker says "Where are we?"
       Then Claude hears "Where are we?"
 
-  Rule: Words are acknowledged once the speaker stays silent, as a question or as a statement
+  Rule: Words are acknowledged once the speaker stays silent, after what they said
 
-    Scenario: A question is acknowledged as a question
+    Scenario: Words are acknowledged after the speaker's words
       Given Claude is silent
       And the speaker said "Where are we?"
       When the speaker stays silent
-      Then the bridge acknowledges a question
-
-    Scenario: A statement is acknowledged as a statement
-      Given Claude is silent
-      And the speaker said "The repository is clean."
-      When the speaker stays silent
-      Then the bridge acknowledges a statement
+      Then the bridge acknowledges "Where are we?"
 
     Scenario: Words are not acknowledged at once
       Given Claude is silent
@@ -135,7 +129,7 @@ Feature: Turn taking
       And Claude said "Good."
       And the speaker said "And the logs too."
       When the speaker stays silent
-      Then the bridge acknowledges a statement
+      Then the bridge acknowledges "And the logs too."
 
   Rule: Words are not acknowledged while Claude is already replying
 

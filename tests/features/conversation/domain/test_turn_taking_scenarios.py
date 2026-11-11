@@ -209,14 +209,9 @@ def claude_hears(turn: Turn, words: str) -> None:
     assert Forward(text=words, interrupted=False) in turn.commands
 
 
-@then("the bridge acknowledges a question")
-def the_bridge_acknowledges_a_question(turn: Turn) -> None:
-    assert Acknowledge(question=True) in turn.commands
-
-
-@then("the bridge acknowledges a statement")
-def the_bridge_acknowledges_a_statement(turn: Turn) -> None:
-    assert Acknowledge(question=False) in turn.commands
+@then(parsers.parse('the bridge acknowledges "{words}"'))
+def the_bridge_acknowledges(turn: Turn, words: str) -> None:
+    assert Acknowledge(words=words) in turn.commands
 
 
 @then("the bridge acknowledges nothing")

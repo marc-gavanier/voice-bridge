@@ -1,7 +1,10 @@
 import logging
+import re
 import secrets
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
+from voice_bridge.features.speaking.domain.acknowledgement import fresh, kind_of
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
@@ -9,37 +12,40 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 type Clip = tuple[str, bytes]
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Acknowledgements:
-    questions: tuple[str, ...]
-    statements: tuple[str, ...]
+type AcknowledgementRule = tuple[str, tuple[str, ...]]
 
 
 @dataclass(slots=True, kw_only=True)
 class Clips:
-    questions: tuple[Clip, ...] = ()
-    statements: tuple[Clip, ...] = ()
-    choose: Callable[[Sequence[Clip]], Clip] = field(default=secrets.choice)
+    patterns: tuple[re.Pattern[str], ...] = ()
+    pools: list[dict[str, bytes]] = field(default_factory=list)
+    last: dict[int, str] = field(default_factory=dict)
+    choose: Callable[[Sequence[str]], str] = field(default=secrets.choice)
 
-    def __call__(self, *, question: bool) -> Clip | None:
-        pool = self.questions if question else self.statements
-        return self.choose(pool) if pool else None
+    def __call__(self, words: str) -> Clip | None:
+        kind = kind_of(words, self.patterns)
+        if kind is None or not self.pools[kind]:
+            return None
+        pool = self.pools[kind]
+        sentence = self.choose(fresh(tuple(pool), self.last.get(kind)))
+        self.last[kind] = sentence
+        return sentence, pool[sentence]
 
 
-async def _voiced(voice: Callable[[str], Awaitable[bytes | None]], sentences: tuple[str, ...]) -> tuple[Clip, ...]:
-    clips: list[Clip] = []
+async def _voiced(voice: Callable[[str], Awaitable[bytes | None]], sentences: tuple[str, ...]) -> dict[str, bytes]:
+    clips: dict[str, bytes] = {}
     for sentence in sentences:
         pcm = await voice(sentence)
         if pcm is not None:
-            clips.append((sentence, pcm))
-    return tuple(clips)
+            clips[sentence] = pcm
+    return clips
 
 
 async def record_acknowledgements(
-    clips: Clips, voice: Callable[[str], Awaitable[bytes | None]], acknowledgements: Acknowledgements
+    clips: Clips, voice: Callable[[str], Awaitable[bytes | None]], rules: Sequence[AcknowledgementRule]
 ) -> None:
-    clips.questions = await _voiced(voice, acknowledgements.questions)
-    clips.statements = await _voiced(voice, acknowledgements.statements)
-    logger.info("%d acknowledgements ready", len(clips.questions) + len(clips.statements))
+    clips.patterns = tuple(re.compile(pattern, re.IGNORECASE) for pattern, _ in rules)
+    clips.pools = [{} for _ in rules]
+    for kind, (_, sentences) in enumerate(rules):
+        clips.pools[kind] = await _voiced(voice, sentences)
+    logger.info("%d acknowledgements ready", sum(len(pool) for pool in clips.pools))

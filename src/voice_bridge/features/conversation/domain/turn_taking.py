@@ -76,7 +76,7 @@ class Forward:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Acknowledge:
-    question: bool
+    words: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -107,7 +107,7 @@ type Command = (
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PendingAcknowledgement:
     ticket: int
-    question: bool
+    words: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -222,7 +222,7 @@ def _forward(state: Conversation, text: str) -> Step:
     if state.acknowledged:
         forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None)
         return _synthesize_next(*_await_hold(forwarded, (Forward(text=text, interrupted=state.interrupted),)))
-    pending = PendingAcknowledgement(ticket=state.next_silence, question=text.rstrip().endswith("?"))
+    pending = PendingAcknowledgement(ticket=state.next_silence, words=text)
     forwarded = replace(
         state, paused=None, interrupted=False, hearing=False, acknowledging=pending, next_silence=pending.ticket + 1
     )
@@ -237,7 +237,7 @@ def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:
     if is_talking(state, at):
         return replace(state, acknowledging=None), ()
     acknowledged = replace(state, acknowledging=None, acknowledged=True)
-    return _await_hold(acknowledged, (Acknowledge(question=pending.question),))
+    return _await_hold(acknowledged, (Acknowledge(words=pending.words),))
 
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
