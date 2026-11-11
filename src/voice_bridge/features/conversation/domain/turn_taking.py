@@ -83,6 +83,7 @@ class Conversation:
     playing: tuple[Scheduled, ...] = ()
     paused: tuple[str, ...] | None = None
     interrupted: bool = False
+    hearing: bool = False
     next_ticket: int = 0
 
 
@@ -99,7 +100,7 @@ def is_talking(state: Conversation, at: float) -> bool:
 
 
 def _synthesize_next(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
-    if state.synthesizing is not None or not state.waiting:
+    if state.hearing or state.synthesizing is not None or not state.waiting:
         return state, commands
     synthesis = Synthesis(ticket=state.next_ticket, sentence=state.waiting[0])
     started = replace(state, waiting=state.waiting[1:], synthesizing=synthesis, next_ticket=synthesis.ticket + 1)
@@ -127,25 +128,28 @@ def _skip(state: Conversation, ticket: int) -> Step:
 
 
 def _interrupt(state: Conversation, at: float) -> Step:
-    if not is_talking(state, at):
+    if state.hearing:
         return state, ()
+    if not is_talking(state, at):
+        return replace(state, hearing=True), ()
     unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.ends_at > at)
     stopped = (*unfinished, *unspoken(state))
-    silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True)
+    silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True, hearing=True)
     return replace(silenced, paused=(*(state.paused or ()), *stopped)), (StopPlaying(heard_at=at),)
 
 
 def _resume(state: Conversation) -> Step:
-    if state.paused is None:
-        return state, ()
-    resumed = replace(state, waiting=(*state.waiting, *state.paused), paused=None, interrupted=False)
+    heard = replace(state, hearing=False)
+    if heard.paused is None:
+        return _synthesize_next(heard)
+    resumed = replace(heard, waiting=(*heard.paused, *heard.waiting), paused=None, interrupted=False)
     return _synthesize_next(resumed)
 
 
 def _forward(state: Conversation, text: str) -> Step:
-    forwarded = replace(state, paused=None, interrupted=False)
+    forwarded = replace(state, paused=None, interrupted=False, hearing=False)
     acknowledged = Acknowledge(question=text.rstrip().endswith("?"))
-    return forwarded, (acknowledged, Forward(text=text, interrupted=state.interrupted))
+    return _synthesize_next(forwarded, (acknowledged, Forward(text=text, interrupted=state.interrupted)))
 
 
 def step(state: Conversation, event: Event) -> Step:

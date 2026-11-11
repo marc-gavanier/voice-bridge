@@ -110,7 +110,7 @@ def test_finished_sentences_are_not_resumed() -> None:
     )
 
 
-def test_a_reply_asked_during_an_interruption_can_be_interrupted_too() -> None:
+def test_a_reply_asked_during_an_interruption_waits_behind_the_reply_it_cut() -> None:
     assert unspoken(
         state_after(
             Asked(sentences=(FIRST,)),

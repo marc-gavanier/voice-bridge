@@ -10,6 +10,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Event,
     Forward,
     StopPlaying,
+    Synthesize,
     Transcribed,
     VoiceDetected,
     step,
@@ -49,6 +50,26 @@ def claude_is_replying(first: str, second: str) -> Turn:
 @given("the speaker cut Claude off", target_fixture="turn")
 def the_speaker_cut_claude_off(turn: Turn) -> Turn:
     return after(turn, VoiceDetected(at=SPEAKING_AT))
+
+
+@given("the speaker is talking", target_fixture="turn")
+def the_speaker_is_talking() -> Turn:
+    return after(Turn(state=Conversation()), VoiceDetected(at=SPEAKING_AT))
+
+
+@given(parsers.parse('Claude replied "{sentence}"'), target_fixture="turn")
+def claude_replied(turn: Turn, sentence: str) -> Turn:
+    return after(turn, Asked(sentences=(sentence,)))
+
+
+@when(parsers.parse('Claude replies "{sentence}"'), target_fixture="turn")
+def claude_replies(turn: Turn, sentence: str) -> Turn:
+    return after(turn, Asked(sentences=(sentence,)))
+
+
+@when("the speaker keeps talking", target_fixture="turn")
+def the_speaker_keeps_talking(turn: Turn) -> Turn:
+    return after(turn, VoiceDetected(at=SPEAKING_AT + 0.02))
 
 
 @when("the speaker starts talking", target_fixture="turn")
@@ -109,3 +130,8 @@ def the_bridge_acknowledges_a_statement(turn: Turn) -> None:
 @then("the bridge acknowledges nothing")
 def the_bridge_acknowledges_nothing(turn: Turn) -> None:
     assert acknowledgements(turn.commands) == ()
+
+
+@then(parsers.parse('Claude starts saying "{sentence}"'))
+def claude_starts_saying(turn: Turn, sentence: str) -> None:
+    assert any(isinstance(command, Synthesize) and command.sentence == sentence for command in turn.commands)

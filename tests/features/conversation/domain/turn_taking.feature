@@ -14,6 +14,32 @@ Feature: Turn taking
       When the speaker starts talking
       Then nothing happens
 
+  Rule: A reply that arrives while the speaker talks waits for the end of their turn
+
+    Scenario: A reply arriving while the speaker talks stays silent
+      Given the speaker is talking
+      When Claude replies "I found three of them."
+      Then nothing happens
+
+    Scenario: The speaker talking on does not cut a reply they have not heard
+      Given the speaker is talking
+      And Claude replied "I found three of them."
+      When the speaker keeps talking
+      Then nothing happens
+
+    Scenario: The held reply is spoken once the speaker's words are heard
+      Given the speaker is talking
+      And Claude replied "I found three of them."
+      When the speaker says "And the logs too."
+      Then Claude starts saying "I found three of them."
+      And Claude hears "And the logs too."
+
+    Scenario: The held reply is spoken after a noise
+      Given the speaker is talking
+      And Claude replied "I found three of them."
+      When the speaker only makes a noise
+      Then Claude starts saying "I found three of them."
+
   Rule: A noise resumes the reply it cut
 
     Scenario: A cough after an interruption resumes what was left unsaid
