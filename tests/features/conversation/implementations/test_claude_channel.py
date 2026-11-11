@@ -13,6 +13,7 @@ from mcp.shared.message import SessionMessage
 
 from voice_bridge.features.conversation.implementations.claude_channel import (
     Forwarder,
+    Reply,
     ReplyTool,
     channel_server,
     forward,
@@ -22,19 +23,23 @@ from voice_bridge.features.conversation.implementations.claude_channel import (
 
 pytestmark = pytest.mark.anyio
 
-TOOL = ReplyTool(description="Speak a reply aloud", text_description="The text to speak")
+TOOL = ReplyTool(
+    description="Speak a reply aloud",
+    text_description="The text to speak",
+    working_description="True when the text announces work to come",
+)
 
 
 @dataclass(frozen=True)
 class Connection:
     session: ClientSession
-    replies: MemoryObjectReceiveStream[str]
+    replies: MemoryObjectReceiveStream[Reply]
     initialized: types.InitializeResult
 
 
 @asynccontextmanager
 async def connected() -> AsyncGenerator[Connection]:
-    replies_in, replies_out = anyio.create_memory_object_stream[str](10)
+    replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
     server = channel_server(instructions="Answer with reply.", tool=TOOL, replies=replies_in)
     async with (
         replies_in,
@@ -72,6 +77,15 @@ async def test_the_reply_tool_requires_a_text() -> None:
     assert tools.tools[0].input_schema["required"] == ["text"]
 
 
+async def test_the_reply_tool_takes_an_optional_flag_for_announced_work() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert tools.tools[0].input_schema["properties"]["working"] == {
+        "type": "boolean",
+        "description": "True when the text announces work to come",
+    }
+
+
 async def test_the_reply_tool_is_always_loaded() -> None:
     async with connected() as connection:
         tools = await connection.session.list_tools()
@@ -82,7 +96,14 @@ async def test_calling_reply_hands_the_text_to_the_conversation() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
         reply = await connection.replies.receive()
-    assert reply == "Bonjour."
+    assert reply == Reply(text="Bonjour.", working=False)
+
+
+async def test_calling_reply_for_announced_work_says_so_to_the_conversation() -> None:
+    async with connected() as connection:
+        _ = await connection.session.call_tool("reply", {"text": "Je regarde.", "working": True})
+        reply = await connection.replies.receive()
+    assert reply == Reply(text="Je regarde.", working=True)
 
 
 async def test_calling_reply_confirms_the_text_was_sent() -> None:
@@ -147,7 +168,7 @@ HANDSHAKE = {
 
 
 async def exchanged(*requests: Mapping[str, object]) -> list[types.JSONRPCMessage]:
-    replies_in, replies_out = anyio.create_memory_object_stream[str](10)
+    replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
     server = channel_server(instructions="Answer with reply.", tool=TOOL, replies=replies_in)
     written = io.StringIO()
 

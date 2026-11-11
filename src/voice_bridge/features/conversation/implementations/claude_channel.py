@@ -34,24 +34,35 @@ class MessageSender(Protocol):
 class ReplyTool:
     description: str
     text_description: str
+    working_description: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Reply:
+    text: str
+    working: bool = False
 
 
 class ReplyArguments(BaseModel):
     text: str
+    working: bool = False
 
 
 def _error(message: str) -> types.CallToolResult:
     return types.CallToolResult(content=[types.TextContent(type="text", text=message)], is_error=True)
 
 
-def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStream[str]) -> Server[object]:
+def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStream[Reply]) -> Server[object]:
     reply = types.Tool.model_validate(
         {
             "name": TOOL_NAME,
             "description": tool.description,
             "inputSchema": {
                 "type": "object",
-                "properties": {"text": {"type": "string", "description": tool.text_description}},
+                "properties": {
+                    "text": {"type": "string", "description": tool.text_description},
+                    "working": {"type": "boolean", "description": tool.working_description},
+                },
                 "required": ["text"],
             },
             "_meta": {"anthropic/alwaysLoad": True},
@@ -72,8 +83,8 @@ def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStr
             arguments = ReplyArguments.model_validate(params.arguments or {})
         except ValidationError as error:
             return _error(str(error))
-        logger.info("reply received from Claude: %r", arguments.text)
-        await replies.send(arguments.text)
+        logger.info("reply received from Claude: %r%s", arguments.text, ", work to come" if arguments.working else "")
+        await replies.send(Reply(text=arguments.text, working=arguments.working))
         return types.CallToolResult(content=[types.TextContent(type="text", text="sent")])
 
     return Server(

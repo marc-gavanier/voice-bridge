@@ -5,6 +5,7 @@ from typing import assert_never
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Asked:
     sentences: tuple[str, ...]
+    working: bool = False
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -88,6 +89,7 @@ class AwaitSilence:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AwaitHold:
     ticket: int
+    after: float = 0.0
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -137,6 +139,7 @@ class Conversation:
     next_silence: int = 0
     awaiting_hold: int | None = None
     holding: bool = False
+    working: bool = False
 
 
 type Step = tuple[Conversation, tuple[Command, ...]]
@@ -157,10 +160,12 @@ def _stop_holding(state: Conversation, commands: tuple[Command, ...] = ()) -> St
     return replace(state, holding=False), (StopHoldMusic(), *commands)
 
 
-def _await_hold(state: Conversation, commands: tuple[Command, ...]) -> Step:
+def _await_hold(state: Conversation, commands: tuple[Command, ...], after: float = 0.0) -> Step:
+    if not state.working:
+        return state, commands
     ticket = state.next_silence
     awaiting = replace(state, awaiting_hold=ticket, next_silence=ticket + 1)
-    return awaiting, (*commands, AwaitHold(ticket=ticket))
+    return awaiting, (*commands, AwaitHold(ticket=ticket, after=after))
 
 
 def _hold(state: Conversation, ticket: int) -> Step:
@@ -188,7 +193,10 @@ def _play(state: Conversation, event: Synthesized) -> Step:
     scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
     still_playing = tuple(each for each in state.playing if each.ends_at > event.at)
     played = replace(state, synthesizing=None, playing=(*still_playing, scheduled))
-    return _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
+    voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
+    if unspoken(voiced):
+        return voiced, commands
+    return _await_hold(voiced, commands, after=scheduled.ends_at - event.at)
 
 
 def _skip(state: Conversation, ticket: int) -> Step:
@@ -245,7 +253,7 @@ def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
     match event:
-        case Asked(sentences=sentences):
+        case Asked(sentences=sentences, working=working):
             return _synthesize_next(
                 replace(
                     state,
@@ -253,6 +261,7 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
                     acknowledging=None,
                     acknowledged=False,
                     awaiting_hold=None,
+                    working=working,
                 )
             )
         case Synthesized():

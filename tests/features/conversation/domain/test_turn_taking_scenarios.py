@@ -98,11 +98,30 @@ def claude_is_saying(turn: Turn, sentence: str) -> Turn:
     return voiced(turn, sentence, duration=SILENT_AT - SPEAKING_AT + 1.0)
 
 
+@given(parsers.re(r'Claude announced "(?P<sentence>[^"]*)"$'), target_fixture="turn")
+def claude_announced(turn: Turn, sentence: str) -> Turn:
+    return after(turn, Asked(sentences=(sentence,), working=True))
+
+
+@given(parsers.parse('Claude announced "{first}" then "{second}"'), target_fixture="turn")
+def claude_announced_two_sentences(turn: Turn, first: str, second: str) -> Turn:
+    return after(turn, Asked(sentences=(first, second), working=True))
+
+
+def announced_work(sentence: str) -> Turn:
+    asked = after(Turn(state=Conversation()), Asked(sentences=(sentence,), working=True))
+    return after(asked, Synthesized(ticket=synthesizing_ticket(asked), pcm=b"", duration=0.5, at=0.0))
+
+
+@given(parsers.parse('Claude announced work with "{sentence}"'), target_fixture="turn")
+def claude_announced_work(sentence: str) -> Turn:
+    return announced_work(sentence)
+
+
 @given("the hold music plays", target_fixture="turn")
 def the_hold_music_plays() -> Turn:
-    said = after(Turn(state=Conversation()), Transcribed(text="The repository is clean."))
-    acknowledged = after(said, SilenceLasted(ticket=said.silences[-1], at=SILENT_AT))
-    return after(acknowledged, HoldLasted(ticket=acknowledged.holds[-1]))
+    announced = announced_work("Let me look at your notes.")
+    return after(announced, HoldLasted(ticket=announced.holds[-1]))
 
 
 @given("the speaker cut in", target_fixture="turn")
@@ -236,6 +255,16 @@ def the_bridge_acknowledges_nothing(turn: Turn) -> None:
 @then(parsers.parse('Claude starts saying "{sentence}"'))
 def claude_starts_saying(turn: Turn, sentence: str) -> None:
     assert any(isinstance(command, Synthesize) and command.sentence == sentence for command in turn.commands)
+
+
+@then("the hold music waits for the end of that voice")
+def the_hold_music_waits_for_the_end_of_that_voice(turn: Turn) -> None:
+    assert [command.after for command in turn.commands if isinstance(command, AwaitHold)] == [1.0]
+
+
+@then("the bridge waits for no hold music")
+def the_bridge_waits_for_no_hold_music(turn: Turn) -> None:
+    assert not any(isinstance(command, AwaitHold) for command in turn.commands)
 
 
 @then("the hold music starts")

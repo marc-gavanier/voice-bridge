@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
+    from voice_bridge.features.conversation.implementations.claude_channel import Reply
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | N
 
 
 async def converse(
-    settings: Settings, language: LanguagePack, claude: Claude, replies: ObjectReceiveStream[str], username: str
+    settings: Settings, language: LanguagePack, claude: Claude, replies: ObjectReceiveStream[Reply], username: str
 ) -> None:
     events_in, events_out = anyio.create_memory_object_stream[Event](math.inf)
     packets_in, packets_out = anyio.create_memory_object_stream[Packet](math.inf)
@@ -190,8 +191,8 @@ async def converse(
         await events_in.send(Transcribed(text=text, noise=noise))
 
     async def relay_replies() -> None:
-        async for text in replies:
-            await events_in.send(Asked(sentences=sentences_of(text)))
+        async for reply in replies:
+            await events_in.send(Asked(sentences=sentences_of(reply.text), working=reply.working))
 
     async with (
         events_in,

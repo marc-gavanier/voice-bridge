@@ -159,22 +159,42 @@ Feature: Turn taking
       When the speaker stays silent
       Then the bridge acknowledges nothing
 
-  Rule: Hold music plays while the speaker waits for a reply that is long to come
+  Rule: Hold music plays while Claude works on what it announced
 
-    Scenario: A long wait after the acknowledgement starts the hold music
+    Scenario: An announced work waits for the end of the announcement before the hold music
       Given Claude is silent
-      And the speaker said "The repository is clean."
-      And the speaker stayed silent
+      And Claude announced "Let me look at your notes."
+      When Claude's voice for "Let me look at your notes." is ready
+      Then the hold music waits for the end of that voice
+
+    Scenario: A long wait after an announcement starts the hold music
+      Given Claude announced work with "Let me look at your notes."
       When the wait goes on
       Then the hold music starts
 
-    Scenario: A reply that comes before the end of the wait leaves no room for music
+    Scenario: An announcement of several sentences waits for its last one
       Given Claude is silent
-      And the speaker said "The repository is clean."
-      And the speaker stayed silent
+      And Claude announced "I found it." then "Let me look at your notes."
+      When Claude's voice for "I found it." is ready
+      Then the bridge waits for no hold music
+
+    Scenario: A reply that announces no work leaves no room for music
+      Given Claude is silent
+      And Claude replied "Good."
+      When Claude's voice for "Good." is ready
+      Then the bridge waits for no hold music
+
+    Scenario: A reply that comes before the end of the wait leaves no room for music
+      Given Claude announced work with "Let me look at your notes."
       And Claude replied "Good."
       When the wait goes on
       Then nothing happens
+
+    Scenario: The acknowledgement brings no hold music
+      Given Claude is silent
+      And the speaker said "The repository is clean."
+      When the speaker stays silent
+      Then the bridge waits for no hold music
 
     Scenario: The first sentence of the reply stops the hold music
       Given the hold music plays
@@ -197,5 +217,6 @@ Feature: Turn taking
       Given the hold music plays
       And the speaker cut in
       And the speaker said "And the logs too."
+      And the speaker stayed silent
       When the wait goes on
       Then the hold music starts

@@ -10,6 +10,7 @@ from voice_bridge.configuration.settings import Settings, load_settings
 from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.logs import configure_logging
 from voice_bridge.entrypoints.voice import converse
+from voice_bridge.features.conversation.implementations.claude_channel import Reply
 
 USERNAME: Final = "rehearsal"
 
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 async def rehearse(settings: Settings, language: LanguagePack) -> None:
-    said_in, said_out = anyio.create_memory_object_stream[str](math.inf)
+    said_in, said_out = anyio.create_memory_object_stream[Reply](math.inf)
     async with said_in, said_out:
 
         async def repeat(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
@@ -27,7 +28,7 @@ async def rehearse(settings: Settings, language: LanguagePack) -> None:
                 " after an interruption" if interrupted else "",
                 acknowledgement,
             )
-            await said_in.send(text)
+            await said_in.send(Reply(text=text))
 
         await converse(settings, language, repeat, said_out, USERNAME)
 

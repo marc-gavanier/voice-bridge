@@ -11,6 +11,7 @@ from voice_bridge.entrypoints.logs import configure_logging
 from voice_bridge.entrypoints.voice import converse
 from voice_bridge.features.conversation.implementations.claude_channel import (
     Forwarder,
+    Reply,
     ReplyTool,
     channel_server,
     serve_over_stdio,
@@ -20,10 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 async def serve(settings: Settings, language: LanguagePack) -> None:
-    replies_in, replies_out = anyio.create_memory_object_stream[str](math.inf)
+    replies_in, replies_out = anyio.create_memory_object_stream[Reply](math.inf)
     server = channel_server(
         instructions=load_instructions(settings.instructions_file, default=language.instructions),
-        tool=ReplyTool(description=language.reply_tool_description, text_description=language.reply_text_description),
+        tool=ReplyTool(
+            description=language.reply_tool_description,
+            text_description=language.reply_text_description,
+            working_description=language.reply_working_description,
+        ),
         replies=replies_in,
     )
     async with replies_in, replies_out:

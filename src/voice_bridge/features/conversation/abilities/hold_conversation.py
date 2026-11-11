@@ -97,7 +97,7 @@ async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: Awa
 
 
 async def _await_hold(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitHold) -> None:
-    await anyio.sleep(mouth.hold_music_delay)
+    await anyio.sleep(order.after + mouth.hold_music_delay)
     await emit.send(HoldLasted(ticket=order.ticket))
 
 

@@ -16,6 +16,7 @@ class LanguagePack:
     acknowledgements: tuple[tuple[str, tuple[str, ...]], ...]
     reply_tool_description: str
     reply_text_description: str
+    reply_working_description: str
     hallucinations: frozenset[str]
     hallucination_prefixes: tuple[str, ...]
     instructions: str
@@ -200,6 +201,9 @@ def language_pack(language: Language) -> LanguagePack:
                 acknowledgements=ENGLISH_ACKNOWLEDGEMENTS,
                 reply_tool_description="Speak a reply aloud in the user's headset",
                 reply_text_description="The text to speak, written for the ear",
+                reply_working_description=(
+                    "True when the text announces work you are about to do: hold music then plays until your next reply"
+                ),
                 hallucinations=frozenset({"", "you", "thank you", "thanks for watching"}),
                 hallucination_prefixes=("subtitles by",),
                 instructions=_packaged_instructions(language),
@@ -212,6 +216,10 @@ def language_pack(language: Language) -> LanguagePack:
                 acknowledgements=FRENCH_ACKNOWLEDGEMENTS,
                 reply_tool_description="Dire une réponse à voix haute dans le casque de l'utilisateur",
                 reply_text_description="Le texte à prononcer, rédigé pour l'oreille",
+                reply_working_description=(
+                    "Vrai quand le texte annonce un travail que tu vas faire : "
+                    "une musique d'attente joue alors jusqu'à ta réponse suivante"
+                ),
                 hallucinations=frozenset({"", "merci", "je vous prie"}),
                 hallucination_prefixes=("sous-titrage",),
                 instructions=_packaged_instructions(language),
