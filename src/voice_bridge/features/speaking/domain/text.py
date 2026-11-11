@@ -3,7 +3,11 @@ from functools import reduce
 from typing import Final
 
 SHORTEST_SENTENCE: Final = 12
-SENTENCE_END: Final = re.compile(r"(?<=[.!?…])\s+")
+SPACED_SENTENCE_END: Final = r"(?<=[.!?\N{HORIZONTAL ELLIPSIS}\N{ARABIC QUESTION MARK}\N{DEVANAGARI DANDA}])\s+"
+CJK_SENTENCE_END: Final = (
+    r"(?<=[\N{IDEOGRAPHIC FULL STOP}\N{FULLWIDTH QUESTION MARK}\N{FULLWIDTH EXCLAMATION MARK}])\s*"
+)
+SENTENCE_END: Final = re.compile(f"{SPACED_SENTENCE_END}|{CJK_SENTENCE_END}")
 MARKDOWN_RULES: Final = (
     (re.compile(r"```.*?```", re.DOTALL), ""),
     (re.compile(r"\[([^\]]+)\]\([^)]+\)"), r"\1"),

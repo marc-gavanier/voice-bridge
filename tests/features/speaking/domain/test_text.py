@@ -39,3 +39,32 @@ def test_merging_a_short_sentence_keeps_the_sentences_before_it() -> None:
         "A first long sentence.",
         "Yes. Then the rest.",
     )
+
+
+def test_an_arabic_question_mark_ends_a_sentence() -> None:
+    text = "Is the repository clean\N{ARABIC QUESTION MARK} Yes, nothing is left to commit."
+    assert split_sentences(text) == (
+        "Is the repository clean\N{ARABIC QUESTION MARK}",
+        "Yes, nothing is left to commit.",
+    )
+
+
+def test_a_devanagari_full_stop_ends_a_sentence() -> None:
+    text = "The tests are all green\N{DEVANAGARI DANDA} The next step is the release."
+    assert split_sentences(text) == (
+        "The tests are all green\N{DEVANAGARI DANDA}",
+        "The next step is the release.",
+    )
+
+
+def test_cjk_punctuation_ends_a_sentence_without_a_following_space() -> None:
+    text = (
+        "The first sentence is here\N{IDEOGRAPHIC FULL STOP}"
+        "Is the second one a question\N{FULLWIDTH QUESTION MARK}"
+        "The third one is loud\N{FULLWIDTH EXCLAMATION MARK}"
+    )
+    assert split_sentences(text) == (
+        "The first sentence is here\N{IDEOGRAPHIC FULL STOP}",
+        "Is the second one a question\N{FULLWIDTH QUESTION MARK}",
+        "The third one is loud\N{FULLWIDTH EXCLAMATION MARK}",
+    )
