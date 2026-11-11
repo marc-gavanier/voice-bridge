@@ -1,0 +1,408 @@
+whisper_code = "fr"
+voice = "fr_female"
+greeting = "Je t'écoute."
+stop_refusal = "L'utilisateur a demandé d'arrêter : aucun outil ne s'exécute avant son prochain message. Ne réessaie pas ; dis en une phrase ce qui a été arrêté et ce qui était déjà fait."
+reply_tool_description = "Dire une réponse à voix haute dans le casque de l'utilisateur"
+reply_text_description = "Le texte à prononcer, rédigé pour l'oreille"
+reply_working_description = "Vrai quand le texte annonce un travail que tu vas faire : une musique d'attente joue alors jusqu'à ta réponse suivante"
+end_tool_description = "Dire au revoir à voix haute, puis terminer toute la session vocale : le pont et cette session Claude Code"
+end_text_description = "Le court au revoir à prononcer avant la fin de la session"
+hallucinations = [
+  "",
+  "je vous prie",
+  "merci",
+]
+hallucination_prefixes = [
+  "sous-titrage",
+  "merci d'avoir regardé",
+]
+neutral_acknowledgements = [
+  "D'accord.",
+  "Entendu.",
+  "Je vois.",
+  "Noté.",
+  "Compris.",
+  "Je note.",
+  "Ah, d'accord.",
+]
+
+[[acknowledgements]]
+name = "stop"
+threshold = 0.75
+stops = true
+examples = [
+  "Stop.",
+  "Stop, stop, stop.",
+  "Ah oui, stop, stop, stop.",
+  "Arrête.",
+  "Arrête !",
+  "Arrête-toi.",
+  "Arrête tout.",
+  "Arrête ce que tu fais.",
+  "Est-ce que tu peux arrêter ?",
+  "Stop, est-ce que tu peux arrêter ?",
+  "Tu peux arrêter s'il te plaît ?",
+  "Tu peux t'arrêter là ?",
+  "Laisse tomber.",
+  "Laisse tomber, ce n'est pas la peine.",
+  "Attends attends, laisse tomber.",
+  "Non, attends, ne fais pas ça.",
+  "Non, ne fais pas ça.",
+  "Attends, pas ça.",
+  "Annule.",
+  "Annule ce que tu es en train de faire.",
+  "Interromps-toi.",
+  "Pause, arrête-toi deux secondes.",
+  "Ne continue pas.",
+  "C'est bon, arrête de chercher.",
+  "Oublie, on laisse ça.",
+  "Non non non, arrête.",
+  "Tu t'arrêtes là.",
+  "Coupe tout.",
+  "Abandonne cette tâche.",
+  "Ça suffit, arrête.",
+]
+sentences = [
+  "J'arrête.",
+  "Je m'arrête.",
+  "D'accord, j'arrête.",
+  "Entendu, j'arrête tout.",
+]
+
+[[acknowledgements]]
+name = "end"
+examples = [
+  "On s'arrête là pour aujourd'hui.",
+  "On s'arrête là pour aujourd'hui, on verra ça demain.",
+  "Au revoir.",
+  "À demain.",
+  "À plus tard.",
+  "C'est fini pour ce soir.",
+  "On peut mettre fin à la conversation.",
+  "Ok, on va mettre fin à la conversation.",
+  "Bonne nuit, on reprend demain.",
+  "Je vais me coucher, bonne nuit.",
+  "Je te laisse, à plus tard.",
+  "On termine la session.",
+  "On peut arrêter la session.",
+  "Comment on raccroche ?",
+  "Allez, on arrête pour ce soir.",
+  "C'est fini, merci, à demain.",
+]
+sentences = [
+  "D'accord, on s'arrête.",
+  "Très bien.",
+  "Ça marche.",
+  "À plus tard.",
+  "Entendu, on s'arrête là.",
+]
+
+[[acknowledgements]]
+name = "unfinished"
+examples = [
+  "Et…",
+  "Donc…",
+  "Donc,",
+  "Mais…",
+  "Alors…",
+  "Enfin…",
+  "Tu es…",
+  "Tu as dit…",
+  "Et moi, j'attends la musique pour te…",
+  "Parce que…",
+  "En fait, je…",
+  "Et du coup…",
+  "Oui, j'aimerais bien…",
+  "Mais ça marche bien, t'es juste…",
+  "Non, j'ai l'impression que tu ne m'entends plus. À chaque fois…",
+]
+sentences = [
+  "Oui ?",
+  "Je t'écoute.",
+  "Vas-y.",
+  "Continue.",
+  "Et donc ?",
+]
+
+[[acknowledgements]]
+name = "presence"
+examples = [
+  "Est-ce que tu m'entends ?",
+  "Tu m'entends ?",
+  "Est-ce que tu m'entends toujours ?",
+  "Est-ce que tu m'entends, Claude ?",
+  "Est-ce que tu m'entends si je parle ?",
+  "Tu es là ?",
+  "Tu es encore là ?",
+  "Qu'est-ce que tu fais ? Claude, est-ce que tu es là ?",
+  "Allô, tu es toujours là ?",
+  "Tu es encore en train de travailler ou j'attends pour rien ?",
+  "Est-ce que ça fonctionne ?",
+  "Est-ce que ça marche maintenant ?",
+  "Tu m'as entendu ?",
+  "Je parle, est-ce que tu me reçois ?",
+  "C'est bon, là je suis passé en 4G, est-ce que tu m'entends toujours ?",
+  "Est-ce que tu m'entends ? Juste pour voir, là, je parle un peu.",
+  "Tu es toujours avec moi ?",
+]
+sentences = [
+  "Oui, je suis là.",
+  "Je t'entends.",
+  "Je suis là, oui.",
+  "Toujours là.",
+  "Oui, je t'entends bien.",
+]
+
+[[acknowledgements]]
+name = "thanks"
+examples = [
+  "Merci.",
+  "Merci beaucoup.",
+  "Super, merci.",
+  "Merci, c'est parfait.",
+  "Bravo, bon travail.",
+  "Bon travail.",
+  "Bien joué.",
+  "C'est top, merci pour ton aide.",
+  "Génial, ça marche très bien.",
+  "Merci, c'est exactement ce qu'il me fallait.",
+  "Franchement, bravo.",
+  "Super boulot, merci.",
+  "Merci pour tout.",
+  "Excellent travail.",
+  "Parfait, merci beaucoup.",
+]
+sentences = [
+  "Merci !",
+  "Avec plaisir.",
+  "Merci, ça fait plaisir.",
+  "De rien.",
+  "Content que ça te plaise.",
+]
+
+[[acknowledgements]]
+name = "problem"
+examples = [
+  "Ça a coupé.",
+  "Il y a une coupure.",
+  "Coupure.",
+  "Il y a un truc qui coupe.",
+  "Ça ne fait que couper, ça coupe, ça coupe.",
+  "Je ne t'entends plus.",
+  "Bon, je t'entends plus.",
+  "J'entends plus rien depuis un moment.",
+  "Il y a un bug.",
+  "C'est bizarre, ça ne marche pas.",
+  "Elle ne marche plus.",
+  "Il y a un problème avec le son.",
+  "Là, il y a eu un problème cette fois de ton côté.",
+  "Il y a beaucoup de latence.",
+  "Tu vas trop vite.",
+  "Attends, là c'est allé trop vite, reviens en arrière.",
+  "Je n'ai pas entendu la fin de ta phrase.",
+  "Tu ne m'as pas dit la suite, ça a coupé une nouvelle fois.",
+  "Ça grésille, il y a des artefacts.",
+  "Je n'entends pas la musique.",
+  "Je te coupe et tu ne t'arrêtes pas du tout. Pourquoi tu t'arrêtes pas ?",
+  "Là, je n'ai pas d'accusé de réception, je n'entends plus.",
+  "Donc là, toujours dans le flou, j'entends rien, pas de réponse.",
+  "On a été coupé, là. Recommence.",
+]
+sentences = [
+  "Ah, je regarde ça.",
+  "Je vérifie.",
+  "Noté, je cherche.",
+  "Je vais voir ça.",
+  "Ah, mince.",
+  "Je jette un œil.",
+]
+
+[[acknowledgements]]
+name = "restarted"
+examples = [
+  "J'ai redémarré.",
+  "J'ai relancé le pont.",
+  "Là, j'ai redémarré le pont.",
+  "Je relance la session.",
+  "Voilà, j'ai redémarré la discussion.",
+  "Donc là, j'ai redémarré la discussion.",
+  "C'est relancé.",
+  "J'ai relancé Claude.",
+  "Voilà, c'est redémarré, on peut reprendre.",
+  "J'ai tout relancé.",
+  "Je viens de redémarrer le serveur.",
+  "Le pont est relancé.",
+  "Ok, j'ai rebranché le casque.",
+  "C'est bon, je me suis reconnecté.",
+  "J'ai relancé l'application sur le téléphone.",
+]
+sentences = [
+  "Bien reçu.",
+  "Parfait, c'est noté.",
+  "Super.",
+  "D'accord, on y va.",
+  "Très bien.",
+]
+
+[[acknowledgements]]
+name = "request"
+examples = [
+  "Tu peux regarder les derniers commits ?",
+  "Regarde les derniers commits et on va vérifier si tout fonctionne bien.",
+  "Regarde mes notes sur le sujet.",
+  "Cherche dans mes documents.",
+  "Peux-tu vérifier la configuration ?",
+  "Lance les tests.",
+  "Prépare un brouillon de message.",
+  "Explique-moi comment ça marche.",
+  "Je voudrais que tu lises cet article.",
+  "Est-ce que tu peux lire le Wikipédia sur la Savoie ?",
+  "Ajoute ça à ma liste de tâches.",
+  "Fais un résumé.",
+  "Tu peux répéter ?",
+  "Est-ce que tu peux répéter s'il te plaît ?",
+  "Tu peux répéter, j'étais ailleurs.",
+  "Donne-moi la liste des points.",
+  "Recherche dans ma généalogie qui est mon arrière-grand-mère.",
+  "Crée une issue pour ça.",
+  "Tu peux supprimer.",
+  "Mais oui, il faudra le publier, tu peux noter ça.",
+  "Alors, ton texte n'a pas été lu. Est-ce que tu peux me résumer ?",
+  "Est-ce que tu peux m'en dire plus sur ce petit modèle ?",
+  "Je ne comprends pas, j'ai perdu le fil. Reviens en arrière et repose-moi les questions.",
+  "Ouais, vas-y, note les deux.",
+]
+sentences = [
+  "Je regarde.",
+  "Je m'en occupe.",
+  "Je m'y mets.",
+  "C'est parti.",
+  "Ça marche, je regarde.",
+  "D'accord, je lance.",
+  "Je vois ça.",
+  "Laisse-moi regarder.",
+]
+
+[[acknowledgements]]
+name = "question"
+examples = [
+  "Pourquoi ça ne marche pas ?",
+  "Comment ça fonctionne ?",
+  "Comment on fait ?",
+  "Qu'est-ce que tu en penses ?",
+  "C'est quoi la suite ?",
+  "Et donc, qu'est-ce que c'est la suite ?",
+  "Quelle est la différence ?",
+  "Combien ça coûte ?",
+  "Où est-ce que tu as mis le fichier ?",
+  "Est-ce que c'est possible ?",
+  "Est-ce que c'est corrigé ?",
+  "Tu as des questions ?",
+  "On en était où ?",
+  "Est-ce qu'il y a quelque chose à faire ?",
+  "Comment je sais que ça vient de là ?",
+  "Ok, ça me va. Est-ce que ça, en termes de latence, ça va me coûter cher ?",
+  "Est-ce que tu as eu le temps de lire l'article ou tu t'es arrêté avant ?",
+  "Ok, de quoi on peut discuter ? T'as une idée ?",
+  "Pourquoi tu ne peux pas vérifier ?",
+]
+sentences = [
+  "Voyons.",
+  "Bonne question.",
+  "Je réfléchis.",
+  "Laisse-moi voir.",
+  "Je vérifie.",
+  "Attends, je regarde.",
+]
+
+[[acknowledgements]]
+name = "idea"
+examples = [
+  "Je me demande si on pourrait faire autrement.",
+  "Je me demande si on pourrait faire une règle.",
+  "J'ai une idée.",
+  "Attends, j'ai peut-être une idée.",
+  "On pourrait utiliser un autre outil.",
+  "Je pense que ce serait mieux de séparer les deux.",
+  "Je trouve que c'est trop compliqué.",
+  "Ce serait bien d'avoir une musique d'attente.",
+  "Ça me fait penser à quelque chose.",
+  "Toujours regarder s'il n'existe pas un truc pour faire ça.",
+  "J'aimerais bien ce truc automatisé, mais je ne sais pas comment faire.",
+  "Je pense qu'on peut le faire maintenant.",
+  "Je pense qu'on a eu des petits accrocs de réseau tout simplement.",
+  "Ça, ça me paraît être une bonne idée.",
+  "C'était peut-être une idée que je me faisais.",
+  "Je veux que ça fonctionne aussi sur le téléphone.",
+]
+sentences = [
+  "Intéressant.",
+  "Je vois l'idée.",
+  "Ah, d'accord.",
+  "Je t'écoute.",
+  "Ça se tient.",
+]
+
+[[acknowledgements]]
+name = "no"
+examples = [
+  "Non.",
+  "Non, pas besoin.",
+  "Non, ce n'est pas ça.",
+  "Pas nécessairement.",
+  "Tant pis.",
+  "Non, on fait autrement.",
+  "Non, c'est faux.",
+  "Non, ça je ne suis pas d'accord.",
+  "Non, mais pas ça. On s'en fout.",
+  "Non, je préfère l'autre.",
+  "Non, ça je m'en fous.",
+  "Non, non, ce n'est pas à cocher.",
+  "Non, on fait tout sur la même pull request.",
+  "Non, je n'ai pas d'idée.",
+  "Non, je voulais dire autre chose.",
+]
+sentences = [
+  "D'accord.",
+  "Compris.",
+  "Très bien, on laisse.",
+  "Pas de souci.",
+  "Entendu.",
+  "Ça marche.",
+]
+
+[[acknowledgements]]
+name = "yes"
+examples = [
+  "Oui.",
+  "Oui, vas-y.",
+  "Ouais, vas-y.",
+  "C'est parti.",
+  "Allez, c'est parti.",
+  "On y va.",
+  "Lance-toi.",
+  "Vas-y, lance.",
+  "Ok.",
+  "OK, ça me va.",
+  "D'accord, on fait comme ça.",
+  "Ok, on va faire ça.",
+  "Parfait, je valide.",
+  "C'est bon pour moi.",
+  "Ouais, c'est exactement ça.",
+  "C'est exactement ça.",
+  "Non, c'est exactement ça.",
+  "Oui, très bien.",
+  "Oui, on va essayer.",
+  "Oui, je veux bien que tu lises.",
+  "Oui, ça s'est bien arrêté.",
+  "Oui, je t'entends, c'est bon.",
+  "Oui, c'est plus clair.",
+]
+sentences = [
+  "Parfait.",
+  "Ça marche.",
+  "Super.",
+  "Très bien.",
+  "C'est parti.",
+  "Bien.",
+]

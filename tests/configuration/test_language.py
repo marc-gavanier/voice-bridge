@@ -1,9 +1,15 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from voice_bridge.configuration.language import STOP_THRESHOLD, language_pack, load_instructions
-from voice_bridge.configuration.settings import Language
+from voice_bridge.configuration.language import (
+    AcknowledgementRoute,
+    language_pack,
+    load_instructions,
+    parse_language_pack,
+)
+from voice_bridge.configuration.settings import Language, UnderstandingSettings
 from voice_bridge.features.hearing.domain.noise import Hallucinations, is_noise
 from voice_bridge.features.understanding.abilities.understand import Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
@@ -143,7 +149,8 @@ def test_only_the_stop_route_stops(language: Language) -> None:
 @pytest.mark.parametrize("language", ["en", "fr"])
 def test_a_stop_needs_a_close_match(language: Language) -> None:
     stop = next(route for route in language_pack(language).acknowledgements if route.name == "stop")
-    assert stop.threshold == STOP_THRESHOLD
+    assert stop.threshold is not None
+    assert stop.threshold > UnderstandingSettings().threshold
 
 
 @pytest.mark.parametrize("language", ["en", "fr"])
@@ -160,3 +167,54 @@ def test_no_acknowledgement_is_one_voxtral_derails_on(language: Language) -> Non
 
 def test_french_refuses_tools_in_french() -> None:
     assert "arrêter" in language_pack("fr").stop_refusal
+
+
+MINIMAL_PACK = """
+whisper_code = "en"
+voice = "neutral_female"
+greeting = "Hello."
+stop_refusal = "Stopped."
+reply_tool_description = "Speak"
+reply_text_description = "Text"
+reply_working_description = "Working"
+end_tool_description = "End"
+end_text_description = "Goodbye"
+hallucinations = ["", "you"]
+hallucination_prefixes = ["subtitles by"]
+neutral_acknowledgements = ["Okay."]
+
+[[acknowledgements]]
+name = "yes"
+examples = ["Yes."]
+sentences = ["Good."]
+"""
+
+
+def test_a_language_file_gives_its_pack_with_the_instructions() -> None:
+    assert parse_language_pack(MINIMAL_PACK, instructions="Be brief.").instructions == "Be brief."
+
+
+def test_a_route_of_a_language_file_needs_no_threshold_and_does_not_stop() -> None:
+    route = parse_language_pack(MINIMAL_PACK, instructions="").acknowledgements[0]
+    assert route == AcknowledgementRoute(name="yes", examples=("Yes.",), sentences=("Good.",))
+
+
+def test_the_hallucinations_of_a_language_file_are_a_set() -> None:
+    assert parse_language_pack(MINIMAL_PACK, instructions="").hallucinations == frozenset({"", "you"})
+
+
+def test_a_language_file_with_an_unknown_key_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        _ = parse_language_pack(
+            MINIMAL_PACK.replace('greeting = "Hello."', 'greeting = "Hello."\ngreting = "Hi."'), instructions=""
+        )
+
+
+def test_a_language_file_missing_a_key_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        _ = parse_language_pack(MINIMAL_PACK.replace('greeting = "Hello."', ""), instructions="")
+
+
+def test_a_route_with_an_unknown_key_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        _ = parse_language_pack(MINIMAL_PACK.replace('name = "yes"', 'name = "yes"\nstop = true'), instructions="")

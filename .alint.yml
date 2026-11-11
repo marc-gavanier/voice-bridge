@@ -7,7 +7,7 @@ rules:
     paths:
       - "src/voice_bridge/**"
       - "!src/voice_bridge/configuration"
-      - "!src/voice_bridge/configuration/instructions"
+      - "!src/voice_bridge/configuration/languages"
       - "!src/voice_bridge/entrypoints"
       - "!src/voice_bridge/features"
       - "!src/voice_bridge/features/*"

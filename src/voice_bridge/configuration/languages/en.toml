@@ -1,0 +1,385 @@
+whisper_code = "en"
+voice = "neutral_female"
+greeting = "I'm listening."
+stop_refusal = "The speaker asked to stop: no tool runs until their next message. Do not retry; say in one sentence what was stopped and what was already done."
+reply_tool_description = "Speak a reply aloud in the user's headset"
+reply_text_description = "The text to speak, written for the ear"
+reply_working_description = "True when the text announces work you are about to do: hold music then plays until your next reply"
+end_tool_description = "Say goodbye aloud, then end the whole voice session: the bridge and this Claude Code session"
+end_text_description = "The short goodbye to speak before the session ends"
+hallucinations = [
+  "",
+  "thank you",
+  "thanks for watching",
+  "you",
+]
+hallucination_prefixes = [
+  "subtitles by",
+]
+neutral_acknowledgements = [
+  "Okay.",
+  "Got it.",
+  "I see.",
+  "Noted.",
+  "Understood.",
+  "Right.",
+]
+
+[[acknowledgements]]
+name = "stop"
+threshold = 0.75
+stops = true
+examples = [
+  "Stop.",
+  "Stop, stop, stop.",
+  "Oh yes, stop, stop, stop.",
+  "Stop it.",
+  "Stop!",
+  "Stop there.",
+  "Stop everything.",
+  "Stop what you're doing.",
+  "Can you stop?",
+  "Stop, can you stop?",
+  "Could you stop please?",
+  "Can you stop right there?",
+  "Forget it.",
+  "Forget it, it's not worth it.",
+  "Wait wait, drop it.",
+  "No, wait, don't do that.",
+  "No, don't do that.",
+  "Wait, not that.",
+  "Cancel.",
+  "Cancel what you're doing.",
+  "Interrupt yourself.",
+  "Pause, hold on a second.",
+  "Don't go on.",
+  "It's fine, stop searching.",
+  "Never mind, leave it.",
+  "No no no, stop.",
+  "Halt.",
+  "Drop that task.",
+  "That's enough, stop.",
+]
+sentences = [
+  "Stopping.",
+  "I'll stop.",
+  "Alright, stopping.",
+  "Understood, stopping everything.",
+]
+
+[[acknowledgements]]
+name = "end"
+examples = [
+  "Let's stop here for today.",
+  "Let's stop here for today, we'll see tomorrow.",
+  "Goodbye.",
+  "Bye.",
+  "See you tomorrow.",
+  "See you later.",
+  "That's all for tonight.",
+  "We can end the conversation.",
+  "Okay, let's end the conversation.",
+  "Good night, we'll pick up tomorrow.",
+  "I'm going to bed, good night.",
+  "I'll leave you, talk later.",
+  "Let's end the session.",
+  "We're done.",
+  "How do I hang up?",
+]
+sentences = [
+  "Alright, let's stop.",
+  "Sounds good.",
+  "See you later.",
+  "Fine, we stop here.",
+]
+
+[[acknowledgements]]
+name = "unfinished"
+examples = [
+  "And…",
+  "So…",
+  "So,",
+  "But…",
+  "Well…",
+  "Or…",
+  "You are…",
+  "You said…",
+  "And I'm waiting for the music to…",
+  "Because…",
+  "Actually, I…",
+  "And then…",
+  "Yes, I'd like…",
+  "But it works well, you're just…",
+  "No, I feel like you can't hear me anymore. Every time…",
+]
+sentences = [
+  "Yes?",
+  "I'm listening.",
+  "Go on.",
+  "Carry on.",
+  "And then?",
+]
+
+[[acknowledgements]]
+name = "presence"
+examples = [
+  "Can you hear me?",
+  "Do you hear me?",
+  "Can you still hear me?",
+  "Can you hear me, Claude?",
+  "Can you hear me if I talk?",
+  "Are you there?",
+  "Are you still there?",
+  "What are you doing? Claude, are you there?",
+  "Hello, are you still there?",
+  "Are you still working or am I waiting for nothing?",
+  "Does it work?",
+  "Does it work now?",
+  "Did you hear me?",
+  "I'm talking, are you getting this?",
+  "Okay, I'm on 4G now, can you still hear me?",
+  "Are you still with me?",
+]
+sentences = [
+  "Yes, I'm here.",
+  "I can hear you.",
+  "Still here.",
+  "I'm here, yes.",
+  "Loud and clear.",
+]
+
+[[acknowledgements]]
+name = "thanks"
+examples = [
+  "Thanks.",
+  "Thank you.",
+  "Thanks a lot.",
+  "Great, thanks.",
+  "Thanks, that's perfect.",
+  "Well done.",
+  "Great job.",
+  "Nice work.",
+  "That's great, thanks for your help.",
+  "Awesome, it works really well.",
+  "Thanks, that's exactly what I needed.",
+  "Honestly, well done.",
+  "Thanks for everything.",
+  "Excellent work.",
+  "Perfect, thank you very much.",
+]
+sentences = [
+  "Thanks!",
+  "My pleasure.",
+  "Glad it helps.",
+  "Anytime.",
+]
+
+[[acknowledgements]]
+name = "problem"
+examples = [
+  "It cut out.",
+  "There's a cut.",
+  "Something keeps cutting.",
+  "It keeps cutting, cutting, cutting.",
+  "I can't hear you anymore.",
+  "I haven't heard anything for a while.",
+  "There's a bug.",
+  "There is a glitch.",
+  "That's weird, it doesn't work.",
+  "It doesn't work anymore.",
+  "There's a problem with the sound.",
+  "There was a problem on your side this time.",
+  "There's a lot of latency.",
+  "You're going too fast.",
+  "Wait, that went too fast, go back.",
+  "I didn't hear the end of your sentence.",
+  "It's crackling, there are artifacts.",
+  "I can't hear the music.",
+  "I interrupt you and you don't stop at all. Why don't you stop?",
+  "I didn't get an acknowledgement, I hear nothing.",
+  "We got cut off. Start again.",
+]
+sentences = [
+  "Let me look into that.",
+  "I'll check.",
+  "Noted, I'm looking.",
+  "I'll have a look.",
+  "Oh, let me see.",
+]
+
+[[acknowledgements]]
+name = "restarted"
+examples = [
+  "I restarted.",
+  "I relaunched the bridge.",
+  "I restarted the bridge.",
+  "I'm restarting the session.",
+  "There, I restarted the conversation.",
+  "It's relaunched.",
+  "I relaunched Claude.",
+  "There, it's restarted, we can carry on.",
+  "I restarted everything.",
+  "I just restarted the server.",
+  "The bridge is back up.",
+  "Okay, I plugged the headset back in.",
+  "Fine, I'm reconnected.",
+  "I relaunched the app on the phone.",
+  "Restarting now.",
+]
+sentences = [
+  "Got it.",
+  "Great, noted.",
+  "Alright, here we go.",
+  "Good.",
+]
+
+[[acknowledgements]]
+name = "request"
+examples = [
+  "Can you look at the last commits?",
+  "Look at the last commits and let's check everything works.",
+  "Look at my notes on the subject.",
+  "Search my documents.",
+  "Could you check the logs?",
+  "Could you check the configuration?",
+  "Run the tests.",
+  "Prepare a draft message.",
+  "Explain to me how it works.",
+  "I'd like you to read this article.",
+  "Can you read the Wikipedia page about Savoy?",
+  "Add that to my to-do list.",
+  "Make a summary.",
+  "Can you repeat?",
+  "Could you repeat please?",
+  "Can you repeat, I wasn't listening.",
+  "Give me the list of points.",
+  "Search my family tree for my great-grandmother.",
+  "Create an issue for that.",
+  "You can delete it.",
+  "Your text wasn't read. Can you sum it up?",
+  "Can you tell me more about this small model?",
+  "I lost the thread. Go back and ask me the questions again.",
+  "Yeah, go ahead, note both.",
+]
+sentences = [
+  "On it.",
+  "Let me look.",
+  "I'm on it.",
+  "Here we go.",
+  "Sure, looking now.",
+  "Let me see to that.",
+]
+
+[[acknowledgements]]
+name = "question"
+examples = [
+  "Why doesn't it work?",
+  "Why is it so slow?",
+  "How does it work?",
+  "How do we do it?",
+  "What do you think?",
+  "What's next?",
+  "So, what's next?",
+  "What's the difference?",
+  "How much does it cost?",
+  "Where did you put the file?",
+  "Is it possible?",
+  "Is it fixed?",
+  "Do you have any questions?",
+  "Where were we?",
+  "Is there anything to do?",
+  "Okay, fine. Will that cost me much latency?",
+  "Did you have time to read the article or did you stop before?",
+  "Okay, what can we talk about? Any idea?",
+]
+sentences = [
+  "Let's see.",
+  "Good question.",
+  "Let me think.",
+  "Let me check.",
+  "Hold on, I'll look.",
+]
+
+[[acknowledgements]]
+name = "idea"
+examples = [
+  "I wonder if we could do it differently.",
+  "I wonder if we could make a rule.",
+  "I have an idea.",
+  "Wait, I may have an idea.",
+  "We could use another tool.",
+  "I think it would be better to split the two.",
+  "I feel it's too complicated.",
+  "It would be nice to have hold music.",
+  "That reminds me of something.",
+  "Always check whether something already exists for that.",
+  "I'd like this automated, but I don't know how.",
+  "I think we can do it now.",
+  "I think we just had small network hiccups.",
+  "That sounds like a good idea.",
+  "I want it to work on the phone too.",
+]
+sentences = [
+  "Interesting.",
+  "I see the idea.",
+  "Oh, I see.",
+  "I'm listening.",
+  "That makes sense.",
+]
+
+[[acknowledgements]]
+name = "no"
+examples = [
+  "No.",
+  "Nope.",
+  "No need.",
+  "No, that's not it.",
+  "Not necessarily.",
+  "Never mind.",
+  "No, let's do it another way.",
+  "No, that's wrong.",
+  "No, I don't agree with that.",
+  "No, I prefer the other one.",
+  "No, I don't care about that.",
+  "No, we do everything in the same pull request.",
+  "No, I have no idea.",
+  "No, I meant something else.",
+  "No, not that one.",
+]
+sentences = [
+  "Alright.",
+  "Understood.",
+  "Fine, we leave it.",
+  "No problem.",
+  "Got it.",
+]
+
+[[acknowledgements]]
+name = "yes"
+examples = [
+  "Yes.",
+  "Yes, go ahead.",
+  "Yeah, go ahead.",
+  "Okay.",
+  "Okay, fine by me.",
+  "Alright, let's do that.",
+  "Okay, we'll do that.",
+  "Perfect, I approve.",
+  "Fine with me.",
+  "Yeah, that's exactly it.",
+  "That's exactly it.",
+  "Yes, very good.",
+  "Yes, let's try.",
+  "Yes, please read it.",
+  "Yes, it stopped properly.",
+  "Yes, I can hear you, it's fine.",
+  "Yes, that's clearer.",
+  "Sure.",
+]
+sentences = [
+  "Perfect.",
+  "Great.",
+  "Alright.",
+  "Very well.",
+  "Here we go.",
+]
