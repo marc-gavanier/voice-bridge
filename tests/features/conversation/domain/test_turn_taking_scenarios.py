@@ -72,6 +72,11 @@ def the_speaker_said(turn: Turn, words: str) -> Turn:
     return after(turn, Transcribed(text=words))
 
 
+@given("the speaker stayed silent", target_fixture="turn")
+def the_speaker_stayed_silent(turn: Turn) -> Turn:
+    return after(turn, SilenceLasted(ticket=turn.silences[-1]))
+
+
 @given("the speaker went on", target_fixture="turn")
 def the_speaker_went_on(turn: Turn) -> Turn:
     return after(turn, SpeechStarted(at=SPEAKING_AT))

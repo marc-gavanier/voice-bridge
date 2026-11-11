@@ -117,3 +117,22 @@ Feature: Turn taking
       And the speaker cut Claude off
       When the speaker only makes a noise
       Then the bridge acknowledges nothing
+
+  Rule: Only one acknowledgement is played until Claude replies
+
+    Scenario: Words already acknowledged are not acknowledged again before Claude replies
+      Given Claude is silent
+      And the speaker said "The repository is clean."
+      And the speaker stayed silent
+      And the speaker said "And the logs too."
+      When the speaker stays silent
+      Then the bridge acknowledges nothing
+
+    Scenario: A reply lets the next words be acknowledged
+      Given Claude is silent
+      And the speaker said "The repository is clean."
+      And the speaker stayed silent
+      And Claude replied "Good."
+      And the speaker said "And the logs too."
+      When the speaker stays silent
+      Then the bridge acknowledges a statement

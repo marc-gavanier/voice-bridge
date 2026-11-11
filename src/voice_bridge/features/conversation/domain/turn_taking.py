@@ -107,6 +107,7 @@ class Conversation:
     hearing: bool = False
     next_ticket: int = 0
     acknowledging: PendingAcknowledgement | None = None
+    acknowledged: bool = False
     next_silence: int = 0
 
 
@@ -170,6 +171,9 @@ def _resume(state: Conversation) -> Step:
 
 
 def _forward(state: Conversation, text: str) -> Step:
+    if state.acknowledged:
+        forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None)
+        return _synthesize_next(forwarded, (Forward(text=text, interrupted=state.interrupted),))
     pending = PendingAcknowledgement(ticket=state.next_silence, question=text.rstrip().endswith("?"))
     forwarded = replace(
         state, paused=None, interrupted=False, hearing=False, acknowledging=pending, next_silence=pending.ticket + 1
@@ -182,13 +186,15 @@ def _acknowledge(state: Conversation, ticket: int) -> Step:
     pending = state.acknowledging
     if pending is None or pending.ticket != ticket:
         return state, ()
-    return replace(state, acknowledging=None), (Acknowledge(question=pending.question),)
+    return replace(state, acknowledging=None, acknowledged=True), (Acknowledge(question=pending.question),)
 
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
     match event:
         case Asked(sentences=sentences):
-            return _synthesize_next(replace(state, waiting=(*state.waiting, *sentences), acknowledging=None))
+            return _synthesize_next(
+                replace(state, waiting=(*state.waiting, *sentences), acknowledging=None, acknowledged=False)
+            )
         case Synthesized():
             return _play(state, event)
         case SynthesisFailed(ticket=ticket):
