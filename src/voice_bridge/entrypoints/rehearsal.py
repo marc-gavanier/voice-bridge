@@ -20,8 +20,13 @@ async def rehearse(settings: Settings, language: LanguagePack) -> None:
     said_in, said_out = anyio.create_memory_object_stream[str](math.inf)
     async with said_in, said_out:
 
-        async def repeat(text: str, *, interrupted: bool) -> None:
-            logger.info("repeating %r%s", text, " after an interruption" if interrupted else "")
+        async def repeat(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
+            logger.info(
+                "repeating %r%s, acknowledged with %r",
+                text,
+                " after an interruption" if interrupted else "",
+                acknowledgement,
+            )
             await said_in.send(text)
 
         await converse(settings, language, repeat, said_out, USERNAME)

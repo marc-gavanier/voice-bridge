@@ -29,9 +29,14 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
     async with replies_in, replies_out:
 
         async def talk_to(claude: Forwarder) -> None:
-            async def logged(text: str, *, interrupted: bool) -> None:
-                logger.info("forwarded %r%s", text, " after an interruption" if interrupted else "")
-                await claude(text, interrupted=interrupted)
+            async def logged(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
+                logger.info(
+                    "forwarded %r%s, acknowledged with %r",
+                    text,
+                    " after an interruption" if interrupted else "",
+                    acknowledgement,
+                )
+                await claude(text, interrupted=interrupted, acknowledgement=acknowledgement)
 
             await converse(settings, language, logged, replies_out, settings.mumble.username)
 

@@ -103,10 +103,10 @@ async def test_calling_reply_without_text_is_an_error() -> None:
     assert result.is_error
 
 
-async def notification(text: str, *, interrupted: bool) -> types.JSONRPCMessage:
+async def notification(text: str, *, interrupted: bool, acknowledgement: str | None = None) -> types.JSONRPCMessage:
     sent, received = anyio.create_memory_object_stream[SessionMessage](1)
     async with sent, received:
-        await forward(sent, text, interrupted=interrupted)
+        await forward(sent, text, interrupted=interrupted, acknowledgement=acknowledgement)
         return (await received.receive()).message
 
 
@@ -121,6 +121,14 @@ async def test_forwarding_an_interruption_flags_it() -> None:
         jsonrpc="2.0",
         method="notifications/claude/channel",
         params={"content": "attends", "meta": {"interrupted": "true"}},
+    )
+
+
+async def test_forwarding_tells_the_acknowledgement_the_speaker_hears() -> None:
+    assert await notification("tu en es où", interrupted=False, acknowledgement="Voyons.") == types.JSONRPCNotification(
+        jsonrpc="2.0",
+        method="notifications/claude/channel",
+        params={"content": "tu en es où", "meta": {"acknowledgement": "Voyons."}},
     )
 
 
@@ -144,7 +152,7 @@ async def exchanged(*requests: Mapping[str, object]) -> list[types.JSONRPCMessag
     written = io.StringIO()
 
     async def converse(claude: Forwarder) -> None:
-        await claude("bonjour", interrupted=False)
+        await claude("bonjour", interrupted=False, acknowledgement=None)
 
     async with replies_in, replies_out:
         await serve_over_stdio(

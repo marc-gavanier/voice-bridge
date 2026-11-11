@@ -199,14 +199,28 @@ def claude_has_nothing_left_to_say(turn: Turn) -> None:
     assert unspoken(turn.state) == ()
 
 
+def forwarded(turn: Turn) -> Forward:
+    return next(command for command in turn.commands if isinstance(command, Forward))
+
+
 @then(parsers.parse('Claude hears "{words}" as an interruption'))
 def claude_hears_an_interruption(turn: Turn, words: str) -> None:
-    assert Forward(text=words, interrupted=True) in turn.commands
+    assert (forwarded(turn).text, forwarded(turn).interrupted) == (words, True)
 
 
 @then(parsers.parse('Claude hears "{words}"'))
 def claude_hears(turn: Turn, words: str) -> None:
-    assert Forward(text=words, interrupted=False) in turn.commands
+    assert (forwarded(turn).text, forwarded(turn).interrupted) == (words, False)
+
+
+@then(parsers.parse('Claude hears "{words}" with an acknowledgement to come'))
+def claude_hears_with_an_acknowledgement(turn: Turn, words: str) -> None:
+    assert (forwarded(turn).text, forwarded(turn).acknowledging) == (words, True)
+
+
+@then(parsers.parse('Claude hears "{words}" with no acknowledgement to come'))
+def claude_hears_without_an_acknowledgement(turn: Turn, words: str) -> None:
+    assert (forwarded(turn).text, forwarded(turn).acknowledging) == (words, False)
 
 
 @then(parsers.parse('the bridge acknowledges "{words}"'))

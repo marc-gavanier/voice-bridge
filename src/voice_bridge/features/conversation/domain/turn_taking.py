@@ -72,6 +72,7 @@ class StopPlaying:
 class Forward:
     text: str
     interrupted: bool
+    acknowledging: bool
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -221,13 +222,15 @@ def _resume(state: Conversation) -> Step:
 def _forward(state: Conversation, text: str) -> Step:
     if state.acknowledged:
         forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None)
-        return _synthesize_next(*_await_hold(forwarded, (Forward(text=text, interrupted=state.interrupted),)))
+        return _synthesize_next(
+            *_await_hold(forwarded, (Forward(text=text, interrupted=state.interrupted, acknowledging=False),))
+        )
     pending = PendingAcknowledgement(ticket=state.next_silence, words=text)
     forwarded = replace(
         state, paused=None, interrupted=False, hearing=False, acknowledging=pending, next_silence=pending.ticket + 1
     )
     awaited = AwaitSilence(ticket=pending.ticket)
-    return _synthesize_next(forwarded, (awaited, Forward(text=text, interrupted=state.interrupted)))
+    return _synthesize_next(forwarded, (awaited, Forward(text=text, interrupted=state.interrupted, acknowledging=True)))
 
 
 def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:

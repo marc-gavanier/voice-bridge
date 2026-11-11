@@ -57,17 +57,17 @@ async def voiced(sentence: str) -> bytes | None:
 class Talk:
     say: ObjectSendStream[Event]
     played: ObjectReceiveStream[bytes]
-    forwarded: ObjectReceiveStream[tuple[str, bool]]
+    forwarded: ObjectReceiveStream[tuple[str, bool, str | None]]
 
 
 @asynccontextmanager
 async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
-    forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool]](100)
+    forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool, str | None]](100)
 
-    async def claude(text: str, *, interrupted: bool) -> None:
-        await forwarded_in.send((text, interrupted))
+    async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
+        await forwarded_in.send((text, interrupted, acknowledgement))
 
     async def hold_music() -> None:
         played_in.send_nowait(MUSIC)
@@ -117,7 +117,32 @@ async def test_a_transcript_is_forwarded_to_claude() -> None:
     async with talking() as talk:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
         forwarded = await talk.forwarded.receive()
-    assert forwarded == ("Tu en es où ?", False)
+    assert forwarded == ("Tu en es où ?", False, "Voyons.")
+
+
+async def test_claude_learns_the_acknowledgement_that_is_played_after_its_words() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        _, _, announced = await talk.forwarded.receive()
+        played = await talk.played.receive()
+    assert (announced, played) == ("D'accord.", STATEMENT_CLIP)
+
+
+async def test_claude_learns_nothing_when_no_clip_is_ready() -> None:
+    async with talking(NOT_READY) as talk:
+        await talk.say.send(Transcribed(text="Tu en es où ?"))
+        forwarded = await talk.forwarded.receive()
+    assert forwarded == ("Tu en es où ?", False, None)
+
+
+async def test_claude_learns_nothing_for_words_that_will_not_be_acknowledged() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        _ = await talk.forwarded.receive()
+        _ = await talk.played.receive()
+        await talk.say.send(Transcribed(text="Et les logs."))
+        forwarded = await talk.forwarded.receive()
+    assert forwarded == ("Et les logs.", False, None)
 
 
 async def test_an_interruption_stops_the_speaker() -> None:

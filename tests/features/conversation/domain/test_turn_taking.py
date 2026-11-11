@@ -196,7 +196,7 @@ def test_speech_after_a_resumed_reply_is_not_marked_as_an_interruption() -> None
         VoiceDetected(at=1.0),
         Transcribed(text="", noise=True),
         Transcribed(text="Bonjour."),
-    ) == (AwaitSilence(ticket=0), Forward(text="Bonjour.", interrupted=False))
+    ) == (AwaitSilence(ticket=0), Forward(text="Bonjour.", interrupted=False, acknowledging=True))
 
 
 def test_a_resumed_reply_is_not_resumed_twice() -> None:
@@ -216,7 +216,7 @@ def test_only_the_speech_that_interrupted_is_marked_as_an_interruption() -> None
         VoiceDetected(at=1.0),
         Transcribed(text="Attends."),
         Transcribed(text="Encore."),
-    ) == (AwaitSilence(ticket=1), Forward(text="Encore.", interrupted=False))
+    ) == (AwaitSilence(ticket=1), Forward(text="Encore.", interrupted=False, acknowledging=True))
 
 
 def test_a_reply_dropped_by_speech_never_comes_back() -> None:

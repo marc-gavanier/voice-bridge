@@ -131,6 +131,18 @@ Feature: Turn taking
       When the speaker stays silent
       Then the bridge acknowledges "And the logs too."
 
+    Scenario: Claude learns that the words it hears will be acknowledged
+      Given Claude is silent
+      When the speaker says "Where are we?"
+      Then Claude hears "Where are we?" with an acknowledgement to come
+
+    Scenario: Claude learns that words heard after an acknowledgement will not be acknowledged again
+      Given Claude is silent
+      And the speaker said "The repository is clean."
+      And the speaker stayed silent
+      When the speaker says "And the logs too."
+      Then Claude hears "And the logs too." with no acknowledgement to come
+
   Rule: Words are not acknowledged while Claude is already replying
 
     Scenario: Words said while a reply is being voiced are not acknowledged

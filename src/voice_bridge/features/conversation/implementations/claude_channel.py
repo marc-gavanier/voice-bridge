@@ -90,7 +90,7 @@ def initialization_options(server: Server[object]) -> InitializationOptions:
 
 
 class Forwarder(Protocol):
-    async def __call__(self, text: str, *, interrupted: bool) -> None: ...
+    async def __call__(self, text: str, *, interrupted: bool, acknowledgement: str | None) -> None: ...
 
 
 async def serve_over_stdio(
@@ -102,8 +102,8 @@ async def serve_over_stdio(
 ) -> None:
     async with stdio_server(stdin, stdout) as (read, write), anyio.create_task_group() as tasks:
 
-        async def claude(text: str, *, interrupted: bool) -> None:
-            await forward(write, text, interrupted=interrupted)
+        async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
+            await forward(write, text, interrupted=interrupted, acknowledgement=acknowledgement)
 
         _ = tasks.start_soon(converse, claude)
         async with server.lifespan(server) as state:
@@ -111,8 +111,10 @@ async def serve_over_stdio(
         tasks.cancel_scope.cancel()
 
 
-async def forward(write: MessageSender, text: str, *, interrupted: bool) -> None:
+async def forward(write: MessageSender, text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
     meta = {"interrupted": "true"} if interrupted else {}
+    if acknowledgement is not None:
+        meta["acknowledgement"] = acknowledgement
     notification = types.JSONRPCNotification(
         jsonrpc="2.0", method=CHANNEL_NOTIFICATION, params={"content": text, "meta": meta}
     )

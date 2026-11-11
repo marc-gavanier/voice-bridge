@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class Claude(Protocol):
-    async def __call__(self, text: str, *, interrupted: bool) -> None: ...
+    async def __call__(self, text: str, *, interrupted: bool, acknowledgement: str | None) -> None: ...
 
 
 class Acknowledgement(Protocol):
@@ -60,8 +60,9 @@ class Mouth:
 
 
 @dataclass(slots=True)
-class _Music:
+class _Playback:
     scopes: list[anyio.CancelScope] = field(default_factory=list)
+    acknowledgement: tuple[str, bytes] | None = None
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
@@ -75,8 +76,14 @@ async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthe
     await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=spoken, at=ready))
 
 
-def _acknowledge(mouth: Mouth, words: str) -> None:
-    clip = mouth.acknowledgement(words)
+async def _forward(mouth: Mouth, playback: _Playback, command: Forward) -> None:
+    playback.acknowledgement = mouth.acknowledgement(command.text) if command.acknowledging else None
+    sentence = playback.acknowledgement[0] if playback.acknowledgement else None
+    await mouth.claude(command.text, interrupted=command.interrupted, acknowledgement=sentence)
+
+
+def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
+    clip, playback.acknowledgement = playback.acknowledgement, None
     if clip is None:
         return
     sentence, pcm = clip
@@ -95,31 +102,31 @@ async def _await_hold(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitH
 
 
 async def _play_music(
-    hold_music: Callable[[], Awaitable[None]], music: _Music, *, task_status: TaskStatus[None]
+    hold_music: Callable[[], Awaitable[None]], playback: _Playback, *, task_status: TaskStatus[None]
 ) -> None:
     with anyio.CancelScope() as scope:
-        music.scopes.append(scope)
+        playback.scopes.append(scope)
         task_status.started()
         await hold_music()
 
 
-async def _start_music(mouth: Mouth, music: _Music, tasks: TaskGroup) -> None:
+async def _start_music(mouth: Mouth, playback: _Playback, tasks: TaskGroup) -> None:
     if mouth.hold_music is not None:
-        await tasks.start(_play_music, mouth.hold_music, music)
+        await tasks.start(_play_music, mouth.hold_music, playback)
 
 
-def _stop_music(mouth: Mouth, music: _Music) -> None:
-    if not music.scopes:
+def _stop_music(mouth: Mouth, playback: _Playback) -> None:
+    if not playback.scopes:
         return
-    for scope in music.scopes:
+    for scope in playback.scopes:
         scope.cancel()
-    music.scopes.clear()
+    playback.scopes.clear()
     mouth.speaker.stop()
     logger.info("hold music stopped")
 
 
 async def _execute(
-    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, music: _Music, command: Command
+    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, playback: _Playback, command: Command
 ) -> None:
     match command:
         case Synthesize():
@@ -133,25 +140,25 @@ async def _execute(
             )
         case AwaitSilence():
             _ = tasks.start_soon(_await_silence, mouth, emit, command)
-        case Acknowledge(words=words):
-            _acknowledge(mouth, words)
+        case Acknowledge():
+            _acknowledge(mouth, playback)
         case AwaitHold():
             _ = tasks.start_soon(_await_hold, mouth, emit, command)
         case StartHoldMusic():
-            await _start_music(mouth, music, tasks)
+            await _start_music(mouth, playback, tasks)
         case StopHoldMusic():
-            _stop_music(mouth, music)
-        case Forward(text=text, interrupted=interrupted):
-            await mouth.claude(text, interrupted=interrupted)
+            _stop_music(mouth, playback)
+        case Forward():
+            await _forward(mouth, playback, command)
         case _:
             assert_never(command)
 
 
 async def hold_conversation(mouth: Mouth, events: AsyncIterable[Event], emit: ObjectSendStream[Event]) -> None:
-    state, music = Conversation(), _Music()
+    state, playback = Conversation(), _Playback()
     async with anyio.create_task_group() as tasks:
         async for event in events:
             state, commands = step(state, event)
             for command in commands:
-                await _execute(mouth, emit, tasks, music, command)
+                await _execute(mouth, emit, tasks, playback, command)
         tasks.cancel_scope.cancel()
