@@ -19,6 +19,7 @@ class UtteranceRules:
     barge_in: float = 0.5
     barge_window: float = 1.0
     short_pause: float | None = None
+    unfinished_silence: float | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -42,6 +43,7 @@ class Listening:
     recent: tuple[Frame, ...] = ()
     last_voice_at: float | None = None
     checked_at: float | None = None
+    unfinished_at: float | None = None
 
 
 def _duration(frames: tuple[Frame, ...]) -> float:
@@ -95,12 +97,19 @@ def needs_turn_check(state: Listening, now: float, rules: UtteranceRules) -> boo
     return bool(state.utterance) and paused and state.checked_at != state.last_voice_at
 
 
-def turn_checked(state: Listening) -> Listening:
-    return replace(state, checked_at=state.last_voice_at)
+def turn_checked(state: Listening, *, finished: bool) -> Listening:
+    return replace(state, checked_at=state.last_voice_at, unfinished_at=None if finished else state.last_voice_at)
+
+
+def _silence(state: Listening, rules: UtteranceRules) -> float:
+    unfinished = state.unfinished_at is not None and state.unfinished_at == state.last_voice_at
+    if unfinished and rules.unfinished_silence is not None:
+        return rules.unfinished_silence
+    return rules.silence
 
 
 def _is_over(state: Listening, now: float, rules: UtteranceRules) -> bool:
-    return silent_for(state, now) > rules.silence or _duration(state.utterance) >= rules.longest
+    return silent_for(state, now) > _silence(state, rules) or _duration(state.utterance) >= rules.longest
 
 
 def close(

@@ -49,6 +49,7 @@ class HearingSettings(Section):
     barge_window: float = 1.0
     smart_turn: bool = False
     short_pause: float = 0.2
+    unfinished_silence: float = 2.0
     turn_threshold: float = 0.5
     acknowledgement_delay: float = 0.5
 
@@ -63,6 +64,13 @@ class HearingSettings(Section):
     def _a_short_pause_comes_before_the_silence(self) -> Self:
         if self.short_pause >= self.silence:
             message = "short_pause must be shorter than silence"
+            raise ValueError(message)
+        return self
+
+    @model_validator(mode="after")
+    def _an_unfinished_turn_waits_longer_than_the_silence(self) -> Self:
+        if self.unfinished_silence <= self.silence:
+            message = "unfinished_silence must be longer than silence"
             raise ValueError(message)
         return self
 

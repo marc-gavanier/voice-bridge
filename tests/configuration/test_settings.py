@@ -111,3 +111,8 @@ def test_a_short_pause_as_long_as_the_silence_stops_the_start() -> None:
 
 def test_a_short_pause_shorter_than_the_silence_is_accepted() -> None:
     assert HearingSettings(short_pause=0.3, silence=0.8).short_pause == 0.3
+
+
+def test_an_unfinished_silence_no_longer_than_the_silence_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="unfinished_silence"):
+        _ = HearingSettings(unfinished_silence=0.8, silence=0.8)

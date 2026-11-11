@@ -118,6 +118,7 @@ def _ears(settings: Settings) -> Ears:
             barge_in=hearing.barge_in,
             barge_window=hearing.barge_window,
             short_pause=hearing.short_pause if hearing.smart_turn else None,
+            unfinished_silence=hearing.unfinished_silence if hearing.smart_turn else None,
         ),
         rate=MUMBLE_RATE,
         turn=_turn(settings),

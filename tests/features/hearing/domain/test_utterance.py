@@ -215,13 +215,15 @@ def test_silence_alone_calls_for_no_turn_check() -> None:
 
 def test_a_pause_is_checked_only_once() -> None:
     state, now = listen((VOICE, 50), (SILENCE, 11), rules=TURNS)
-    assert not needs_turn_check(turn_checked(state), now + 0.1, TURNS)
+    assert not needs_turn_check(turn_checked(state, finished=False), now + 0.1, TURNS)
 
 
 def test_a_new_pause_after_more_voice_is_checked_again() -> None:
     state, now = listen((VOICE, 50), (SILENCE, 11), rules=TURNS)
     resumed = hear(
-        hear(turn_checked(state), frame(voiced=True, at=now + PACKET), TURNS), frame(voiced=False, at=now + 0.3), TURNS
+        hear(turn_checked(state, finished=False), frame(voiced=True, at=now + PACKET), TURNS),
+        frame(voiced=False, at=now + 0.3),
+        TURNS,
     )
     assert needs_turn_check(resumed, now + 0.3, TURNS)
 
@@ -239,3 +241,37 @@ def test_an_unfinished_turn_keeps_the_utterance_open_before_the_silence() -> Non
 def test_a_finished_turn_without_an_utterance_closes_nothing() -> None:
     state, now = listen((SILENCE, 20), rules=TURNS)
     assert close(state, now, TURNS, finished=True)[1] is None
+
+
+PATIENT = UtteranceRules(silence=0.8, shortest_voice=0.2, short_pause=0.2, unfinished_silence=2.0)
+
+
+def unfinished(rules: UtteranceRules = PATIENT) -> tuple[Listening, float]:
+    state, now = listen((VOICE, 50), (SILENCE, 11), rules=rules)
+    return turn_checked(state, finished=False), now
+
+
+def test_an_unfinished_turn_outlasts_the_silence() -> None:
+    state, now = unfinished()
+    assert close(state, now + 0.7, PATIENT)[1] is None
+
+
+def test_an_unfinished_turn_ends_after_the_unfinished_silence() -> None:
+    state, now = unfinished()
+    assert isinstance(close(state, now + 1.9, PATIENT)[1], Kept)
+
+
+def test_without_an_unfinished_silence_the_silence_still_ends_an_unfinished_turn() -> None:
+    state, now = unfinished(TURNS)
+    assert isinstance(close(state, now + 0.7, TURNS)[1], Kept)
+
+
+def test_a_finished_judgement_keeps_the_usual_silence() -> None:
+    state, now = listen((VOICE, 50), (SILENCE, 11), rules=PATIENT)
+    assert isinstance(close(turn_checked(state, finished=True), now + 0.7, PATIENT)[1], Kept)
+
+
+def test_new_words_after_an_unfinished_turn_bring_back_the_usual_silence() -> None:
+    state, now = unfinished()
+    resumed = hear(state, frame(voiced=True, at=now + PACKET), PATIENT)
+    assert isinstance(close(resumed, now + PACKET + 0.9, PATIENT)[1], Kept)

@@ -78,7 +78,7 @@ def _judged(ears: Ears, listening: Listening, now: float) -> tuple[Listening, tu
     checked = TurnChecked(
         probability=probability, pause=silent_for(listening, now), finished=probability > ears.turn.threshold
     )
-    return turn_checked(listening), (checked,)
+    return turn_checked(listening, finished=checked.finished), (checked,)
 
 
 def _closed(ears: Ears, listening: Listening, now: float) -> tuple[Listening, tuple[Heard, ...]]:
