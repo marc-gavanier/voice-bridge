@@ -8,7 +8,13 @@ from anyio.abc import ObjectReceiveStream, ObjectSendStream
 from anyio.streams.memory import MemoryObjectSendStream
 
 from voice_bridge.features.conversation.abilities.hold_conversation import Mouth, hold_conversation
-from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, Transcribed, VoiceDetected
+from voice_bridge.features.conversation.domain.turn_taking import (
+    Asked,
+    Event,
+    SilenceLasted,
+    Transcribed,
+    VoiceDetected,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -68,6 +74,7 @@ async def talking(acknowledgement: Clips = READY) -> AsyncGenerator[Talk]:
         rate=48000,
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
+        acknowledgement_delay=0.0,
     )
     emit = say.clone()
     async with (
@@ -131,6 +138,7 @@ async def test_a_statement_is_acknowledged_with_a_statement_clip() -> None:
 async def test_nothing_is_played_before_the_clips_are_ready() -> None:
     async with talking(NOT_READY) as talk:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
+        await talk.say.send(SilenceLasted(ticket=0))
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = await talk.played.receive()
     assert played == SOUND

@@ -29,7 +29,7 @@ flowchart LR
 1. **Your Mumble app** sends your voice to a Mumble server.
 2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence; with `hearing.smart_turn` on, [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges from the audio after a 0.2 s pause whether you have finished, and ends the sentence there when you have.
 3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
-4. **The `voice` channel** pushes the text into the Claude Code session, and the bridge at once plays a short acknowledgement in Claude's voice, without waiting for Claude: one of three for a question, when the transcription ends with a question mark, and one of three for anything else. These six sentences, set per language in [`language.py`](src/voice_bridge/configuration/language.py), are synthesized once, when Voxtral is ready, and kept in memory.
+4. **The `voice` channel** pushes the text into the Claude Code session, and once you have kept silent for `hearing.acknowledgement_delay`, 0.5 s by default, the bridge plays a short acknowledgement in Claude's voice, without waiting for Claude: none if you speak again or Claude's reply comes first, otherwise one of three for a question, when the transcription ends with a question mark, and one of three for anything else. These six sentences, set per language in [`language.py`](src/voice_bridge/configuration/language.py), are synthesized once, when Voxtral is ready, and kept in memory.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
 Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. Claude's work in progress goes on either way.
@@ -44,8 +44,8 @@ sequenceDiagram
     you->>bridge: speak
     Note over bridge: Silero hears voice,<br/>Smart Turn after a short pause,<br/>or 0.8 s of silence, ends the sentence
     bridge->>bridge: Whisper transcribes
-    bridge->>you: acknowledgement, recorded at startup
     bridge->>claude: channel message
+    bridge->>you: acknowledgement, recorded at startup,<br/>after a short silence
     claude->>bridge: reply tool
     loop each sentence
         bridge->>voxtral: synthesize
@@ -102,6 +102,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `whisper.model`, `whisper.device`, `whisper.compute_type` | `large-v3-turbo`, `auto`, `default` | The faster-whisper model and how it runs |
 | `hearing.smart_turn` | `false` | Ends a sentence when [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges, after a short pause, that you have finished; the 0.8 s silence stays as a fallback. The model, 9 MB, is downloaded from Hugging Face on first start |
 | `hearing.short_pause`, `hearing.turn_threshold` | `0.2`, `0.5` | The pause after which Smart Turn is asked, shorter than `hearing.silence`, and the probability above which the turn counts as finished |
+| `hearing.acknowledgement_delay` | `0.5` | The silence after your words before the acknowledgement plays; speaking again within it cancels the acknowledgement, so a pause mid-thought is not answered |
 | `hearing.*` | see [`settings.py`](src/voice_bridge/configuration/settings.py) | Thresholds and durations of voice detection; the start stops when `shortest_voice` exceeds `barge_in`, since an interruption could then be dismissed as too short |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |

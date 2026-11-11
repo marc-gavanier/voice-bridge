@@ -11,8 +11,23 @@ from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.features.conversation.abilities.hold_conversation import Claude, Mouth, hold_conversation
-from voice_bridge.features.conversation.domain.turn_taking import Asked, Event, Transcribed, VoiceDetected
-from voice_bridge.features.hearing.abilities.listen import Ears, Heard, Speaking, Turn, TurnChecked, Utterance, listen
+from voice_bridge.features.conversation.domain.turn_taking import (
+    Asked,
+    Event,
+    SpeechStarted,
+    Transcribed,
+    VoiceDetected,
+)
+from voice_bridge.features.hearing.abilities.listen import (
+    Ears,
+    Heard,
+    Speaking,
+    Turn,
+    TurnChecked,
+    Utterance,
+    VoiceStarted,
+    listen,
+)
 from voice_bridge.features.hearing.abilities.transcribe import Transcription, transcribe_utterances
 from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
@@ -34,7 +49,7 @@ from voice_bridge.libraries.mumble.connection import Access, stay_connected
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from anyio.abc import ObjectReceiveStream
+    from anyio.abc import ObjectReceiveStream, ObjectSendStream
     from pymumble_rev import MumbleClient
 
     from voice_bridge.configuration.language import LanguagePack
@@ -118,6 +133,22 @@ async def _transcription(settings: Settings, language: LanguagePack) -> Transcri
     return Transcription(model=model, rate=MUMBLE_RATE, language=language.whisper_code, hallucinations=hallucinations)
 
 
+async def _route(
+    each: Heard, events: ObjectSendStream[Event], utterances: ObjectSendStream[bytes], silence: float
+) -> None:
+    match each:
+        case VoiceStarted(at=at):
+            await events.send(SpeechStarted(at=at))
+        case Speaking(at=at):
+            await events.send(VoiceDetected(at=at))
+        case Utterance(pcm=pcm):
+            await utterances.send(pcm)
+        case Dismissed() | TurnChecked():
+            _log_hearing(each, silence)
+        case _:
+            assert_never(each)
+
+
 async def converse(
     settings: Settings, language: LanguagePack, claude: Claude, replies: ObjectReceiveStream[str], username: str
 ) -> None:
@@ -135,15 +166,7 @@ async def converse(
         )
 
     async def heard(each: Heard) -> None:
-        match each:
-            case Speaking(at=at):
-                await events_in.send(VoiceDetected(at=at))
-            case Utterance(pcm=pcm):
-                await utterances_in.send(pcm)
-            case Dismissed() | TurnChecked():
-                _log_hearing(each, settings.hearing.silence)
-            case _:
-                assert_never(each)
+        await _route(each, events_in, utterances_in, settings.hearing.silence)
 
     async def transcribed(text: str, *, noise: bool) -> None:
         await events_in.send(Transcribed(text=text, noise=noise))
@@ -177,6 +200,7 @@ async def converse(
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,
+            acknowledgement_delay=settings.hearing.acknowledgement_delay,
         )
 
         async def greet() -> None:

@@ -6,11 +6,13 @@ import anyio
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
+    AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
     Play,
+    SilenceLasted,
     StopPlaying,
     SynthesisFailed,
     Synthesize,
@@ -48,6 +50,7 @@ class Mouth:
     rate: int
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
+    acknowledgement_delay: float
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
@@ -70,6 +73,11 @@ def _acknowledge(mouth: Mouth, *, question: bool) -> None:
     logger.info("acknowledged with %r", sentence)
 
 
+async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
+    await anyio.sleep(mouth.acknowledgement_delay)
+    await emit.send(SilenceLasted(ticket=order.ticket))
+
+
 async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, command: Command) -> None:
     match command:
         case Synthesize():
@@ -81,6 +89,8 @@ async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup
             logger.info(
                 "interrupted, playback stopped %.0f ms after the voice was heard", (mouth.clock() - heard_at) * 1000
             )
+        case AwaitSilence():
+            _ = tasks.start_soon(_await_silence, mouth, emit, command)
         case Acknowledge(question=question):
             _acknowledge(mouth, question=question)
         case Forward(text=text, interrupted=interrupted):

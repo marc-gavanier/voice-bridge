@@ -5,10 +5,13 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
     Asked,
+    AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
+    SilenceLasted,
+    SpeechStarted,
     StopPlaying,
     Synthesize,
     Transcribed,
@@ -26,6 +29,7 @@ SPEAKING_AT = 1.0
 class Turn:
     state: Conversation
     commands: tuple[Command, ...] = ()
+    silences: tuple[int, ...] = ()
 
 
 def acknowledgements(commands: tuple[Command, ...]) -> tuple[Acknowledge, ...]:
@@ -34,7 +38,8 @@ def acknowledgements(commands: tuple[Command, ...]) -> tuple[Acknowledge, ...]:
 
 def after(turn: Turn, event: Event) -> Turn:
     state, commands = step(turn.state, event)
-    return Turn(state=state, commands=commands)
+    awaited = tuple(command.ticket for command in commands if isinstance(command, AwaitSilence))
+    return Turn(state=state, commands=commands, silences=(*turn.silences, *awaited))
 
 
 @given("Claude is silent", target_fixture="turn")
@@ -62,6 +67,16 @@ def claude_replied(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,)))
 
 
+@given(parsers.parse('the speaker said "{words}"'), target_fixture="turn")
+def the_speaker_said(turn: Turn, words: str) -> Turn:
+    return after(turn, Transcribed(text=words))
+
+
+@given("the speaker went on", target_fixture="turn")
+def the_speaker_went_on(turn: Turn) -> Turn:
+    return after(turn, SpeechStarted(at=SPEAKING_AT))
+
+
 @when(parsers.parse('Claude replies "{sentence}"'), target_fixture="turn")
 def claude_replies(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,)))
@@ -85,6 +100,16 @@ def the_speaker_makes_a_noise(turn: Turn) -> Turn:
 @when(parsers.parse('the speaker says "{words}"'), target_fixture="turn")
 def the_speaker_says(turn: Turn, words: str) -> Turn:
     return after(turn, Transcribed(text=words))
+
+
+@when("the speaker stays silent", target_fixture="turn")
+def the_speaker_stays_silent(turn: Turn) -> Turn:
+    return after(turn, SilenceLasted(ticket=turn.silences[-1]))
+
+
+@when("the silence after the first words ends", target_fixture="turn")
+def the_silence_after_the_first_words_ends(turn: Turn) -> Turn:
+    return after(turn, SilenceLasted(ticket=turn.silences[0]))
 
 
 @then("Claude's voice stops")

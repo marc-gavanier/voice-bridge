@@ -47,6 +47,11 @@ class Hearing:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class VoiceStarted:
+    at: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Speaking:
     at: float
 
@@ -63,7 +68,7 @@ class TurnChecked:
     finished: bool
 
 
-type Heard = Speaking | Utterance | Dismissed | TurnChecked
+type Heard = VoiceStarted | Speaking | Utterance | Dismissed | TurnChecked
 
 
 def _judged(ears: Ears, listening: Listening, now: float) -> tuple[Listening, tuple[TurnChecked, ...]]:
@@ -100,9 +105,10 @@ def _heard_packet(ears: Ears, state: Hearing, packet: Packet) -> tuple[Hearing, 
         duration=duration(packet.pcm, ears.rate),
     )
     listening = hear(state.listening, frame, ears.rules)
+    started = (VoiceStarted(at=packet.at),) if listening.utterance and not state.listening.utterance else ()
     speaking = (Speaking(at=packet.at),) if is_speaking(listening, ears.rules) else ()
     remaining, utterance = _closed(ears, listening, packet.at)
-    return Hearing(silero=silero, listening=remaining), (*speaking, *utterance)
+    return Hearing(silero=silero, listening=remaining), (*started, *speaking, *utterance)
 
 
 def advance(ears: Ears, state: Hearing, tick: Packet | None, now: float) -> tuple[Hearing, tuple[Heard, ...]]:

@@ -9,6 +9,8 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Command,
     Conversation,
     Event,
+    SilenceLasted,
+    SpeechStarted,
     SynthesisFailed,
     Synthesize,
     Synthesized,
@@ -27,6 +29,8 @@ EVENTS: st.SearchStrategy[Event] = st.one_of(
     st.builds(SynthesisFailed, ticket=TICKETS),
     st.builds(VoiceDetected, at=MOMENTS),
     st.builds(Transcribed, text=st.text(), noise=st.booleans()),
+    st.builds(SpeechStarted, at=MOMENTS),
+    st.builds(SilenceLasted, ticket=TICKETS),
 )
 
 

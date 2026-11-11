@@ -50,6 +50,7 @@ class HearingSettings(Section):
     smart_turn: bool = False
     short_pause: float = 0.2
     turn_threshold: float = 0.5
+    acknowledgement_delay: float = 0.5
 
     @model_validator(mode="after")
     def _an_interruption_is_never_dismissed(self) -> Self:

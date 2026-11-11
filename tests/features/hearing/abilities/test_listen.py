@@ -15,6 +15,7 @@ from voice_bridge.features.hearing.abilities.listen import (
     Turn,
     TurnChecked,
     Utterance,
+    VoiceStarted,
     advance,
     listen,
 )
@@ -67,8 +68,12 @@ def heard(ticks: list[Tick], ears: Ears = EARS) -> tuple[Heard, ...]:
     return reduce(step, ticks, (Hearing(), ()))[1]
 
 
-def test_speech_is_reported_as_speaking() -> None:
-    assert isinstance(heard(speech_ticks())[0], Speaking)
+def test_speech_is_reported_first_as_starting_then_as_speaking() -> None:
+    assert [type(each) for each in heard(speech_ticks())[:2]] == [VoiceStarted, Speaking]
+
+
+def test_speech_starts_only_once_per_utterance() -> None:
+    assert sum(isinstance(each, VoiceStarted) for each in heard(speech_ticks())) == 1
 
 
 def test_speech_followed_by_a_pause_is_an_utterance() -> None:
@@ -94,11 +99,14 @@ async def test_listening_reports_what_it_hears() -> None:
     async with sent, received:
         await listen(EARS, ticks_of(speech_ticks()), sent.send, clock=lambda: 0.0)
         first = received.receive_nowait()
-    assert isinstance(first, Speaking)
+    assert isinstance(first, VoiceStarted)
 
 
 def test_a_sound_too_short_to_be_an_utterance_is_reported_as_dismissed() -> None:
-    assert [type(each) for each in heard([*silence_ticks(5), (None, 10.0)], EARS_FOR_EVERYTHING)] == [Dismissed]
+    assert [type(each) for each in heard([*silence_ticks(5), (None, 10.0)], EARS_FOR_EVERYTHING)] == [
+        VoiceStarted,
+        Dismissed,
+    ]
 
 
 def ears_judging(probability: float) -> Ears:
