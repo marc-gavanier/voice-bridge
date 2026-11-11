@@ -131,6 +131,23 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
 
+### Add a language
+
+The bridge speaks Arabic, Dutch, English, French, German, Hindi, Italian, Portuguese and Spanish, the nine languages Voxtral has voices for. Each one is two files in [`languages/`](src/voice_bridge/configuration/languages), named after its ISO 639-1 code:
+
+- `<code>.toml`: the Whisper language code, the default voice, the greeting, the tool descriptions, the Whisper hallucinations to drop, and the twelve routes with their examples, acknowledgements and the stop threshold. A test asks for at least 15 examples per route.
+- `<code>.md`: the instructions Claude is given, when the user has no `instructions_file`.
+
+To add one:
+
+1. Add its code to `Language` in [`settings.py`](src/voice_bridge/configuration/settings.py) and to `LANGUAGES` in `tests/configuration/test_language.py`.
+2. Copy `en.toml` and `en.md` to `<code>.toml` and `<code>.md` and translate them.
+3. Add `tests/configuration/test_language_<code>.py`, after the other ones, with real sentences of that language for the routes and for words about stopping that must not stop.
+4. Add `<code>.toml`, `<code>.md` and `*_<code>.py` to `[tool.typos.type.localized]` in `pyproject.toml`, so typos checks their names but not their content.
+5. Try it with someone who speaks it, read the `understood '…' as <route> (<score>)` lines, and adjust the examples and the stop threshold.
+
+Sentences are cut on Western punctuation, the Arabic question mark, the Devanagari full stop and the CJK marks, so Chinese and Japanese replies are already voiced one sentence at a time. A language Voxtral does not voice needs another speech server with the OpenAI speech API, such as [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI): point `speech.url`, `speech.model` and `speech.voice` at it, and set `speech.health` to its health route, or leave it empty if it has none.
+
 ### The server certificate
 
 The bridge trusts one certificate only: the server's, pinned like a known SSH host. It refuses anything older than TLS 1.2, and skips the host name check that a self-signed Murmur certificate cannot pass. Export the certificate once, and again whenever the server generates a new one:
