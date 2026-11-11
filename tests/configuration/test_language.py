@@ -26,6 +26,14 @@ def test_french_greets_in_french() -> None:
     assert language_pack("fr").greeting == "Je t'écoute."
 
 
+def test_english_describes_the_end_of_session_tool_in_english() -> None:
+    assert language_pack("en").end_tool_description.startswith("Say goodbye")
+
+
+def test_french_describes_the_end_of_session_tool_in_french() -> None:
+    assert language_pack("fr").end_tool_description.startswith("Dire au revoir")
+
+
 def test_french_knows_the_subtitle_credit_hallucination() -> None:
     assert "sous-titrage" in language_pack("fr").hallucination_prefixes
 

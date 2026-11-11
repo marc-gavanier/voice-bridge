@@ -6,6 +6,7 @@ from typing import assert_never
 class Asked:
     sentences: tuple[str, ...]
     working: bool = False
+    ending: bool = False
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -102,8 +103,22 @@ class StopHoldMusic:
     pass
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Leave:
+    until: float
+
+
 type Command = (
-    Synthesize | Play | StopPlaying | Forward | Acknowledge | AwaitSilence | AwaitHold | StartHoldMusic | StopHoldMusic
+    Synthesize
+    | Play
+    | StopPlaying
+    | Forward
+    | Acknowledge
+    | AwaitSilence
+    | AwaitHold
+    | StartHoldMusic
+    | StopHoldMusic
+    | Leave
 )
 
 
@@ -140,6 +155,7 @@ class Conversation:
     awaiting_hold: int | None = None
     holding: bool = False
     working: bool = False
+    ending: bool = False
 
 
 type Step = tuple[Conversation, tuple[Command, ...]]
@@ -196,6 +212,8 @@ def _play(state: Conversation, event: Synthesized) -> Step:
     voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
     if unspoken(voiced):
         return voiced, commands
+    if voiced.ending:
+        return replace(voiced, ending=False), (*commands, Leave(until=scheduled.ends_at))
     return _await_hold(voiced, commands, after=scheduled.ends_at - event.at)
 
 
@@ -205,6 +223,9 @@ def _skip(state: Conversation, ticket: int) -> Step:
     skipped, commands = _synthesize_next(replace(state, synthesizing=None))
     if unspoken(skipped):
         return skipped, commands
+    if skipped.ending:
+        until = max((scheduled.ends_at for scheduled in skipped.playing), default=0.0)
+        return replace(skipped, ending=False), (*commands, Leave(until=until))
     return _stop_holding(skipped, commands)
 
 
@@ -229,13 +250,19 @@ def _resume(state: Conversation) -> Step:
 
 def _forward(state: Conversation, text: str) -> Step:
     if state.acknowledged:
-        forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None)
+        forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None, ending=False)
         return _synthesize_next(
             *_await_hold(forwarded, (Forward(text=text, interrupted=state.interrupted, acknowledging=False),))
         )
     pending = PendingAcknowledgement(ticket=state.next_silence, words=text)
     forwarded = replace(
-        state, paused=None, interrupted=False, hearing=False, acknowledging=pending, next_silence=pending.ticket + 1
+        state,
+        paused=None,
+        interrupted=False,
+        hearing=False,
+        acknowledging=pending,
+        next_silence=pending.ticket + 1,
+        ending=False,
     )
     awaited = AwaitSilence(ticket=pending.ticket)
     return _synthesize_next(forwarded, (awaited, Forward(text=text, interrupted=state.interrupted, acknowledging=True)))
@@ -253,7 +280,7 @@ def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
     match event:
-        case Asked(sentences=sentences, working=working):
+        case Asked(sentences=sentences, working=working, ending=ending):
             return _synthesize_next(
                 replace(
                     state,
@@ -262,6 +289,7 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
                     acknowledged=False,
                     awaiting_hold=None,
                     working=working,
+                    ending=ending,
                 )
             )
         case Synthesized():

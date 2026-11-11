@@ -220,3 +220,41 @@ Feature: Turn taking
       And the speaker stayed silent
       When the wait goes on
       Then the hold music starts
+
+  Rule: A goodbye ends the session once the speaker has heard it
+
+    Scenario: The goodbye ends the session when its voice ends
+      Given Claude is silent
+      And Claude said goodbye with "See you tomorrow."
+      When Claude's voice for "See you tomorrow." is ready
+      Then the bridge leaves when that voice ends
+
+    Scenario: The goodbye waits for the sentences before it
+      Given Claude is silent
+      And Claude replied "It is pushed."
+      And Claude said goodbye with "See you tomorrow."
+      When Claude's voice for "It is pushed." is ready
+      Then the bridge does not leave yet
+      And Claude starts saying "See you tomorrow."
+
+    Scenario: A goodbye that cannot be voiced still ends the session
+      Given Claude is silent
+      And Claude said goodbye with "See you tomorrow."
+      When Claude's voice for "See you tomorrow." fails
+      Then the bridge leaves at once
+
+    Scenario: Words said over the goodbye keep the session going
+      Given Claude is silent
+      And Claude said goodbye with "See you tomorrow."
+      And the speaker cut Claude off
+      When the speaker says "Wait, one more thing."
+      Then Claude hears "Wait, one more thing." as an interruption
+      And the session goes on
+
+    Scenario: A noise over the goodbye still ends the session
+      Given Claude is silent
+      And Claude said goodbye with "See you tomorrow."
+      And the speaker cut Claude off
+      And the speaker only made a noise
+      When Claude's voice for "See you tomorrow." is ready
+      Then the bridge leaves when that voice ends

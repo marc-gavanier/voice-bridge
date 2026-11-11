@@ -1,5 +1,7 @@
 import logging
 import math
+import os
+import signal
 import time
 from functools import partial
 from typing import TYPE_CHECKING, Final, assert_never
@@ -186,6 +188,14 @@ def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
     return understanding
 
 
+async def _end_claude_code(pid: int | None) -> None:
+    if pid is None:
+        logger.warning("no Claude Code process to end: start the bridge with scripts/claude-voice.sh")
+        return
+    logger.info("ending Claude Code, process %d", pid)
+    os.kill(pid, signal.SIGTERM)
+
+
 def _following_stops(claude: Claude, understanding: Understanding, flag: StopFlag) -> Claude:
     async def forward(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
         flag.follow(understanding(text))
@@ -221,7 +231,7 @@ async def converse(
 
     async def relay_replies() -> None:
         async for reply in replies:
-            await events_in.send(Asked(sentences=sentences_of(reply.text), working=reply.working))
+            await events_in.send(Asked(sentences=sentences_of(reply.text), working=reply.working, ending=reply.ending))
 
     async with (
         events_in,
@@ -251,6 +261,7 @@ async def converse(
             acknowledgement_delay=settings.hearing.acknowledgement_delay,
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
+            leave=partial(_end_claude_code, settings.claude_pid),
         )
 
         async def greet() -> None:

@@ -10,6 +10,7 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.logs import configure_logging
 from voice_bridge.entrypoints.voice import converse
 from voice_bridge.features.conversation.implementations.claude_channel import (
+    EndSessionTool,
     Forwarder,
     Reply,
     ReplyTool,
@@ -28,6 +29,9 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
             description=language.reply_tool_description,
             text_description=language.reply_text_description,
             working_description=language.reply_working_description,
+        ),
+        end_tool=EndSessionTool(
+            description=language.end_tool_description, text_description=language.end_text_description
         ),
         replies=replies_in,
     )

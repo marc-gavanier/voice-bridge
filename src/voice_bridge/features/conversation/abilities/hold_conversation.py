@@ -13,6 +13,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Event,
     Forward,
     HoldLasted,
+    Leave,
     Play,
     SilenceLasted,
     StartHoldMusic,
@@ -57,6 +58,7 @@ class Mouth:
     acknowledgement_delay: float
     hold_music: Callable[[], Awaitable[None]] | None
     hold_music_delay: float
+    leave: Callable[[], Awaitable[None]]
 
 
 @dataclass(slots=True)
@@ -101,6 +103,12 @@ async def _await_hold(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitH
     await emit.send(HoldLasted(ticket=order.ticket))
 
 
+async def _leave(mouth: Mouth, order: Leave) -> None:
+    await anyio.sleep(max(0.0, order.until - mouth.clock()))
+    logger.info("leaving: the goodbye has been said")
+    await mouth.leave()
+
+
 async def _play_music(
     hold_music: Callable[[], Awaitable[None]], playback: _Playback, *, task_status: TaskStatus[None]
 ) -> None:
@@ -125,12 +133,28 @@ def _stop_music(mouth: Mouth, playback: _Playback) -> None:
     logger.info("hold music stopped")
 
 
+async def _later(
+    mouth: Mouth, emit: ObjectSendStream[Event], command: Synthesize | AwaitSilence | AwaitHold | Leave
+) -> None:
+    match command:
+        case Synthesize():
+            await _synthesize(mouth, emit, command)
+        case AwaitSilence():
+            await _await_silence(mouth, emit, command)
+        case AwaitHold():
+            await _await_hold(mouth, emit, command)
+        case Leave():
+            await _leave(mouth, command)
+        case _:
+            assert_never(command)
+
+
 async def _execute(
     mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, playback: _Playback, command: Command
 ) -> None:
     match command:
-        case Synthesize():
-            _ = tasks.start_soon(_synthesize, mouth, emit, command)
+        case Synthesize() | AwaitSilence() | AwaitHold() | Leave():
+            _ = tasks.start_soon(_later, mouth, emit, command)
         case Play(pcm=pcm):
             mouth.speaker.play(pcm)
         case StopPlaying(heard_at=heard_at):
@@ -138,12 +162,8 @@ async def _execute(
             logger.info(
                 "interrupted, playback stopped %.0f ms after the voice was heard", (mouth.clock() - heard_at) * 1000
             )
-        case AwaitSilence():
-            _ = tasks.start_soon(_await_silence, mouth, emit, command)
         case Acknowledge():
             _acknowledge(mouth, playback)
-        case AwaitHold():
-            _ = tasks.start_soon(_await_hold, mouth, emit, command)
         case StartHoldMusic():
             await _start_music(mouth, playback, tasks)
         case StopHoldMusic():

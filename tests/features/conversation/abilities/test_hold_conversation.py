@@ -59,6 +59,7 @@ class Talk:
     say: ObjectSendStream[Event]
     played: ObjectReceiveStream[bytes]
     forwarded: ObjectReceiveStream[tuple[str, bool, str | None]]
+    left: ObjectReceiveStream[float]
 
 
 @asynccontextmanager
@@ -66,12 +67,17 @@ async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> Asyn
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
     forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool, str | None]](100)
+    left_in, left_out = anyio.create_memory_object_stream[float](100)
+    started = anyio.current_time()
 
     async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
         await forwarded_in.send((text, interrupted, acknowledgement))
 
     async def hold_music() -> None:
         played_in.send_nowait(MUSIC)
+
+    async def leave() -> None:
+        await left_in.send(anyio.current_time() - started)
 
     mouth = Mouth(
         voice=voiced,
@@ -83,6 +89,7 @@ async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> Asyn
         acknowledgement_delay=0.0,
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
+        leave=leave,
     )
     emit = say.clone()
     async with (
@@ -93,10 +100,12 @@ async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> Asyn
         played_out,
         forwarded_in,
         forwarded_out,
+        left_in,
+        left_out,
         anyio.create_task_group() as tasks,
     ):
         _ = tasks.start_soon(hold_conversation, mouth, events, emit)
-        yield Talk(say=say, played=played_out, forwarded=forwarded_out)
+        yield Talk(say=say, played=played_out, forwarded=forwarded_out, left=left_out)
         tasks.cancel_scope.cancel()
 
 
@@ -202,3 +211,11 @@ async def test_without_hold_music_an_announced_work_stays_silent() -> None:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = await talk.played.receive()
     assert played == SOUND
+
+
+async def test_a_goodbye_leaves_once_its_voice_has_played() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("À demain.",), ending=True))
+        played = await talk.played.receive()
+        waited = await talk.left.receive()
+    assert (played, waited >= SOUND_DURATION) == (SOUND, True)

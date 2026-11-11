@@ -12,6 +12,7 @@ from mcp.shared.memory import create_client_server_memory_streams
 from mcp.shared.message import SessionMessage
 
 from voice_bridge.features.conversation.implementations.claude_channel import (
+    EndSessionTool,
     Forwarder,
     Reply,
     ReplyTool,
@@ -28,6 +29,7 @@ TOOL = ReplyTool(
     text_description="The text to speak",
     working_description="True when the text announces work to come",
 )
+END_TOOL = EndSessionTool(description="Say goodbye and end the session", text_description="The goodbye to speak")
 
 
 @dataclass(frozen=True)
@@ -40,7 +42,7 @@ class Connection:
 @asynccontextmanager
 async def connected() -> AsyncGenerator[Connection]:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
-    server = channel_server(instructions="Answer with reply.", tool=TOOL, replies=replies_in)
+    server = channel_server(instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, replies=replies_in)
     async with (
         replies_in,
         replies_out,
@@ -112,6 +114,50 @@ async def test_calling_reply_confirms_the_text_was_sent() -> None:
     assert result.content == [types.TextContent(type="text", text="sent")]
 
 
+async def test_the_end_session_tool_is_listed_after_reply() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert [tool.name for tool in tools.tools] == ["reply", "end_session"]
+
+
+async def test_the_end_session_tool_requires_a_goodbye() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert tools.tools[1].input_schema == {
+        "type": "object",
+        "properties": {"text": {"type": "string", "description": "The goodbye to speak"}},
+        "required": ["text"],
+    }
+
+
+async def test_the_end_session_tool_is_always_loaded() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert (tools.tools[1].description, tools.tools[1].meta) == (
+        "Say goodbye and end the session",
+        {"anthropic/alwaysLoad": True},
+    )
+
+
+async def test_ending_the_session_hands_the_goodbye_to_the_conversation() -> None:
+    async with connected() as connection:
+        _ = await connection.session.call_tool("end_session", {"text": "À demain."})
+        reply = await connection.replies.receive()
+    assert reply == Reply(text="À demain.", ending=True)
+
+
+async def test_ending_the_session_confirms_the_goodbye_will_be_said() -> None:
+    async with connected() as connection:
+        result = await connection.session.call_tool("end_session", {"text": "À demain."})
+    assert result.content == [types.TextContent(type="text", text="ending")]
+
+
+async def test_ending_the_session_without_a_goodbye_is_an_error() -> None:
+    async with connected() as connection:
+        result = await connection.session.call_tool("end_session", {})
+    assert result.is_error
+
+
 async def test_calling_an_unknown_tool_is_an_error() -> None:
     async with connected() as connection:
         result = await connection.session.call_tool("other", {})
@@ -169,7 +215,7 @@ HANDSHAKE = {
 
 async def exchanged(*requests: Mapping[str, object]) -> list[types.JSONRPCMessage]:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
-    server = channel_server(instructions="Answer with reply.", tool=TOOL, replies=replies_in)
+    server = channel_server(instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, replies=replies_in)
     written = io.StringIO()
 
     async def converse(claude: Forwarder) -> None:

@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 SERVER_NAME: Final = "voice"
 TOOL_NAME: Final = "reply"
+END_TOOL_NAME: Final = "end_session"
+ALWAYS_LOAD: Final = {"anthropic/alwaysLoad": True}
 CHANNEL_CAPABILITY: Final = "claude/channel"
 CHANNEL_NOTIFICATION: Final = "notifications/claude/channel"
 
@@ -38,9 +40,16 @@ class ReplyTool:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class EndSessionTool:
+    description: str
+    text_description: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Reply:
     text: str
     working: bool = False
+    ending: bool = False
 
 
 class ReplyArguments(BaseModel):
@@ -48,11 +57,49 @@ class ReplyArguments(BaseModel):
     working: bool = False
 
 
+class EndSessionArguments(BaseModel):
+    text: str
+
+
 def _error(message: str) -> types.CallToolResult:
     return types.CallToolResult(content=[types.TextContent(type="text", text=message)], is_error=True)
 
 
-def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStream[Reply]) -> Server[object]:
+def _end_session_tool(tool: EndSessionTool) -> types.Tool:
+    return types.Tool.model_validate(
+        {
+            "name": END_TOOL_NAME,
+            "description": tool.description,
+            "inputSchema": {
+                "type": "object",
+                "properties": {"text": {"type": "string", "description": tool.text_description}},
+                "required": ["text"],
+            },
+            "_meta": ALWAYS_LOAD,
+        }
+    )
+
+
+def _reply_of(name: str, arguments: dict[str, object]) -> Reply | types.CallToolResult:
+    try:
+        if name == END_TOOL_NAME:
+            return Reply(text=EndSessionArguments.model_validate(arguments).text, ending=True)
+        reply = ReplyArguments.model_validate(arguments)
+    except ValidationError as error:
+        return _error(str(error))
+    return Reply(text=reply.text, working=reply.working)
+
+
+def _logged(reply: Reply) -> None:
+    if reply.ending:
+        logger.info("goodbye received from Claude: %r, the session ends after it", reply.text)
+        return
+    logger.info("reply received from Claude: %r%s", reply.text, ", work to come" if reply.working else "")
+
+
+def channel_server(
+    *, instructions: str, tool: ReplyTool, end_tool: EndSessionTool, replies: ObjectSendStream[Reply]
+) -> Server[object]:
     reply = types.Tool.model_validate(
         {
             "name": TOOL_NAME,
@@ -65,27 +112,28 @@ def channel_server(*, instructions: str, tool: ReplyTool, replies: ObjectSendStr
                 },
                 "required": ["text"],
             },
-            "_meta": {"anthropic/alwaysLoad": True},
+            "_meta": ALWAYS_LOAD,
         }
     )
+    end_session = _end_session_tool(end_tool)
 
     async def list_tools(
         _context: ServerRequestContext[object], _params: types.PaginatedRequestParams | None
     ) -> types.ListToolsResult:
-        return types.ListToolsResult(tools=[reply])
+        return types.ListToolsResult(tools=[reply, end_session])
 
     async def call_tool(
         _context: ServerRequestContext[object], params: types.CallToolRequestParams
     ) -> types.CallToolResult:
-        if params.name != TOOL_NAME:
+        if params.name not in {TOOL_NAME, END_TOOL_NAME}:
             return _error(f"unknown tool: {params.name}")
-        try:
-            arguments = ReplyArguments.model_validate(params.arguments or {})
-        except ValidationError as error:
-            return _error(str(error))
-        logger.info("reply received from Claude: %r%s", arguments.text, ", work to come" if arguments.working else "")
-        await replies.send(Reply(text=arguments.text, working=arguments.working))
-        return types.CallToolResult(content=[types.TextContent(type="text", text="sent")])
+        received = _reply_of(params.name, params.arguments or {})
+        if isinstance(received, types.CallToolResult):
+            return received
+        _logged(received)
+        await replies.send(received)
+        answer = "ending" if received.ending else "sent"
+        return types.CallToolResult(content=[types.TextContent(type="text", text=answer)])
 
     return Server(
         SERVER_NAME,

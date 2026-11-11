@@ -53,6 +53,15 @@ def test_a_nested_environment_variable_overrides_the_config_file(
     assert load_settings(config_file).mumble.host == "other.example.org"
 
 
+def test_no_claude_code_process_is_known_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).claude_pid is None
+
+
+def test_the_launcher_tells_the_claude_code_process(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VOICE_BRIDGE_CLAUDE_PID", "4242")
+    assert load_settings(config_file).claude_pid == 4242
+
+
 def test_an_unknown_key_stops_the_start(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     _ = path.write_text(MINIMAL + 'mystery = "value"\n', encoding="utf-8")

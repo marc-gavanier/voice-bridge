@@ -12,6 +12,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Event,
     Forward,
     HoldLasted,
+    Leave,
     Play,
     SilenceLasted,
     SpeechStarted,
@@ -116,6 +117,16 @@ def announced_work(sentence: str) -> Turn:
 @given(parsers.parse('Claude announced work with "{sentence}"'), target_fixture="turn")
 def claude_announced_work(sentence: str) -> Turn:
     return announced_work(sentence)
+
+
+@given(parsers.parse('Claude said goodbye with "{sentence}"'), target_fixture="turn")
+def claude_said_goodbye(turn: Turn, sentence: str) -> Turn:
+    return after(turn, Asked(sentences=(sentence,), ending=True))
+
+
+@given("the speaker only made a noise", target_fixture="turn")
+def the_speaker_made_a_noise(turn: Turn) -> Turn:
+    return after(turn, Transcribed(text="", noise=True))
 
 
 @given("the hold music plays", target_fixture="turn")
@@ -280,3 +291,27 @@ def the_hold_music_stops(turn: Turn) -> None:
 @then("the hold music stops before Claude speaks")
 def the_hold_music_stops_before_claude_speaks(turn: Turn) -> None:
     assert turn.commands[:2] == (StopHoldMusic(), Play(pcm=b"voice"))
+
+
+def leaves(turn: Turn) -> tuple[Leave, ...]:
+    return tuple(command for command in turn.commands if isinstance(command, Leave))
+
+
+@then("the bridge leaves when that voice ends")
+def the_bridge_leaves_when_that_voice_ends(turn: Turn) -> None:
+    assert leaves(turn) == (Leave(until=SILENT_AT + 1.0),)
+
+
+@then("the bridge leaves at once")
+def the_bridge_leaves_at_once(turn: Turn) -> None:
+    assert leaves(turn) == (Leave(until=0.0),)
+
+
+@then("the bridge does not leave yet")
+def the_bridge_does_not_leave_yet(turn: Turn) -> None:
+    assert leaves(turn) == ()
+
+
+@then("the session goes on")
+def the_session_goes_on(turn: Turn) -> None:
+    assert not turn.state.ending

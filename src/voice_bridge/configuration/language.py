@@ -28,6 +28,8 @@ class LanguagePack:
     reply_tool_description: str
     reply_text_description: str
     reply_working_description: str
+    end_tool_description: str
+    end_text_description: str
     hallucinations: frozenset[str]
     hallucination_prefixes: tuple[str, ...]
     instructions: str
@@ -703,6 +705,10 @@ def language_pack(language: Language) -> LanguagePack:
                 reply_working_description=(
                     "True when the text announces work you are about to do: hold music then plays until your next reply"
                 ),
+                end_tool_description=(
+                    "Say goodbye aloud, then end the whole voice session: the bridge and this Claude Code session"
+                ),
+                end_text_description="The short goodbye to speak before the session ends",
                 hallucinations=frozenset({"", "you", "thank you", "thanks for watching"}),
                 hallucination_prefixes=("subtitles by",),
                 instructions=_packaged_instructions(language),
@@ -724,6 +730,11 @@ def language_pack(language: Language) -> LanguagePack:
                     "Vrai quand le texte annonce un travail que tu vas faire : "
                     "une musique d'attente joue alors jusqu'à ta réponse suivante"
                 ),
+                end_tool_description=(
+                    "Dire au revoir à voix haute, puis terminer toute la session vocale : "
+                    "le pont et cette session Claude Code"
+                ),
+                end_text_description="Le court au revoir à prononcer avant la fin de la session",
                 hallucinations=frozenset({"", "merci", "je vous prie"}),
                 hallucination_prefixes=("sous-titrage", "merci d'avoir regardé"),
                 instructions=_packaged_instructions(language),

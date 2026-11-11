@@ -101,6 +101,7 @@ class Settings(BaseSettings):
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = user_log_path(APP_NAME) / f"{APP_NAME}.log"
     cache_directory: Path = user_cache_path(APP_NAME)
+    claude_pid: int | None = None
 
     @classmethod
     @override

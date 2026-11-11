@@ -40,6 +40,8 @@ flowchart LR
 
 Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. Claude's work in progress goes on either way.
 
+Saying the session is over, in your own words, ends it: Claude calls the `end_session` tool with a goodbye, asking you to confirm when in doubt; the bridge says the goodbye after any reply still to come, then sends SIGTERM to Claude Code, whose process ID `claude-voice.sh` passes as `VOICE_BRIDGE_CLAUDE_PID`, and the bridge ends with it. Speaking over the goodbye keeps the session going. `claude-voice.sh --continue` resumes the conversation later ([ADR-011](docs/decisions/ADR-011-a-goodbye-ends-claude-code-with-sigterm.md)).
+
 ```mermaid
 sequenceDiagram
     actor you as You
@@ -118,6 +120,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `hold_music.delay`, `hold_music.volume` | `2.0`, `0.3` | How long after the end of an announcement of work the music starts, and its loudness, below the voice's |
 | `understanding.threshold` | `0.5` | The cosine similarity to its closest example a sentence needs to take a route; the stop route asks 0.75, set in [`language.py`](src/voice_bridge/configuration/language.py). The model, 220 MB, is downloaded from Hugging Face on first start |
 | `understanding.stop_flag` | `$XDG_RUNTIME_DIR/voice-bridge/stop` | The file whose presence makes `voice-bridge-stop-hook` refuse Claude's tools after a stop |
+| `claude_pid` | none | The Claude Code process the bridge ends after a goodbye; `claude-voice.sh` sets it through `VOICE_BRIDGE_CLAUDE_PID`. Without it, `end_session` says goodbye and leaves the session open |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`instructions/`](src/voice_bridge/configuration/instructions) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |

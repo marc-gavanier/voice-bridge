@@ -7,11 +7,12 @@ if ! curl --silent --fail --max-time 2 "$voxtral/health" >/dev/null; then
   echo "Voxtral is starting, it takes about two and a half minutes." >&2
 fi
 config="${XDG_RUNTIME_DIR:-/tmp}/voice-bridge-mcp.json"
-jq --null-input --arg project "$project" '{
+jq --null-input --arg project "$project" --arg pid "$$" '{
   mcpServers: {
     voice: {
       command: ($project + "/scripts/with-cuda.sh"),
       args: ["uv", "run", "--project", $project, "--frozen", "--quiet", "voice-bridge-channel"],
+      env: {VOICE_BRIDGE_CLAUDE_PID: $pid},
       alwaysLoad: true
     }
   }
@@ -32,4 +33,4 @@ jq --null-input --arg project "$project" '{
     ]
   }
 }' >"$settings"
-exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply --dangerously-load-development-channels server:voice "$@"
+exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply mcp__voice__end_session --dangerously-load-development-channels server:voice "$@"
