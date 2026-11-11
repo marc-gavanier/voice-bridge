@@ -1,0 +1,348 @@
+whisper_code = "de"
+voice = "de_female"
+greeting = "Ich höre zu."
+stop_refusal = "Der Sprecher hat um Abbruch gebeten: Bis zu seiner nächsten Nachricht läuft kein Werkzeug. Versuche es nicht erneut; sag in einem Satz, was abgebrochen wurde und was schon erledigt war."
+reply_tool_description = "Eine Antwort laut im Kopfhörer des Nutzers sprechen"
+reply_text_description = "Der zu sprechende Text, für das Ohr geschrieben"
+reply_working_description = "Wahr, wenn der Text eine Arbeit ankündigt, die du gleich erledigst: Bis zu deiner nächsten Antwort läuft dann Wartemusik"
+end_tool_description = "Laut auf Wiedersehen sagen und dann die ganze Sprachsitzung beenden: die Brücke und diese Claude-Code-Sitzung"
+end_text_description = "Das kurze Auf Wiedersehen, das vor dem Ende der Sitzung gesprochen wird"
+hallucinations = [
+  "",
+  "vielen dank fürs zuschauen",
+]
+hallucination_prefixes = [
+  "untertitel im auftrag",
+  "untertitelung",
+]
+neutral_acknowledgements = [
+  "Okay.",
+  "Verstanden.",
+  "Alles klar.",
+  "Notiert.",
+  "Ich verstehe.",
+]
+
+[[acknowledgements]]
+name = "stop"
+threshold = 0.75
+stops = true
+examples = [
+  "Stopp.",
+  "Stopp, stopp, stopp.",
+  "Hör auf.",
+  "Hör sofort auf.",
+  "Halt, hör auf damit.",
+  "Kannst du aufhören?",
+  "Kannst du bitte aufhören?",
+  "Brich ab.",
+  "Brich alles ab.",
+  "Vergiss es.",
+  "Vergiss es, das lohnt sich nicht.",
+  "Nein, warte, mach das nicht.",
+  "Lass das sein.",
+  "Unterbrich dich.",
+  "Halt, nicht weitermachen.",
+  "Nein nein nein, stopp.",
+  "Es reicht, hör auf.",
+  "Lass es, such nicht weiter.",
+]
+sentences = [
+  "Ich höre auf.",
+  "Gut, ich breche ab.",
+  "Verstanden, ich stoppe alles.",
+  "Ich halte an.",
+]
+
+[[acknowledgements]]
+name = "end"
+examples = [
+  "Lass uns für heute hier aufhören.",
+  "Wir machen für heute Schluss, bis morgen.",
+  "Auf Wiedersehen.",
+  "Tschüss.",
+  "Bis morgen.",
+  "Bis später.",
+  "Das war's für heute Abend.",
+  "Wir können das Gespräch beenden.",
+  "Okay, beenden wir das Gespräch.",
+  "Gute Nacht, wir machen morgen weiter.",
+  "Ich gehe schlafen, gute Nacht.",
+  "Ich lasse dich jetzt, bis später.",
+  "Beenden wir die Sitzung.",
+  "Wir sind fertig.",
+  "Wie lege ich auf?",
+]
+sentences = [
+  "Gut, wir hören auf.",
+  "Klingt gut.",
+  "Bis später.",
+  "Schön, dann machen wir Schluss.",
+]
+
+[[acknowledgements]]
+name = "unfinished"
+examples = [
+  "Und…",
+  "Also…",
+  "Also,",
+  "Aber…",
+  "Na ja…",
+  "Oder…",
+  "Du bist…",
+  "Du hast gesagt…",
+  "Und ich warte darauf, dass die Musik…",
+  "Weil…",
+  "Eigentlich wollte ich…",
+  "Und dann…",
+  "Ja, ich hätte gern…",
+  "Aber es funktioniert gut, du bist nur…",
+  "Nein, ich habe das Gefühl, du hörst mich nicht mehr. Jedes Mal…",
+]
+sentences = [
+  "Ja?",
+  "Ich höre.",
+  "Sprich weiter.",
+  "Erzähl weiter.",
+  "Und dann?",
+]
+
+[[acknowledgements]]
+name = "presence"
+examples = [
+  "Hörst du mich?",
+  "Kannst du mich hören?",
+  "Hörst du mich noch?",
+  "Hörst du mich, Claude?",
+  "Bist du da?",
+  "Bist du noch da?",
+  "Was machst du? Claude, bist du da?",
+  "Hallo, bist du noch da?",
+  "Arbeitest du noch oder warte ich umsonst?",
+  "Funktioniert es?",
+  "Funktioniert es jetzt?",
+  "Hast du mich gehört?",
+  "Ich rede, kommt das an?",
+  "Ich bin jetzt im Mobilnetz, hörst du mich noch?",
+  "Bist du noch bei mir?",
+]
+sentences = [
+  "Ja, ich bin da.",
+  "Ich höre dich.",
+  "Immer noch da.",
+  "Laut und deutlich.",
+]
+
+[[acknowledgements]]
+name = "thanks"
+examples = [
+  "Danke.",
+  "Danke schön.",
+  "Vielen Dank.",
+  "Super, danke.",
+  "Danke, das ist perfekt.",
+  "Gut gemacht.",
+  "Tolle Arbeit.",
+  "Schöne Arbeit.",
+  "Super, danke für deine Hilfe.",
+  "Klasse, das funktioniert richtig gut.",
+  "Danke, genau das brauchte ich.",
+  "Ehrlich, gut gemacht.",
+  "Danke für alles.",
+  "Ausgezeichnete Arbeit.",
+  "Perfekt, vielen herzlichen Dank.",
+]
+sentences = [
+  "Gern geschehen.",
+  "Sehr gern.",
+  "Freut mich.",
+  "Jederzeit.",
+]
+
+[[acknowledgements]]
+name = "problem"
+examples = [
+  "Es ist abgeschnitten.",
+  "Da ist ein Aussetzer.",
+  "Es bricht ständig ab.",
+  "Ich höre dich nicht mehr.",
+  "Ich höre seit einer Weile nichts mehr.",
+  "Da ist ein Fehler.",
+  "Da stimmt etwas nicht, es funktioniert nicht.",
+  "Es funktioniert nicht mehr.",
+  "Es gibt ein Problem mit dem Ton.",
+  "Es gibt viel Verzögerung.",
+  "Du bist zu schnell.",
+  "Ich habe das Ende deines Satzes nicht gehört.",
+  "Es knistert, da sind Störgeräusche.",
+  "Ich höre die Musik nicht.",
+  "Ich unterbreche dich und du hörst gar nicht auf.",
+  "Die Verbindung war weg. Fang noch mal an.",
+]
+sentences = [
+  "Ich schaue mir das an.",
+  "Ich prüfe das.",
+  "Notiert, ich schaue nach.",
+  "Moment, ich sehe nach.",
+]
+
+[[acknowledgements]]
+name = "restarted"
+examples = [
+  "Ich habe neu gestartet.",
+  "Ich habe die Brücke neu gestartet.",
+  "Ich starte die Sitzung neu.",
+  "So, ich habe das Gespräch neu gestartet.",
+  "Es ist neu gestartet.",
+  "Ich habe Claude neu gestartet.",
+  "So, es läuft wieder, wir können weitermachen.",
+  "Ich habe alles neu gestartet.",
+  "Ich habe gerade den Server neu gestartet.",
+  "Die Brücke läuft wieder.",
+  "Okay, ich habe das Headset wieder angeschlossen.",
+  "Gut, ich bin wieder verbunden.",
+  "Ich habe die App auf dem Handy neu gestartet.",
+  "Ich starte jetzt neu.",
+  "Ich bin wieder online.",
+]
+sentences = [
+  "Verstanden.",
+  "Gut, notiert.",
+  "Alles klar, weiter geht's.",
+  "Gut.",
+]
+
+[[acknowledgements]]
+name = "request"
+examples = [
+  "Kannst du dir die letzten Commits ansehen?",
+  "Schau in meine Notizen zu dem Thema.",
+  "Durchsuche meine Dokumente.",
+  "Kannst du die Logs prüfen?",
+  "Kannst du die Konfiguration prüfen?",
+  "Lass die Tests laufen.",
+  "Bereite einen Entwurf für die Nachricht vor.",
+  "Erklär mir, wie das funktioniert.",
+  "Ich möchte, dass du diesen Artikel liest.",
+  "Kannst du den Wikipedia-Artikel über Bayern lesen?",
+  "Setz das auf meine Aufgabenliste.",
+  "Mach eine Zusammenfassung.",
+  "Kannst du das wiederholen?",
+  "Gib mir die Liste der Punkte.",
+  "Leg dafür ein Ticket an.",
+  "Du kannst es löschen.",
+  "Kannst du mir mehr über dieses kleine Modell erzählen?",
+]
+sentences = [
+  "Ich mache das.",
+  "Ich schaue nach.",
+  "Bin dran.",
+  "Los geht's.",
+  "Ich kümmere mich darum.",
+]
+
+[[acknowledgements]]
+name = "question"
+examples = [
+  "Warum funktioniert das nicht?",
+  "Warum ist es so langsam?",
+  "Wie funktioniert das?",
+  "Wie machen wir das?",
+  "Was denkst du?",
+  "Was kommt als Nächstes?",
+  "Und, wie geht es weiter?",
+  "Was ist der Unterschied?",
+  "Wie viel kostet das?",
+  "Wo hast du die Datei abgelegt?",
+  "Ist das möglich?",
+  "Ist es behoben?",
+  "Hast du Fragen?",
+  "Wo waren wir stehen geblieben?",
+  "Gibt es noch etwas zu tun?",
+]
+sentences = [
+  "Mal sehen.",
+  "Gute Frage.",
+  "Lass mich nachdenken.",
+  "Ich schaue mal.",
+]
+
+[[acknowledgements]]
+name = "idea"
+examples = [
+  "Ich frage mich, ob man das anders machen könnte.",
+  "Ich habe eine Idee.",
+  "Warte, ich habe vielleicht eine Idee.",
+  "Wir könnten ein anderes Werkzeug nehmen.",
+  "Ich glaube, es wäre besser, die beiden zu trennen.",
+  "Ich finde das zu kompliziert.",
+  "Es wäre schön, Wartemusik zu haben.",
+  "Das erinnert mich an etwas.",
+  "Immer erst prüfen, ob es dafür schon etwas gibt.",
+  "Ich hätte das gern automatisiert.",
+  "Ich glaube, wir können das jetzt machen.",
+  "Das klingt nach einer guten Idee.",
+  "Ich möchte, dass es auch auf dem Handy funktioniert.",
+  "Man könnte eine Regel daraus machen.",
+  "Ich glaube, wir hatten nur kleine Netzprobleme.",
+]
+sentences = [
+  "Interessant.",
+  "Ich verstehe die Idee.",
+  "Ah, ich sehe.",
+  "Das ergibt Sinn.",
+]
+
+[[acknowledgements]]
+name = "no"
+examples = [
+  "Nein.",
+  "Nö.",
+  "Nicht nötig.",
+  "Nein, das ist es nicht.",
+  "Nicht unbedingt.",
+  "Nein, machen wir es anders.",
+  "Nein, das ist falsch.",
+  "Nein, da bin ich nicht einverstanden.",
+  "Nein, ich nehme lieber das andere.",
+  "Nein, das ist mir egal.",
+  "Nein, alles in einem Pull Request.",
+  "Nein, ich habe keine Ahnung.",
+  "Nein, ich meinte etwas anderes.",
+  "Nein, nicht das.",
+  "Auf keinen Fall.",
+]
+sentences = [
+  "In Ordnung.",
+  "Verstanden.",
+  "Gut, lassen wir das.",
+  "Kein Problem.",
+]
+
+[[acknowledgements]]
+name = "yes"
+examples = [
+  "Ja.",
+  "Ja, mach.",
+  "Ja, los.",
+  "Okay.",
+  "Okay, passt mir.",
+  "Gut, machen wir das.",
+  "Perfekt, einverstanden.",
+  "Passt für mich.",
+  "Genau so.",
+  "Ja, sehr gut.",
+  "Ja, versuchen wir es.",
+  "Ja, lies es bitte.",
+  "Ja, ich höre dich, alles gut.",
+  "Klar.",
+  "Los geht's.",
+  "Auf geht's.",
+  "Mach das so.",
+]
+sentences = [
+  "Perfekt.",
+  "Super.",
+  "In Ordnung.",
+  "Sehr gut.",
+]

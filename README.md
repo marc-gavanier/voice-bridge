@@ -105,7 +105,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 
 | Key | Default | Meaning |
 |---|---|---|
-| `language` | `en` | `en` or `fr`: the language Whisper transcribes, the default voice, the greeting and the default instructions |
+| `language` | `en` | `ar`, `de`, `en`, `es`, `fr`, `hi`, `it`, `nl` or `pt`: the language Whisper transcribes, the default voice, the greeting, the acknowledgements and the default instructions |
 | `mumble.host`, `mumble.port` | required, `64738` | The Mumble server |
 | `mumble.password` | required | The server password |
 | `mumble.username` | `claude` | The bridge's name on the server |

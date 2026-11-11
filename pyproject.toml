@@ -189,6 +189,6 @@ only_mutate = ["src/voice_bridge/features/*/domain/*"]
 pytest_add_cli_args = ["--no-cov"]
 do_not_mutate_patterns = ["assert_never\\(", "case _:"]
 
-[tool.typos.type.french]
-extend-glob = ["fr.toml", "fr.md", "*_fr.py"]
+[tool.typos.type.localized]
+extend-glob = ["ar.toml", "ar.md", "*_ar.py", "de.toml", "de.md", "*_de.py", "es.toml", "es.md", "*_es.py", "fr.toml", "fr.md", "*_fr.py", "hi.toml", "hi.md", "*_hi.py", "it.toml", "it.md", "*_it.py", "nl.toml", "nl.md", "*_nl.py", "pt.toml", "pt.md", "*_pt.py"]
 check-file = false

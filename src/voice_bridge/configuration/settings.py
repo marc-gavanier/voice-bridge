@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 
 APP_NAME = "voice-bridge"
 
-type Language = Literal["en", "fr"]
+type Language = Literal["ar", "de", "en", "es", "fr", "hi", "it", "nl", "pt"]
 
 
 class Section(BaseModel):

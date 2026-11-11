@@ -1,0 +1,348 @@
+whisper_code = "pt"
+voice = "pt_female"
+greeting = "Estou ouvindo."
+stop_refusal = "A pessoa pediu para parar: nenhuma ferramenta é executada até a próxima mensagem dela. Não tente de novo; diga em uma frase o que foi interrompido e o que já estava feito."
+reply_tool_description = "Dizer uma resposta em voz alta no fone de ouvido do usuário"
+reply_text_description = "O texto a ser dito, escrito para o ouvido"
+reply_working_description = "Verdadeiro quando o texto anuncia um trabalho que você vai fazer: uma música de espera toca até a sua próxima resposta"
+end_tool_description = "Despedir-se em voz alta e depois encerrar toda a sessão de voz: a ponte e esta sessão do Claude Code"
+end_text_description = "A breve despedida dita antes do fim da sessão"
+hallucinations = [
+  "",
+  "obrigado por assistir",
+]
+hallucination_prefixes = [
+  "legendas pela comunidade",
+  "legendas por",
+]
+neutral_acknowledgements = [
+  "Certo.",
+  "Entendido.",
+  "Entendo.",
+  "Anotado.",
+  "Combinado.",
+]
+
+[[acknowledgements]]
+name = "stop"
+threshold = 0.75
+stops = true
+examples = [
+  "Pare.",
+  "Para, para, para.",
+  "Pare agora.",
+  "Pare com isso.",
+  "Chega.",
+  "Você pode parar?",
+  "Pode parar, por favor?",
+  "Cancela.",
+  "Cancela o que você está fazendo.",
+  "Esquece.",
+  "Esquece, não vale a pena.",
+  "Não, espera, não faz isso.",
+  "Deixa pra lá.",
+  "Interrompa.",
+  "Não continua.",
+  "Não não não, para.",
+  "Já chega, para.",
+  "Para de procurar.",
+]
+sentences = [
+  "Vou parar.",
+  "Parando.",
+  "Certo, estou parando.",
+  "Entendido, paro tudo.",
+]
+
+[[acknowledgements]]
+name = "end"
+examples = [
+  "Vamos parar por aqui hoje.",
+  "Paramos por aqui hoje, continuamos amanhã.",
+  "Tchau.",
+  "Até logo.",
+  "Até amanhã.",
+  "Até mais tarde.",
+  "Por hoje é só.",
+  "Podemos encerrar a conversa.",
+  "Certo, vamos encerrar a conversa.",
+  "Boa noite, continuamos amanhã.",
+  "Vou dormir, boa noite.",
+  "Vou te deixar, falamos depois.",
+  "Vamos encerrar a sessão.",
+  "Terminamos.",
+  "Como eu desligo?",
+]
+sentences = [
+  "Certo, vamos parar.",
+  "Combinado.",
+  "Até mais.",
+  "Tudo bem, paramos aqui.",
+]
+
+[[acknowledgements]]
+name = "unfinished"
+examples = [
+  "E…",
+  "Então…",
+  "Então,",
+  "Mas…",
+  "Bom…",
+  "Ou…",
+  "Você está…",
+  "Você disse…",
+  "E estou esperando a música…",
+  "Porque…",
+  "Na verdade, eu…",
+  "E depois…",
+  "Sim, eu queria…",
+  "Mas funciona bem, só que você…",
+  "Não, acho que você não me ouve mais. Toda vez…",
+]
+sentences = [
+  "Sim?",
+  "Estou ouvindo.",
+  "Continue.",
+  "Pode seguir.",
+  "E depois?",
+]
+
+[[acknowledgements]]
+name = "presence"
+examples = [
+  "Você me ouve?",
+  "Está me ouvindo?",
+  "Ainda me ouve?",
+  "Você me ouve, Claude?",
+  "Você está aí?",
+  "Ainda está aí?",
+  "O que você está fazendo? Claude, está aí?",
+  "Alô, ainda está aí?",
+  "Ainda está trabalhando ou estou esperando à toa?",
+  "Está funcionando?",
+  "Funciona agora?",
+  "Você me ouviu?",
+  "Estou falando, está chegando?",
+  "Agora estou no 4G, ainda me ouve?",
+  "Ainda está comigo?",
+]
+sentences = [
+  "Sim, estou aqui.",
+  "Estou te ouvindo.",
+  "Ainda aqui.",
+  "Alto e claro.",
+]
+
+[[acknowledgements]]
+name = "thanks"
+examples = [
+  "Obrigado.",
+  "Muito obrigado.",
+  "Valeu.",
+  "Ótimo, obrigado.",
+  "Obrigado, está perfeito.",
+  "Muito bem.",
+  "Bom trabalho.",
+  "Belo trabalho.",
+  "Ótimo, obrigado pela ajuda.",
+  "Excelente, funciona muito bem.",
+  "Obrigado, era exatamente o que eu precisava.",
+  "Sério, muito bem feito.",
+  "Obrigado por tudo.",
+  "Trabalho excelente.",
+  "Perfeito, muitíssimo obrigado.",
+]
+sentences = [
+  "De nada.",
+  "Com prazer.",
+  "Fico feliz em ajudar.",
+  "Disponha.",
+]
+
+[[acknowledgements]]
+name = "problem"
+examples = [
+  "Cortou.",
+  "Teve um corte.",
+  "Fica cortando o tempo todo.",
+  "Não estou mais te ouvindo.",
+  "Faz tempo que não ouço nada.",
+  "Tem um erro.",
+  "Que estranho, não funciona.",
+  "Não funciona mais.",
+  "Tem um problema no som.",
+  "Tem muito atraso.",
+  "Você está indo rápido demais.",
+  "Não ouvi o fim da sua frase.",
+  "Está chiando, tem ruídos.",
+  "Não ouço a música.",
+  "Eu te interrompo e você não para.",
+  "A ligação caiu. Começa de novo.",
+]
+sentences = [
+  "Vou verificar.",
+  "Vou dar uma olhada.",
+  "Anotado, estou vendo.",
+  "Deixa eu ver.",
+]
+
+[[acknowledgements]]
+name = "restarted"
+examples = [
+  "Reiniciei.",
+  "Reiniciei a ponte.",
+  "Estou reiniciando a sessão.",
+  "Pronto, reiniciei a conversa.",
+  "Já reiniciou.",
+  "Reiniciei o Claude.",
+  "Pronto, voltou a funcionar, podemos continuar.",
+  "Reiniciei tudo.",
+  "Acabei de reiniciar o servidor.",
+  "A ponte voltou.",
+  "Certo, conectei o fone de novo.",
+  "Bom, estou conectado de novo.",
+  "Reiniciei o aplicativo no celular.",
+  "Reiniciando agora.",
+  "Estou online de novo.",
+]
+sentences = [
+  "Entendido.",
+  "Ótimo, anotado.",
+  "Certo, vamos lá.",
+  "Bom.",
+]
+
+[[acknowledgements]]
+name = "request"
+examples = [
+  "Você pode ver os últimos commits?",
+  "Olha minhas anotações sobre o assunto.",
+  "Procura nos meus documentos.",
+  "Você pode verificar os logs?",
+  "Pode verificar a configuração?",
+  "Roda os testes.",
+  "Prepara um rascunho da mensagem.",
+  "Me explica como funciona.",
+  "Quero que você leia este artigo.",
+  "Você pode ler o artigo da Wikipédia sobre Minas Gerais?",
+  "Coloca isso na minha lista de tarefas.",
+  "Faz um resumo.",
+  "Pode repetir?",
+  "Me dá a lista dos pontos.",
+  "Cria um ticket para isso.",
+  "Pode apagar.",
+  "Pode me contar mais sobre esse modelo pequeno?",
+]
+sentences = [
+  "Vou fazer.",
+  "Vou olhar.",
+  "Estou nisso.",
+  "Lá vamos nós.",
+  "Deixa comigo.",
+]
+
+[[acknowledgements]]
+name = "question"
+examples = [
+  "Por que não funciona?",
+  "Por que está tão lento?",
+  "Como funciona?",
+  "Como a gente faz?",
+  "O que você acha?",
+  "Qual é o próximo passo?",
+  "E aí, o que vem agora?",
+  "Qual é a diferença?",
+  "Quanto custa?",
+  "Onde você colocou o arquivo?",
+  "É possível?",
+  "Está resolvido?",
+  "Você tem perguntas?",
+  "Onde a gente parou?",
+  "Ainda tem algo a fazer?",
+]
+sentences = [
+  "Vejamos.",
+  "Boa pergunta.",
+  "Deixa eu pensar.",
+  "Vou conferir.",
+]
+
+[[acknowledgements]]
+name = "idea"
+examples = [
+  "Será que a gente poderia fazer diferente?",
+  "Tenho uma ideia.",
+  "Espera, talvez eu tenha uma ideia.",
+  "A gente poderia usar outra ferramenta.",
+  "Acho que seria melhor separar as duas coisas.",
+  "Acho complicado demais.",
+  "Seria bom ter música de espera.",
+  "Isso me lembra uma coisa.",
+  "Sempre ver se já existe algo para isso.",
+  "Eu queria automatizar isso.",
+  "Acho que dá para fazer agora.",
+  "Parece uma boa ideia.",
+  "Quero que funcione no celular também.",
+  "A gente poderia criar uma regra.",
+  "Acho que tivemos só pequenas falhas de rede.",
+]
+sentences = [
+  "Interessante.",
+  "Entendo a ideia.",
+  "Ah, entendi.",
+  "Faz sentido.",
+]
+
+[[acknowledgements]]
+name = "no"
+examples = [
+  "Não.",
+  "Nada disso.",
+  "Não precisa.",
+  "Não, não é isso.",
+  "Não necessariamente.",
+  "Não, vamos fazer de outro jeito.",
+  "Não, está errado.",
+  "Não, não concordo.",
+  "Não, prefiro o outro.",
+  "Não, tanto faz para mim.",
+  "Não, tudo na mesma pull request.",
+  "Não, não faço ideia.",
+  "Não, eu quis dizer outra coisa.",
+  "Não, esse não.",
+  "De jeito nenhum.",
+]
+sentences = [
+  "Tudo bem.",
+  "Entendido.",
+  "Certo, deixamos assim.",
+  "Sem problema.",
+]
+
+[[acknowledgements]]
+name = "yes"
+examples = [
+  "Sim.",
+  "Sim, pode ir.",
+  "Sim, manda ver.",
+  "Certo.",
+  "Certo, por mim tudo bem.",
+  "Bom, vamos fazer isso.",
+  "Perfeito, aprovado.",
+  "Por mim está ótimo.",
+  "É isso aí.",
+  "Sim, muito bom.",
+  "Sim, vamos tentar.",
+  "Sim, lê por favor.",
+  "Sim, estou te ouvindo, tudo certo.",
+  "Claro.",
+  "Vamos lá.",
+  "Bora.",
+  "Faz assim.",
+]
+sentences = [
+  "Perfeito.",
+  "Ótimo.",
+  "Combinado.",
+  "Muito bem.",
+]
