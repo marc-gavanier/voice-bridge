@@ -75,6 +75,7 @@ class Forward:
     text: str
     interrupted: bool
     acknowledging: bool
+    pieces: int = 1
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -123,12 +124,6 @@ type Command = (
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class PendingAcknowledgement:
-    ticket: int
-    words: str
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
 class Synthesis:
     ticket: int
     sentence: str
@@ -149,7 +144,9 @@ class Conversation:
     interrupted: bool = False
     hearing: bool = False
     next_ticket: int = 0
-    acknowledging: PendingAcknowledgement | None = None
+    heard: tuple[str, ...] = ()
+    settling: int | None = None
+    utterances: int = 0
     acknowledged: bool = False
     next_silence: int = 0
     awaiting_hold: int | None = None
@@ -248,34 +245,44 @@ def _resume(state: Conversation) -> Step:
     return _synthesize_next(resumed)
 
 
-def _forward(state: Conversation, text: str) -> Step:
-    if state.acknowledged:
-        forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None, ending=False)
-        return _synthesize_next(
-            *_await_hold(forwarded, (Forward(text=text, interrupted=state.interrupted, acknowledging=False),))
-        )
-    pending = PendingAcknowledgement(ticket=state.next_silence, words=text)
+def _settle(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
+    if state.utterances > 0:
+        return state, commands
+    ticket = state.next_silence
+    return replace(state, settling=ticket, next_silence=ticket + 1), (*commands, AwaitSilence(ticket=ticket))
+
+
+def _transcribed(state: Conversation) -> Conversation:
+    return replace(state, utterances=max(0, state.utterances - 1))
+
+
+def _hear(state: Conversation, text: str) -> Step:
+    heard = replace(_transcribed(state), heard=(*state.heard, text), paused=None, hearing=True, ending=False)
+    return _settle(heard)
+
+
+def _noise(state: Conversation) -> Step:
+    if not state.heard:
+        return _resume(_transcribed(state))
+    return _settle(_transcribed(state))
+
+
+def _forward(state: Conversation, ticket: int, at: float) -> Step:
+    if state.settling != ticket:
+        return state, ()
+    acknowledging = not state.acknowledged and not is_talking(state, at)
+    text = " ".join(state.heard)
+    forward = Forward(text=text, interrupted=state.interrupted, acknowledging=acknowledging, pieces=len(state.heard))
     forwarded = replace(
         state,
-        paused=None,
+        heard=(),
+        settling=None,
         interrupted=False,
         hearing=False,
-        acknowledging=pending,
-        next_silence=pending.ticket + 1,
-        ending=False,
+        acknowledged=state.acknowledged or acknowledging,
     )
-    awaited = AwaitSilence(ticket=pending.ticket)
-    return _synthesize_next(forwarded, (awaited, Forward(text=text, interrupted=state.interrupted, acknowledging=True)))
-
-
-def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:
-    pending = state.acknowledging
-    if pending is None or pending.ticket != ticket:
-        return state, ()
-    if is_talking(state, at):
-        return replace(state, acknowledging=None), ()
-    acknowledged = replace(state, acknowledging=None, acknowledged=True)
-    return _await_hold(acknowledged, (Acknowledge(words=pending.words),))
+    commands = (forward, Acknowledge(words=text)) if acknowledging else (forward,)
+    return _synthesize_next(*_await_hold(forwarded, commands))
 
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
@@ -285,7 +292,6 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
                 replace(
                     state,
                     waiting=(*state.waiting, *sentences),
-                    acknowledging=None,
                     acknowledged=False,
                     awaiting_hold=None,
                     working=working,
@@ -307,13 +313,13 @@ def _on_speaker(
         case VoiceDetected(at=at):
             return _interrupt(state, at)
         case Transcribed(noise=True):
-            return _resume(state)
+            return _noise(state)
         case Transcribed(text=text):
-            return _forward(state, text)
+            return _hear(state, text)
         case SpeechStarted():
-            return replace(state, acknowledging=None), ()
+            return replace(state, utterances=state.utterances + 1, settling=None), ()
         case SilenceLasted(ticket=ticket, at=at):
-            return _acknowledge(state, ticket, at)
+            return _forward(state, ticket, at)
         case HoldLasted(ticket=ticket):
             return _hold(state, ticket)
         case _:

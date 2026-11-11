@@ -55,7 +55,7 @@ class Mouth:
     rate: int
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
-    acknowledgement_delay: float
+    settle: float
     hold_music: Callable[[], Awaitable[None]] | None
     hold_music_delay: float
     leave: Callable[[], Awaitable[None]]
@@ -79,6 +79,8 @@ async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthe
 
 
 async def _forward(mouth: Mouth, playback: _Playback, command: Forward) -> None:
+    if command.pieces > 1:
+        logger.info("joined %d pieces said with pauses", command.pieces)
     playback.acknowledgement = mouth.acknowledgement(command.text) if command.acknowledging else None
     sentence = playback.acknowledgement[0] if playback.acknowledgement else None
     await mouth.claude(command.text, interrupted=command.interrupted, acknowledgement=sentence)
@@ -94,7 +96,7 @@ def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
 
 
 async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
-    await anyio.sleep(mouth.acknowledgement_delay)
+    await anyio.sleep(mouth.settle)
     await emit.send(SilenceLasted(ticket=order.ticket, at=mouth.clock()))
 
 

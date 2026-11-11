@@ -2,12 +2,13 @@ from functools import reduce
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
-    AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
     Play,
+    SilenceLasted,
+    SpeechStarted,
     SynthesisFailed,
     Synthesize,
     Synthesized,
@@ -190,13 +191,26 @@ def test_a_sentence_playing_at_an_interruption_is_saved_only_once() -> None:
     ) == (FIRST,)
 
 
+def forwarded(*events: Event) -> tuple[Forward, ...]:
+    return tuple(command for command in commands_of(*events) if isinstance(command, Forward))
+
+
+def interruptions(*events: Event) -> list[bool]:
+    return [forward.interrupted for forward in forwarded(*events)]
+
+
+def pieces(*events: Event) -> list[int]:
+    return [forward.pieces for forward in forwarded(*events)]
+
+
 def test_speech_after_a_resumed_reply_is_not_marked_as_an_interruption() -> None:
-    assert last_commands(
+    assert interruptions(
         Asked(sentences=(FIRST,)),
         VoiceDetected(at=1.0),
         Transcribed(text="", noise=True),
         Transcribed(text="Bonjour."),
-    ) == (AwaitSilence(ticket=0), Forward(text="Bonjour.", interrupted=False, acknowledging=True))
+        SilenceLasted(ticket=0, at=2.0),
+    ) == [False]
 
 
 def test_a_resumed_reply_is_not_resumed_twice() -> None:
@@ -210,13 +224,36 @@ def test_a_resumed_reply_is_not_resumed_twice() -> None:
     ) == (FIRST,)
 
 
-def test_only_the_speech_that_interrupted_is_marked_as_an_interruption() -> None:
-    assert last_commands(
+def test_words_after_a_forwarded_interruption_are_not_marked_as_an_interruption() -> None:
+    assert interruptions(
         Asked(sentences=(FIRST,)),
         VoiceDetected(at=1.0),
         Transcribed(text="Attends."),
+        SilenceLasted(ticket=0, at=2.0),
         Transcribed(text="Encore."),
-    ) == (AwaitSilence(ticket=1), Forward(text="Encore.", interrupted=False, acknowledging=True))
+        SilenceLasted(ticket=1, at=3.0),
+    ) == [True, False]
+
+
+def test_a_forward_counts_the_pieces_it_joins() -> None:
+    assert pieces(
+        Transcribed(text="Je voudrais..."),
+        Transcribed(text="un ticket."),
+        SilenceLasted(ticket=1, at=2.0),
+    ) == [2]
+
+
+def test_a_transcript_without_its_start_does_not_hide_words_still_being_said() -> None:
+    assert (
+        forwarded(
+            Transcribed(text="Je voudrais..."),
+            SpeechStarted(at=1.0),
+            SpeechStarted(at=2.0),
+            Transcribed(text="un ticket."),
+            SilenceLasted(ticket=1, at=3.0),
+        )
+        == ()
+    )
 
 
 def test_a_reply_dropped_by_speech_never_comes_back() -> None:
@@ -230,4 +267,33 @@ def test_a_reply_dropped_by_speech_never_comes_back() -> None:
             )
         )
         == ()
+    )
+
+
+def test_a_reply_dropped_by_speech_does_not_come_back_after_a_later_noise() -> None:
+    assert (
+        unspoken(
+            state_after(
+                Asked(sentences=(FIRST,)),
+                VoiceDetected(at=1.0),
+                Transcribed(text="Attends."),
+                SilenceLasted(ticket=0, at=2.0),
+                VoiceDetected(at=3.0),
+                Transcribed(text="", noise=True),
+            )
+        )
+        == ()
+    )
+
+
+def test_a_silence_heard_twice_forwards_the_words_once() -> None:
+    assert (
+        len(
+            forwarded(
+                Transcribed(text="Bonjour."),
+                SilenceLasted(ticket=0, at=2.0),
+                SilenceLasted(ticket=0, at=2.0),
+            )
+        )
+        == 1
     )

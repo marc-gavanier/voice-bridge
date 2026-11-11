@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import anyio
 import pytest
 from anyio import wait_all_tasks_blocked
-from anyio.abc import ObjectReceiveStream, ObjectSendStream
+from anyio.abc import ObjectReceiveStream
 from anyio.streams.memory import MemoryObjectSendStream
 
 from voice_bridge.features.conversation.abilities.hold_conversation import Mouth, hold_conversation
@@ -56,7 +56,7 @@ async def voiced(sentence: str) -> bytes | None:
 
 @dataclass(frozen=True)
 class Talk:
-    say: ObjectSendStream[Event]
+    say: MemoryObjectSendStream[Event]
     played: ObjectReceiveStream[bytes]
     forwarded: ObjectReceiveStream[tuple[str, bool, str | None]]
     left: ObjectReceiveStream[float]
@@ -86,7 +86,7 @@ async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> Asyn
         rate=48000,
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
-        acknowledgement_delay=0.0,
+        settle=0.0,
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
         leave=leave,
@@ -153,6 +153,23 @@ async def test_claude_learns_nothing_for_words_that_will_not_be_acknowledged() -
         await talk.say.send(Transcribed(text="Et les logs."))
         forwarded = await talk.forwarded.receive()
     assert forwarded == ("Et les logs.", False, None)
+
+
+async def test_words_said_in_pieces_reach_claude_as_one_message() -> None:
+    async with talking() as talk:
+        talk.say.send_nowait(Transcribed(text="Je voudrais..."))
+        talk.say.send_nowait(Transcribed(text="un ticket."))
+        forwarded = await talk.forwarded.receive()
+    assert forwarded == ("Je voudrais... un ticket.", False, "D'accord.")
+
+
+async def test_words_joined_from_pieces_are_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with talking() as talk:
+        talk.say.send_nowait(Transcribed(text="Je voudrais..."))
+        talk.say.send_nowait(Transcribed(text="un ticket."))
+        _ = await talk.forwarded.receive()
+    assert "joined 2 pieces said with pauses" in caplog.text
 
 
 async def test_an_interruption_stops_the_speaker() -> None:

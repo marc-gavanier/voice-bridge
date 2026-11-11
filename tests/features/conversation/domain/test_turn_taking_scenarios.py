@@ -32,6 +32,7 @@ scenarios("turn_taking.feature")
 
 SPEAKING_AT = 1.0
 SILENT_AT = 5.0
+NO_SILENCE = -1
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,10 @@ def after(turn: Turn, event: Event) -> Turn:
     awaited = tuple(command.ticket for command in commands if isinstance(command, AwaitSilence))
     holds = tuple(command.ticket for command in commands if isinstance(command, AwaitHold))
     return Turn(state=state, commands=commands, silences=(*turn.silences, *awaited), holds=(*turn.holds, *holds))
+
+
+def latest_silence(turn: Turn) -> int:
+    return (NO_SILENCE, *turn.silences)[-1]
 
 
 def synthesizing_ticket(turn: Turn) -> int:
@@ -166,7 +171,12 @@ def the_speaker_said(turn: Turn, words: str) -> Turn:
 
 @given("the speaker stayed silent", target_fixture="turn")
 def the_speaker_stayed_silent(turn: Turn) -> Turn:
-    return after(turn, SilenceLasted(ticket=turn.silences[-1], at=SILENT_AT))
+    return after(turn, SilenceLasted(ticket=latest_silence(turn), at=SILENT_AT))
+
+
+@given("the speaker began some words", target_fixture="turn")
+def the_speaker_began_some_words(turn: Turn) -> Turn:
+    return after(turn, SpeechStarted(at=SPEAKING_AT))
 
 
 @given("the speaker went on", target_fixture="turn")
@@ -201,7 +211,7 @@ def the_speaker_says(turn: Turn, words: str) -> Turn:
 
 @when("the speaker stays silent", target_fixture="turn")
 def the_speaker_stays_silent(turn: Turn) -> Turn:
-    return after(turn, SilenceLasted(ticket=turn.silences[-1], at=SILENT_AT))
+    return after(turn, SilenceLasted(ticket=latest_silence(turn), at=SILENT_AT))
 
 
 @when("the silence after the first words ends", target_fixture="turn")
@@ -241,6 +251,16 @@ def claude_hears_an_interruption(turn: Turn, words: str) -> None:
 @then(parsers.parse('Claude hears "{words}"'))
 def claude_hears(turn: Turn, words: str) -> None:
     assert (forwarded(turn).text, forwarded(turn).interrupted) == (words, False)
+
+
+@then("Claude hears nothing yet")
+def claude_hears_nothing_yet(turn: Turn) -> None:
+    assert not any(isinstance(command, Forward) for command in turn.commands)
+
+
+@then("Claude says nothing yet")
+def claude_says_nothing_yet(turn: Turn) -> None:
+    assert not any(isinstance(command, Synthesize) for command in turn.commands)
 
 
 @then(parsers.parse('Claude hears "{words}" with an acknowledgement to come'))

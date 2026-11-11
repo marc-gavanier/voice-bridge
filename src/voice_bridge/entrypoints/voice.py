@@ -154,7 +154,10 @@ async def _route(
             await events.send(VoiceDetected(at=at))
         case Utterance(pcm=pcm):
             await utterances.send(pcm)
-        case Dismissed() | TurnChecked():
+        case Dismissed():
+            _log_hearing(each, silence)
+            await events.send(Transcribed(text="", noise=True))
+        case TurnChecked():
             _log_hearing(each, silence)
         case _:
             assert_never(each)
@@ -258,7 +261,7 @@ async def converse(
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,
-            acknowledgement_delay=settings.hearing.acknowledgement_delay,
+            settle=settings.hearing.settle,
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
             leave=partial(_end_claude_code, settings.claude_pid),

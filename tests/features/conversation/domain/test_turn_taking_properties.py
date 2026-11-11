@@ -9,6 +9,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Command,
     Conversation,
     Event,
+    Forward,
     SilenceLasted,
     SpeechStarted,
     SynthesisFailed,
@@ -47,6 +48,19 @@ def commands_of(events: list[Event]) -> tuple[Command, ...]:
 def reused_tickets(commands: tuple[Command, ...]) -> list[int]:
     tickets = Counter(command.ticket for command in commands if isinstance(command, Synthesize))
     return [ticket for ticket, count in tickets.items() if count > 1]
+
+
+def forwards(commands: tuple[Command, ...]) -> int:
+    return sum(1 for command in commands if isinstance(command, Forward))
+
+
+def words(events: list[Event]) -> int:
+    return sum(1 for event in events if isinstance(event, Transcribed) and not event.noise)
+
+
+@given(st.lists(EVENTS, max_size=50))
+def test_words_are_never_forwarded_more_often_than_they_are_said(events: list[Event]) -> None:
+    assert forwards(commands_of(events)) <= words(events)
 
 
 @given(st.lists(EVENTS, max_size=50))
