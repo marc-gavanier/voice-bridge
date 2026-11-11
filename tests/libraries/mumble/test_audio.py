@@ -9,11 +9,13 @@ from pymumble_rev.audio import PcmBuffer
 from voice_bridge.libraries.mumble.audio import (
     Loudspeaker,
     Packet,
+    Recovery,
     Stall,
     holds_certificate,
     is_listened,
     named,
     pump_audio,
+    recovered,
     stall,
     with_pauses,
 )
@@ -177,3 +179,39 @@ async def test_a_stalled_packet_still_comes_through() -> None:
 
 async def test_the_end_of_an_ignored_transmission_is_not_passed_on() -> None:
     assert await pumped(audio_from(2, 0, last=True), audio_from(9, 0, last=True)) == []
+
+
+def test_the_recovery_starts_with_the_audio_of_the_packet_after_the_stall() -> None:
+    assert Recovery.after(arrived(1.5, 2)) == Recovery(since=1.5, audio=0.02)
+
+
+def test_a_packet_within_the_window_adds_its_audio_to_the_recovery() -> None:
+    assert recovered(Recovery(since=1.5, audio=0.02), arrived(1.52, 4)) == Recovery(since=1.5, audio=0.04)
+
+
+def test_a_packet_after_the_window_ends_the_recovery() -> None:
+    assert recovered(Recovery(since=1.5, audio=0.02), arrived(1.8, 4)) is None
+
+
+def test_audio_arriving_at_its_own_pace_recovers_at_real_time() -> None:
+    assert Recovery(since=1.5, audio=0.2).pace == pytest.approx(1.0)
+
+
+def test_held_back_audio_arriving_in_a_burst_recovers_faster_than_real_time() -> None:
+    assert Recovery(since=1.5, audio=2.4).pace == pytest.approx(12.0)
+
+
+async def test_the_audio_that_follows_a_stall_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    arrivals = iter([1.0, 1.5, 1.5, 1.9])
+    _ = await pumped(
+        audio_from(1, 0), audio_from(1, 2), audio_from(1, 4), audio_from(1, 6), clock=lambda: next(arrivals)
+    )
+    assert "after the stall, 0.04 s of audio arrived within 200 ms (0.2x real time)" in caplog.text
+
+
+async def test_a_new_stall_logs_the_recovery_of_the_previous_one(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    arrivals = iter([1.0, 1.5, 1.65])
+    _ = await pumped(audio_from(1, 0), audio_from(1, 2), audio_from(1, 4), clock=lambda: next(arrivals))
+    assert "after the stall, 0.02 s of audio arrived within 200 ms (0.1x real time)" in caplog.text

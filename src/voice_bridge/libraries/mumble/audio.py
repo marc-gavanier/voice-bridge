@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 STALL_THRESHOLD: Final = 0.1
+RECOVERY_WINDOW: Final = 0.2
 FRAME_DURATION: Final = 0.01
 MUMBLE_RATE: Final = opus.SAMPLE_RATE
 
@@ -45,6 +46,36 @@ def stall(previous: Packet | None, packet: Packet) -> Stall | None:
         return None
     skipped = packet.frame_number - previous.frame_number - _frames_in(previous)
     return Stall(waited=round(packet.at - previous.at, 6), frames_skipped=max(0, skipped))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Recovery:
+    since: float
+    audio: float
+
+    @classmethod
+    def after(cls, packet: Packet) -> Recovery:
+        return cls(since=packet.at, audio=duration(packet.pcm, MUMBLE_RATE))
+
+    @property
+    def pace(self) -> float:
+        return self.audio / RECOVERY_WINDOW
+
+
+def recovered(recovery: Recovery, packet: Packet) -> Recovery | None:
+    if packet.at - recovery.since >= RECOVERY_WINDOW:
+        return None
+    return Recovery(since=recovery.since, audio=round(recovery.audio + duration(packet.pcm, MUMBLE_RATE), 6))
+
+
+def _log_recovery(recovery: Recovery | None) -> None:
+    if recovery is not None:
+        logger.info(
+            "after the stall, %.2f s of audio arrived within %.0f ms (%.1fx real time)",
+            recovery.audio,
+            RECOVERY_WINDOW * 1000,
+            recovery.pace,
+        )
 
 
 class Session(Protocol):
@@ -80,6 +111,7 @@ async def pump_audio(
 ) -> None:
     decoder = opus.Decoder(channels=1)
     previous: Packet | None = None
+    recovery: Recovery | None = None
     async for event in session.events():
         if isinstance(event, events.AudioReceived) and not is_listened(
             session.state.users, event.sender_session, listened
@@ -93,6 +125,10 @@ async def pump_audio(
                 last=event.is_terminator,
             )
             stalled = stall(previous, packet)
+            following = None if recovery is None or stalled else recovered(recovery, packet)
+            if following is None:
+                _log_recovery(recovery)
+            recovery = following
             if stalled:
                 logger.info(
                     "audio stalled %.0f ms before frame %d, %d frames skipped",
@@ -100,6 +136,7 @@ async def pump_audio(
                     packet.frame_number,
                     stalled.frames_skipped,
                 )
+                recovery = Recovery.after(packet)
             await packets.send(packet)
             decoder = opus.Decoder(channels=1) if event.is_terminator else decoder
             previous = packet
