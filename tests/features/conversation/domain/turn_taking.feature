@@ -132,7 +132,23 @@ Feature: Turn taking
       Given Claude is silent
       And the speaker said "The repository is clean."
       And the speaker stayed silent
-      And Claude replied "Good."
+      And Claude said "Good."
       And the speaker said "And the logs too."
       When the speaker stays silent
       Then the bridge acknowledges a statement
+
+  Rule: Words are not acknowledged while Claude is already replying
+
+    Scenario: Words said while a reply is being voiced are not acknowledged
+      Given Claude is silent
+      And Claude replied "Good."
+      And the speaker said "And the logs too."
+      When the speaker stays silent
+      Then the bridge acknowledges nothing
+
+    Scenario: Words said while Claude talks are not acknowledged
+      Given Claude is silent
+      And Claude is saying "Let me look at your notes."
+      And the speaker said "And the logs too."
+      When the speaker stays silent
+      Then the bridge acknowledges nothing

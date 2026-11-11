@@ -138,7 +138,7 @@ async def test_a_statement_is_acknowledged_with_a_statement_clip() -> None:
 async def test_nothing_is_played_before_the_clips_are_ready() -> None:
     async with talking(NOT_READY) as talk:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
-        await talk.say.send(SilenceLasted(ticket=0))
+        await talk.say.send(SilenceLasted(ticket=0, at=0.0))
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = await talk.played.receive()
     assert played == SOUND

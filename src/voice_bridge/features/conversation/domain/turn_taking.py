@@ -39,6 +39,7 @@ class SpeechStarted:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class SilenceLasted:
     ticket: int
+    at: float
 
 
 type Event = Asked | Synthesized | SynthesisFailed | VoiceDetected | Transcribed | SpeechStarted | SilenceLasted
@@ -182,10 +183,12 @@ def _forward(state: Conversation, text: str) -> Step:
     return _synthesize_next(forwarded, (awaited, Forward(text=text, interrupted=state.interrupted)))
 
 
-def _acknowledge(state: Conversation, ticket: int) -> Step:
+def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:
     pending = state.acknowledging
     if pending is None or pending.ticket != ticket:
         return state, ()
+    if is_talking(state, at):
+        return replace(state, acknowledging=None), ()
     return replace(state, acknowledging=None, acknowledged=True), (Acknowledge(question=pending.question),)
 
 
@@ -213,8 +216,8 @@ def _on_speaker(state: Conversation, event: VoiceDetected | Transcribed | Speech
             return _forward(state, text)
         case SpeechStarted():
             return replace(state, acknowledging=None), ()
-        case SilenceLasted(ticket=ticket):
-            return _acknowledge(state, ticket)
+        case SilenceLasted(ticket=ticket, at=at):
+            return _acknowledge(state, ticket, at)
         case _:
             assert_never(event)
 

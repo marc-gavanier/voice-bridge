@@ -75,7 +75,7 @@ def _acknowledge(mouth: Mouth, *, question: bool) -> None:
 
 async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
     await anyio.sleep(mouth.acknowledgement_delay)
-    await emit.send(SilenceLasted(ticket=order.ticket))
+    await emit.send(SilenceLasted(ticket=order.ticket, at=mouth.clock()))
 
 
 async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, command: Command) -> None:
