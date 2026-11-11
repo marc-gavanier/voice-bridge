@@ -42,7 +42,14 @@ class SilenceLasted:
     at: float
 
 
-type Event = Asked | Synthesized | SynthesisFailed | VoiceDetected | Transcribed | SpeechStarted | SilenceLasted
+@dataclass(frozen=True, slots=True, kw_only=True)
+class HoldLasted:
+    ticket: int
+
+
+type Event = (
+    Asked | Synthesized | SynthesisFailed | VoiceDetected | Transcribed | SpeechStarted | SilenceLasted | HoldLasted
+)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -77,7 +84,24 @@ class AwaitSilence:
     ticket: int
 
 
-type Command = Synthesize | Play | StopPlaying | Forward | Acknowledge | AwaitSilence
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AwaitHold:
+    ticket: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class StartHoldMusic:
+    pass
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class StopHoldMusic:
+    pass
+
+
+type Command = (
+    Synthesize | Play | StopPlaying | Forward | Acknowledge | AwaitSilence | AwaitHold | StartHoldMusic | StopHoldMusic
+)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -110,6 +134,8 @@ class Conversation:
     acknowledging: PendingAcknowledgement | None = None
     acknowledged: bool = False
     next_silence: int = 0
+    awaiting_hold: int | None = None
+    holding: bool = False
 
 
 type Step = tuple[Conversation, tuple[Command, ...]]
@@ -122,6 +148,24 @@ def unspoken(state: Conversation) -> tuple[str, ...]:
 
 def is_talking(state: Conversation, at: float) -> bool:
     return bool(unspoken(state)) or any(scheduled.ends_at > at for scheduled in state.playing)
+
+
+def _stop_holding(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
+    if not state.holding:
+        return state, commands
+    return replace(state, holding=False), (StopHoldMusic(), *commands)
+
+
+def _await_hold(state: Conversation, commands: tuple[Command, ...]) -> Step:
+    ticket = state.next_silence
+    awaiting = replace(state, awaiting_hold=ticket, next_silence=ticket + 1)
+    return awaiting, (*commands, AwaitHold(ticket=ticket))
+
+
+def _hold(state: Conversation, ticket: int) -> Step:
+    if state.awaiting_hold != ticket:
+        return state, ()
+    return replace(state, awaiting_hold=None, holding=True), (StartHoldMusic(),)
 
 
 def _synthesize_next(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
@@ -143,20 +187,23 @@ def _play(state: Conversation, event: Synthesized) -> Step:
     scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
     still_playing = tuple(each for each in state.playing if each.ends_at > event.at)
     played = replace(state, synthesizing=None, playing=(*still_playing, scheduled))
-    return _synthesize_next(played, (Play(pcm=event.pcm),))
+    return _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
 
 
 def _skip(state: Conversation, ticket: int) -> Step:
     if not _is_current(state, ticket):
         return state, ()
-    return _synthesize_next(replace(state, synthesizing=None))
+    skipped, commands = _synthesize_next(replace(state, synthesizing=None))
+    if unspoken(skipped):
+        return skipped, commands
+    return _stop_holding(skipped, commands)
 
 
 def _interrupt(state: Conversation, at: float) -> Step:
     if state.hearing:
         return state, ()
     if not is_talking(state, at):
-        return replace(state, hearing=True), ()
+        return _stop_holding(replace(state, hearing=True, awaiting_hold=None))
     unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.ends_at > at)
     stopped = (*unfinished, *unspoken(state))
     silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True, hearing=True)
@@ -174,7 +221,7 @@ def _resume(state: Conversation) -> Step:
 def _forward(state: Conversation, text: str) -> Step:
     if state.acknowledged:
         forwarded = replace(state, paused=None, interrupted=False, hearing=False, acknowledging=None)
-        return _synthesize_next(forwarded, (Forward(text=text, interrupted=state.interrupted),))
+        return _synthesize_next(*_await_hold(forwarded, (Forward(text=text, interrupted=state.interrupted),)))
     pending = PendingAcknowledgement(ticket=state.next_silence, question=text.rstrip().endswith("?"))
     forwarded = replace(
         state, paused=None, interrupted=False, hearing=False, acknowledging=pending, next_silence=pending.ticket + 1
@@ -189,14 +236,21 @@ def _acknowledge(state: Conversation, ticket: int, at: float) -> Step:
         return state, ()
     if is_talking(state, at):
         return replace(state, acknowledging=None), ()
-    return replace(state, acknowledging=None, acknowledged=True), (Acknowledge(question=pending.question),)
+    acknowledged = replace(state, acknowledging=None, acknowledged=True)
+    return _await_hold(acknowledged, (Acknowledge(question=pending.question),))
 
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
     match event:
         case Asked(sentences=sentences):
             return _synthesize_next(
-                replace(state, waiting=(*state.waiting, *sentences), acknowledging=None, acknowledged=False)
+                replace(
+                    state,
+                    waiting=(*state.waiting, *sentences),
+                    acknowledging=None,
+                    acknowledged=False,
+                    awaiting_hold=None,
+                )
             )
         case Synthesized():
             return _play(state, event)
@@ -206,7 +260,9 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
             assert_never(event)
 
 
-def _on_speaker(state: Conversation, event: VoiceDetected | Transcribed | SpeechStarted | SilenceLasted) -> Step:
+def _on_speaker(
+    state: Conversation, event: VoiceDetected | Transcribed | SpeechStarted | SilenceLasted | HoldLasted
+) -> Step:
     match event:
         case VoiceDetected(at=at):
             return _interrupt(state, at)
@@ -218,6 +274,8 @@ def _on_speaker(state: Conversation, event: VoiceDetected | Transcribed | Speech
             return replace(state, acknowledging=None), ()
         case SilenceLasted(ticket=ticket, at=at):
             return _acknowledge(state, ticket, at)
+        case HoldLasted(ticket=ticket):
+            return _hold(state, ticket)
         case _:
             assert_never(event)
 
@@ -226,7 +284,7 @@ def step(state: Conversation, event: Event) -> Step:
     match event:
         case Asked() | Synthesized() | SynthesisFailed():
             return _on_claude(state, event)
-        case VoiceDetected() | Transcribed() | SpeechStarted() | SilenceLasted():
+        case VoiceDetected() | Transcribed() | SpeechStarted() | SilenceLasted() | HoldLasted():
             return _on_speaker(state, event)
         case _:
             assert_never(event)

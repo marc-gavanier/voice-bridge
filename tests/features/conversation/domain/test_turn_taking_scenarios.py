@@ -5,14 +5,20 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
     Asked,
+    AwaitHold,
     AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
+    HoldLasted,
+    Play,
     SilenceLasted,
     SpeechStarted,
+    StartHoldMusic,
+    StopHoldMusic,
     StopPlaying,
+    SynthesisFailed,
     Synthesize,
     Synthesized,
     Transcribed,
@@ -32,6 +38,7 @@ class Turn:
     state: Conversation
     commands: tuple[Command, ...] = ()
     silences: tuple[int, ...] = ()
+    holds: tuple[int, ...] = ()
 
 
 def acknowledgements(commands: tuple[Command, ...]) -> tuple[Acknowledge, ...]:
@@ -41,7 +48,13 @@ def acknowledgements(commands: tuple[Command, ...]) -> tuple[Acknowledge, ...]:
 def after(turn: Turn, event: Event) -> Turn:
     state, commands = step(turn.state, event)
     awaited = tuple(command.ticket for command in commands if isinstance(command, AwaitSilence))
-    return Turn(state=state, commands=commands, silences=(*turn.silences, *awaited))
+    holds = tuple(command.ticket for command in commands if isinstance(command, AwaitHold))
+    return Turn(state=state, commands=commands, silences=(*turn.silences, *awaited), holds=(*turn.holds, *holds))
+
+
+def synthesizing_ticket(turn: Turn) -> int:
+    assert turn.state.synthesizing is not None
+    return turn.state.synthesizing.ticket
 
 
 @given("Claude is silent", target_fixture="turn")
@@ -83,6 +96,37 @@ def claude_said(turn: Turn, sentence: str) -> Turn:
 @given(parsers.parse('Claude is saying "{sentence}"'), target_fixture="turn")
 def claude_is_saying(turn: Turn, sentence: str) -> Turn:
     return voiced(turn, sentence, duration=SILENT_AT - SPEAKING_AT + 1.0)
+
+
+@given("the hold music plays", target_fixture="turn")
+def the_hold_music_plays() -> Turn:
+    said = after(Turn(state=Conversation()), Transcribed(text="The repository is clean."))
+    acknowledged = after(said, SilenceLasted(ticket=said.silences[-1], at=SILENT_AT))
+    return after(acknowledged, HoldLasted(ticket=acknowledged.holds[-1]))
+
+
+@given("the speaker cut in", target_fixture="turn")
+def the_speaker_cut_in(turn: Turn) -> Turn:
+    return after(turn, VoiceDetected(at=SILENT_AT))
+
+
+@when("the wait goes on", target_fixture="turn")
+def the_wait_goes_on(turn: Turn) -> Turn:
+    return after(turn, HoldLasted(ticket=turn.holds[-1]))
+
+
+@when(parsers.parse('Claude\'s voice for "{sentence}" is ready'), target_fixture="turn")
+def claudes_voice_is_ready(turn: Turn, sentence: str) -> Turn:
+    assert turn.state.synthesizing is not None
+    assert turn.state.synthesizing.sentence == sentence
+    return after(turn, Synthesized(ticket=synthesizing_ticket(turn), pcm=b"voice", duration=1.0, at=SILENT_AT))
+
+
+@when(parsers.parse('Claude\'s voice for "{sentence}" fails'), target_fixture="turn")
+def claudes_voice_fails(turn: Turn, sentence: str) -> Turn:
+    assert turn.state.synthesizing is not None
+    assert turn.state.synthesizing.sentence == sentence
+    return after(turn, SynthesisFailed(ticket=synthesizing_ticket(turn)))
 
 
 @given(parsers.parse('the speaker said "{words}"'), target_fixture="turn")
@@ -183,3 +227,18 @@ def the_bridge_acknowledges_nothing(turn: Turn) -> None:
 @then(parsers.parse('Claude starts saying "{sentence}"'))
 def claude_starts_saying(turn: Turn, sentence: str) -> None:
     assert any(isinstance(command, Synthesize) and command.sentence == sentence for command in turn.commands)
+
+
+@then("the hold music starts")
+def the_hold_music_starts(turn: Turn) -> None:
+    assert turn.commands == (StartHoldMusic(),)
+
+
+@then("the hold music stops")
+def the_hold_music_stops(turn: Turn) -> None:
+    assert StopHoldMusic() in turn.commands
+
+
+@then("the hold music stops before Claude speaks")
+def the_hold_music_stops_before_claude_speaks(turn: Turn) -> None:
+    assert turn.commands[:2] == (StopHoldMusic(), Play(pcm=b"voice"))

@@ -116,3 +116,13 @@ def test_a_short_pause_shorter_than_the_silence_is_accepted() -> None:
 def test_an_unfinished_silence_no_longer_than_the_silence_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="unfinished_silence"):
         _ = HearingSettings(unfinished_silence=0.8, silence=0.8)
+
+
+def test_no_hold_music_plays_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).hold_music.file is None
+
+
+def test_the_hold_music_comes_from_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[hold_music]\nfile = "/music/hold.mp3"\n', encoding="utf-8")
+    assert load_settings(path).hold_music.file == Path("/music/hold.mp3")

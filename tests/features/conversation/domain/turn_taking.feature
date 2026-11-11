@@ -152,3 +152,44 @@ Feature: Turn taking
       And the speaker said "And the logs too."
       When the speaker stays silent
       Then the bridge acknowledges nothing
+
+  Rule: Hold music plays while the speaker waits for a reply that is long to come
+
+    Scenario: A long wait after the acknowledgement starts the hold music
+      Given Claude is silent
+      And the speaker said "The repository is clean."
+      And the speaker stayed silent
+      When the wait goes on
+      Then the hold music starts
+
+    Scenario: A reply that comes before the end of the wait leaves no room for music
+      Given Claude is silent
+      And the speaker said "The repository is clean."
+      And the speaker stayed silent
+      And Claude replied "Good."
+      When the wait goes on
+      Then nothing happens
+
+    Scenario: The first sentence of the reply stops the hold music
+      Given the hold music plays
+      And Claude replied "Good."
+      When Claude's voice for "Good." is ready
+      Then the hold music stops before Claude speaks
+
+    Scenario: A reply that cannot be voiced stops the hold music
+      Given the hold music plays
+      And Claude replied "Good."
+      When Claude's voice for "Good." fails
+      Then the hold music stops
+
+    Scenario: Speaking stops the hold music
+      Given the hold music plays
+      When the speaker starts talking
+      Then the hold music stops
+
+    Scenario: Words said while waiting bring the music back after a new wait
+      Given the hold music plays
+      And the speaker cut in
+      And the speaker said "And the logs too."
+      When the wait goes on
+      Then the hold music starts

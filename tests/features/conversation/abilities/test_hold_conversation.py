@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import anyio
 import pytest
+from anyio import wait_all_tasks_blocked
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 from anyio.streams.memory import MemoryObjectSendStream
 
@@ -21,6 +22,7 @@ pytestmark = pytest.mark.anyio
 SOUND = b"\x01\x00" * 4800
 QUESTION_CLIP = b"\x02\x00" * 480
 STATEMENT_CLIP = b"\x03\x00" * 480
+MUSIC = b"\x04\x00" * 480
 
 
 @dataclass(frozen=True)
@@ -59,13 +61,16 @@ class Talk:
 
 
 @asynccontextmanager
-async def talking(acknowledgement: Clips = READY) -> AsyncGenerator[Talk]:
+async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
     forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool]](100)
 
     async def claude(text: str, *, interrupted: bool) -> None:
         await forwarded_in.send((text, interrupted))
+
+    async def hold_music() -> None:
+        played_in.send_nowait(MUSIC)
 
     mouth = Mouth(
         voice=voiced,
@@ -75,6 +80,8 @@ async def talking(acknowledgement: Clips = READY) -> AsyncGenerator[Talk]:
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
         acknowledgement_delay=0.0,
+        hold_music=hold_music if music else None,
+        hold_music_delay=0.0,
     )
     emit = say.clone()
     async with (
@@ -139,6 +146,32 @@ async def test_nothing_is_played_before_the_clips_are_ready() -> None:
     async with talking(NOT_READY) as talk:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
         await talk.say.send(SilenceLasted(ticket=0, at=0.0))
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        played = await talk.played.receive()
+    assert played == SOUND
+
+
+async def test_a_long_wait_plays_the_hold_music() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        played = [await talk.played.receive(), await talk.played.receive()]
+    assert played == [STATEMENT_CLIP, MUSIC]
+
+
+async def test_the_reply_stops_the_hold_music_before_it_plays() -> None:
+    async with talking() as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        _ = [await talk.played.receive(), await talk.played.receive()]
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        played = [await talk.played.receive(), await talk.played.receive()]
+    assert played == [b"", SOUND]
+
+
+async def test_without_hold_music_a_long_wait_stays_silent() -> None:
+    async with talking(music=False) as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        _ = await talk.played.receive()
+        await wait_all_tasks_blocked()
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = await talk.played.receive()
     assert played == SOUND

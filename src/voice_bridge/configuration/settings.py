@@ -75,6 +75,12 @@ class HearingSettings(Section):
         return self
 
 
+class HoldMusicSettings(Section):
+    file: Path | None = None
+    delay: float = 2.0
+    volume: float = 0.3
+
+
 class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_prefix="VOICE_BRIDGE_", env_nested_delimiter="__", extra="forbid", frozen=True
@@ -85,6 +91,7 @@ class Settings(BaseSettings):
     voxtral: VoxtralSettings = VoxtralSettings()
     whisper: WhisperSettings = WhisperSettings()
     hearing: HearingSettings = HearingSettings()
+    hold_music: HoldMusicSettings = HoldMusicSettings()
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = user_log_path(APP_NAME) / f"{APP_NAME}.log"
 

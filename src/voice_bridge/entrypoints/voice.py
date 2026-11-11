@@ -34,7 +34,10 @@ from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceR
 from voice_bridge.features.hearing.implementations.silero import Voicing
 from voice_bridge.features.hearing.implementations.smart_turn import completion, load_session
 from voice_bridge.features.speaking.abilities.acknowledge import Acknowledgements, Clips, record_acknowledgements
+from voice_bridge.features.speaking.abilities.hold_music import HoldMusic
 from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
+from voice_bridge.features.speaking.domain.track import Track
+from voice_bridge.features.speaking.implementations.track_file import read_track
 from voice_bridge.features.speaking.implementations.voxtral import Voxtral, wait_until_ready
 from voice_bridge.libraries.mumble.audio import (
     MUMBLE_RATE,
@@ -150,6 +153,17 @@ async def _route(
             assert_never(each)
 
 
+async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | None:
+    hold_music = settings.hold_music
+    if hold_music.file is None:
+        return None
+    pcm = await anyio.to_thread.run_sync(
+        partial(read_track, hold_music.file, rate=MUMBLE_RATE, volume=hold_music.volume)
+    )
+    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(pcm) / 2 / MUMBLE_RATE)
+    return HoldMusic(track=Track(pcm=pcm), speaker=speaker, rate=MUMBLE_RATE)
+
+
 async def converse(
     settings: Settings, language: LanguagePack, claude: Claude, replies: ObjectReceiveStream[str], username: str
 ) -> None:
@@ -158,6 +172,8 @@ async def converse(
     utterances_in, utterances_out = anyio.create_memory_object_stream[bytes](math.inf)
     buffer = PcmBuffer(channels=1, capacity=PLAYBACK_CAPACITY)
     transcription = await _transcription(settings, language)
+    speaker = Loudspeaker(buffer=buffer)
+    hold_music = await _hold_music(settings, speaker)
     voxtral_settings = settings.voxtral
 
     async def connected(client: MumbleClient) -> None:
@@ -196,12 +212,14 @@ async def converse(
         clips = Clips()
         mouth = Mouth(
             voice=partial(voice_of, voxtral),
-            speaker=Loudspeaker(buffer=buffer),
+            speaker=speaker,
             claude=claude,
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,
             acknowledgement_delay=settings.hearing.acknowledgement_delay,
+            hold_music=hold_music,
+            hold_music_delay=settings.hold_music.delay,
         )
 
         async def greet() -> None:

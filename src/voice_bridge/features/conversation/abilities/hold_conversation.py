@@ -1,18 +1,22 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, assert_never
 
 import anyio
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
+    AwaitHold,
     AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
+    HoldLasted,
     Play,
     SilenceLasted,
+    StartHoldMusic,
+    StopHoldMusic,
     StopPlaying,
     SynthesisFailed,
     Synthesize,
@@ -24,7 +28,7 @@ from voice_bridge.libraries.audio.pcm import duration
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, Awaitable, Callable
 
-    from anyio.abc import ObjectSendStream, TaskGroup
+    from anyio.abc import ObjectSendStream, TaskGroup, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +55,13 @@ class Mouth:
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
     acknowledgement_delay: float
+    hold_music: Callable[[], Awaitable[None]] | None
+    hold_music_delay: float
+
+
+@dataclass(slots=True)
+class _Music:
+    scopes: list[anyio.CancelScope] = field(default_factory=list)
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
@@ -78,7 +89,38 @@ async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: Awa
     await emit.send(SilenceLasted(ticket=order.ticket, at=mouth.clock()))
 
 
-async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, command: Command) -> None:
+async def _await_hold(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitHold) -> None:
+    await anyio.sleep(mouth.hold_music_delay)
+    await emit.send(HoldLasted(ticket=order.ticket))
+
+
+async def _play_music(
+    hold_music: Callable[[], Awaitable[None]], music: _Music, *, task_status: TaskStatus[None]
+) -> None:
+    with anyio.CancelScope() as scope:
+        music.scopes.append(scope)
+        task_status.started()
+        await hold_music()
+
+
+async def _start_music(mouth: Mouth, music: _Music, tasks: TaskGroup) -> None:
+    if mouth.hold_music is not None:
+        await tasks.start(_play_music, mouth.hold_music, music)
+
+
+def _stop_music(mouth: Mouth, music: _Music) -> None:
+    if not music.scopes:
+        return
+    for scope in music.scopes:
+        scope.cancel()
+    music.scopes.clear()
+    mouth.speaker.stop()
+    logger.info("hold music stopped")
+
+
+async def _execute(
+    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, music: _Music, command: Command
+) -> None:
     match command:
         case Synthesize():
             _ = tasks.start_soon(_synthesize, mouth, emit, command)
@@ -93,6 +135,12 @@ async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup
             _ = tasks.start_soon(_await_silence, mouth, emit, command)
         case Acknowledge(question=question):
             _acknowledge(mouth, question=question)
+        case AwaitHold():
+            _ = tasks.start_soon(_await_hold, mouth, emit, command)
+        case StartHoldMusic():
+            await _start_music(mouth, music, tasks)
+        case StopHoldMusic():
+            _stop_music(mouth, music)
         case Forward(text=text, interrupted=interrupted):
             await mouth.claude(text, interrupted=interrupted)
         case _:
@@ -100,10 +148,10 @@ async def _execute(mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup
 
 
 async def hold_conversation(mouth: Mouth, events: AsyncIterable[Event], emit: ObjectSendStream[Event]) -> None:
-    state = Conversation()
+    state, music = Conversation(), _Music()
     async with anyio.create_task_group() as tasks:
         async for event in events:
             state, commands = step(state, event)
             for command in commands:
-                await _execute(mouth, emit, tasks, command)
+                await _execute(mouth, emit, tasks, music, command)
         tasks.cancel_scope.cancel()
