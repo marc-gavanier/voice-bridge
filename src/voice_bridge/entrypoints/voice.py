@@ -17,6 +17,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     Event,
     SoundDismissed,
+    SpeechEnded,
     SpeechStarted,
     Transcribed,
     VoiceDetected,
@@ -153,7 +154,8 @@ async def _route(
             await events.send(SpeechStarted(at=at))
         case Speaking(at=at):
             await events.send(VoiceDetected(at=at))
-        case Utterance(pcm=pcm):
+        case Utterance(pcm=pcm, ended=ended):
+            await events.send(SpeechEnded(at=ended))
             await utterances.send(pcm)
         case Dismissed():
             _log_hearing(each, silence)

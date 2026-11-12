@@ -13,16 +13,17 @@ Voice agent frameworks wait for the same reason: [LiveKit](https://docs.livekit.
 
 ## Decision
 
-- Transcribed words wait in the turn-taking domain until the speaker has kept silent for `hearing.settle`, 1.2 s by default, after their transcript, about 1.75 s after the end of the voice. Words said within that silence are joined to them, separated by a space, and reach Claude as one message; Claude's reply waits as well.
+- Transcribed words wait in the turn-taking domain until the speaker has kept silent for `hearing.settle`, 1.2 s by default, counted from the end of their voice: the listener tells the conversation when the voice of each utterance ended, before transcribing it, so the silence Smart Turn and Whisper already took, about 0.6 s, is not waited again. Words said within that silence are joined to them, separated by a space, and reach Claude as one message; Claude's reply waits as well.
 - The domain counts the utterances started and not yet transcribed, so words still being transcribed when the speaker goes on are held back too.
 - A sound dismissed as too short now reaches the conversation as its own event, so that a noise after a pause cannot hold the words back forever. Unlike a transcript filtered as noise, it never resumes a paused reply: a click dismissed while Whisper still transcribes the words that interrupted would resume the reply too early and send those words unmarked, as #24 found.
 - The acknowledgement plays when the words are pushed, under the same rules as before: none while Claude talks or after one already played since Claude last replied. `hearing.settle` replaces `hearing.acknowledgement_delay`.
 - A message joined from several pieces is logged with their number.
+- A sound dismissed as too short does not move the end of the voice: a click after the words cannot delay them.
 
 ## Consequences
 
 - Claude receives whole thoughts, and neither the acknowledgement nor a reply falls in a pause shorter than `hearing.settle`.
-- Every reply comes about 0.7 s later than before, a stop included, since the stop flag is set when the words are pushed. Measured on the run, the end of speech to the reply's voice took 5.3 s in median, 3.1 s of which was Claude.
+- Every reply comes about 0.6 s later than before, a stop included, since the stop flag is set when the words are pushed; the acknowledgement comes about 1.2 s after the end of the voice, about as late as the former 0.5 s after the transcript. Measured on the run, the end of speech to the reply's voice took 5.3 s in median, 3.1 s of which was Claude.
 - A pause longer than `hearing.settle` still cuts a thought in two; the log's `joined` and `forwarded` lines tell whether to lengthen it.
 
 ## Alternatives considered

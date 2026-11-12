@@ -2,12 +2,15 @@ from functools import reduce
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
+    AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
     Play,
     SilenceLasted,
+    SoundDismissed,
+    SpeechEnded,
     SpeechStarted,
     SynthesisFailed,
     Synthesize,
@@ -297,3 +300,19 @@ def test_a_silence_heard_twice_forwards_the_words_once() -> None:
         )
         == 1
     )
+
+
+def test_the_silence_is_counted_from_the_end_of_the_voice() -> None:
+    assert last_commands(SpeechStarted(at=1.0), SpeechEnded(at=3.0), Transcribed(text="Bonjour.")) == (
+        AwaitSilence(ticket=0, since=3.0),
+    )
+
+
+def test_a_dismissed_sound_does_not_move_the_end_of_the_voice() -> None:
+    assert last_commands(
+        SpeechStarted(at=1.0),
+        SpeechEnded(at=3.0),
+        Transcribed(text="Bonjour."),
+        SpeechStarted(at=3.5),
+        SoundDismissed(),
+    ) == (AwaitSilence(ticket=1, since=3.0),)

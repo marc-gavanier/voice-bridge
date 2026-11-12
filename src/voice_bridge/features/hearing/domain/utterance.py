@@ -25,6 +25,7 @@ class UtteranceRules:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Kept:
     pcm: bytes
+    ended: float
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -119,7 +120,7 @@ def close(
         return state, None
     voice = _voice_duration(state.utterance)
     closing = (
-        Kept(pcm=utterance_audio(state))
+        Kept(pcm=utterance_audio(state), ended=now if state.last_voice_at is None else state.last_voice_at)
         if voice >= rules.shortest_voice
         else Dismissed(voice=voice, duration=_duration(state.utterance))
     )

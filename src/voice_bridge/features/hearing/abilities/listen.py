@@ -59,6 +59,7 @@ class Speaking:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Utterance:
     pcm: bytes
+    ended: float
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -86,8 +87,8 @@ def _closed(ears: Ears, listening: Listening, now: float) -> tuple[Listening, tu
     finished = any(check.finished for check in checks)
     remaining, closing = close(judged, now, ears.rules, finished=finished)
     match closing:
-        case Kept(pcm=pcm):
-            return remaining, (*checks, Utterance(pcm=pcm))
+        case Kept(pcm=pcm, ended=ended):
+            return remaining, (*checks, Utterance(pcm=pcm, ended=ended))
         case Dismissed():
             return remaining, (*checks, closing)
         case None:

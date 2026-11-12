@@ -44,6 +44,11 @@ class SpeechStarted:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class SpeechEnded:
+    at: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class SilenceLasted:
     ticket: int
     at: float
@@ -62,6 +67,7 @@ type Event = (
     | Transcribed
     | SoundDismissed
     | SpeechStarted
+    | SpeechEnded
     | SilenceLasted
     | HoldLasted
 )
@@ -99,6 +105,7 @@ class Acknowledge:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AwaitSilence:
     ticket: int
+    since: float | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -160,6 +167,7 @@ class Conversation:
     heard: tuple[str, ...] = ()
     settling: int | None = None
     utterances: int = 0
+    voice_ended_at: float | None = None
     acknowledged: bool = False
     next_silence: int = 0
     awaiting_hold: int | None = None
@@ -262,7 +270,10 @@ def _settle(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
     if state.utterances > 0:
         return state, commands
     ticket = state.next_silence
-    return replace(state, settling=ticket, next_silence=ticket + 1), (*commands, AwaitSilence(ticket=ticket))
+    return replace(state, settling=ticket, next_silence=ticket + 1), (
+        *commands,
+        AwaitSilence(ticket=ticket, since=state.voice_ended_at),
+    )
 
 
 def _transcribed(state: Conversation) -> Conversation:
@@ -325,7 +336,9 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
             assert_never(event)
 
 
-def _on_speaker(state: Conversation, event: VoiceDetected | Transcribed | SoundDismissed | SpeechStarted) -> Step:
+def _on_speaker(
+    state: Conversation, event: VoiceDetected | Transcribed | SoundDismissed | SpeechStarted | SpeechEnded
+) -> Step:
     match event:
         case VoiceDetected(at=at):
             return _interrupt(state, at)
@@ -337,6 +350,8 @@ def _on_speaker(state: Conversation, event: VoiceDetected | Transcribed | SoundD
             return _dismiss(state)
         case SpeechStarted():
             return replace(state, utterances=state.utterances + 1, settling=None), ()
+        case SpeechEnded(at=at):
+            return replace(state, voice_ended_at=at), ()
         case _:
             assert_never(event)
 
@@ -355,7 +370,7 @@ def step(state: Conversation, event: Event) -> Step:
     match event:
         case Asked() | Synthesized() | SynthesisFailed():
             return _on_claude(state, event)
-        case VoiceDetected() | Transcribed() | SoundDismissed() | SpeechStarted():
+        case VoiceDetected() | Transcribed() | SoundDismissed() | SpeechStarted() | SpeechEnded():
             return _on_speaker(state, event)
         case SilenceLasted() | HoldLasted():
             return _on_wait(state, event)

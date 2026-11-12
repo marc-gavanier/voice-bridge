@@ -163,13 +163,13 @@ def test_an_utterance_goes_on_at_exactly_the_silence() -> None:
 
 def test_an_utterance_reaching_exactly_the_longest_duration_is_closed() -> None:
     assert close(heard_quarters(*quarters(0.25, 0.5, 0.75, 1.0, voiced=True)), 1.0, QUARTER)[1] == Kept(
-        pcm=b"\x01\x00" * 4
+        pcm=b"\x01\x00" * 4, ended=1.0
     )
 
 
 def test_exactly_the_shortest_voice_is_an_utterance() -> None:
     state = heard_quarters(quarter(voiced=True, at=0.25, pcm=b"a"), quarter(voiced=True, at=0.5, pcm=b"b"))
-    assert close(state, 2.0, QUARTER)[1] == Kept(pcm=b"ab")
+    assert close(state, 2.0, QUARTER)[1] == Kept(pcm=b"ab", ended=0.5)
 
 
 def test_closing_an_utterance_empties_it() -> None:

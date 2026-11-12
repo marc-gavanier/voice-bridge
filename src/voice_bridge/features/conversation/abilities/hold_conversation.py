@@ -96,7 +96,8 @@ def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
 
 
 async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
-    await anyio.sleep(mouth.settle)
+    elapsed = 0.0 if order.since is None else mouth.clock() - order.since
+    await anyio.sleep(max(0.0, mouth.settle - elapsed))
     await emit.send(SilenceLasted(ticket=order.ticket, at=mouth.clock()))
 
 

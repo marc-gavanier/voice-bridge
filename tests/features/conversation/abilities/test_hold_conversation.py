@@ -13,6 +13,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     Event,
     SilenceLasted,
+    SpeechEnded,
     Transcribed,
     VoiceDetected,
 )
@@ -63,7 +64,7 @@ class Talk:
 
 
 @asynccontextmanager
-async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> AsyncGenerator[Talk]:
+async def talking(acknowledgement: Clips = READY, *, music: bool = True, settle: float = 0.0) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
     forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool, str | None]](100)
@@ -86,7 +87,7 @@ async def talking(acknowledgement: Clips = READY, *, music: bool = True) -> Asyn
         rate=48000,
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
-        settle=0.0,
+        settle=settle,
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
         leave=leave,
@@ -236,3 +237,12 @@ async def test_a_goodbye_leaves_once_its_voice_has_played() -> None:
         played = await talk.played.receive()
         waited = await talk.left.receive()
     assert (played, waited >= SOUND_DURATION) == (SOUND, True)
+
+
+async def test_the_silence_already_kept_since_the_end_of_the_voice_is_not_waited_again() -> None:
+    async with talking(settle=60.0) as talk:
+        await talk.say.send(SpeechEnded(at=-60.0))
+        await talk.say.send(Transcribed(text="Bonjour."))
+        with anyio.fail_after(1):
+            forwarded = await talk.forwarded.receive()
+    assert forwarded[0] == "Bonjour."
