@@ -14,6 +14,35 @@ Feature: Turn taking
       When the speaker starts talking
       Then nothing happens
 
+  Rule: A reply the speaker has not heard a sound of is not cut by their voice
+    The voice is detected only after some speech, and the network delays the start of each
+    sentence, so a reply can arrive after the speaker started talking but before their voice
+    is detected. Nothing of it was heard, so it waits for the end of their turn instead of
+    being dropped by their words.
+
+    Scenario: A reply still being voiced is not cut when the speaker starts talking
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      When the speaker starts talking
+      Then nothing happens
+
+    Scenario: A voice ready while the speaker talks is not played over them
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      And the speaker started talking
+      When Claude's voice for "I found three of them." is ready
+      Then nothing happens
+
+    Scenario: The unheard reply is spoken after the speaker's words, which are not an interruption
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      And the speaker started talking
+      And Claude's voice for "I found three of them." was ready
+      And the speaker said "Did you get my message?"
+      When the speaker stays silent
+      Then Claude hears "Did you get my message?"
+      And Claude starts saying "I found three of them."
+
   Rule: A reply that arrives while the speaker talks waits for the end of their turn
 
     Scenario: A reply arriving while the speaker talks stays silent
@@ -349,7 +378,7 @@ Feature: Turn taking
 
     Scenario: Words said over the goodbye keep the session going
       Given Claude is silent
-      And Claude said goodbye with "See you tomorrow."
+      And Claude is saying goodbye with "See you tomorrow."
       And the speaker cut Claude off
       And the speaker said "Wait, one more thing."
       When the speaker stays silent

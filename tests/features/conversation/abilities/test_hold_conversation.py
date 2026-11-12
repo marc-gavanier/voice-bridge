@@ -176,6 +176,7 @@ async def test_words_joined_from_pieces_are_logged(caplog: pytest.LogCaptureFixt
 async def test_an_interruption_stops_the_speaker() -> None:
     async with talking() as talk:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
+        _ = await talk.played.receive()
         await talk.say.send(VoiceDetected(at=0.0))
         played = await talk.played.receive()
     assert played == b""

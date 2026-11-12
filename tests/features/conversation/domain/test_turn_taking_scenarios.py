@@ -71,7 +71,8 @@ def claude_is_silent() -> Turn:
 
 @given(parsers.parse('Claude is replying "{first}" then "{second}"'), target_fixture="turn")
 def claude_is_replying(first: str, second: str) -> Turn:
-    return after(Turn(state=Conversation()), Asked(sentences=(first, second)))
+    asked = after(Turn(state=Conversation()), Asked(sentences=(first, second)))
+    return after(asked, Synthesized(ticket=synthesizing_ticket(asked), pcm=b"", duration=3.0, at=0.0))
 
 
 @given("the speaker cut Claude off", target_fixture="turn")
@@ -82,6 +83,16 @@ def the_speaker_cut_claude_off(turn: Turn) -> Turn:
 @given("the speaker is talking", target_fixture="turn")
 def the_speaker_is_talking() -> Turn:
     return after(Turn(state=Conversation()), VoiceDetected(at=SPEAKING_AT))
+
+
+@given("the speaker started talking", target_fixture="turn")
+def the_speaker_started_talking(turn: Turn) -> Turn:
+    return after(turn, VoiceDetected(at=SPEAKING_AT))
+
+
+@given(parsers.parse('Claude\'s voice for "{sentence}" was ready'), target_fixture="turn")
+def claudes_voice_was_ready(turn: Turn, sentence: str) -> Turn:
+    return claudes_voice_is_ready(turn, sentence)
 
 
 @given(parsers.parse('Claude replied "{sentence}"'), target_fixture="turn")
@@ -128,6 +139,12 @@ def claude_announced_work(sentence: str) -> Turn:
 @given(parsers.parse('Claude said goodbye with "{sentence}"'), target_fixture="turn")
 def claude_said_goodbye(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,), ending=True))
+
+
+@given(parsers.parse('Claude is saying goodbye with "{sentence}"'), target_fixture="turn")
+def claude_is_saying_goodbye(turn: Turn, sentence: str) -> Turn:
+    asked = after(turn, Asked(sentences=(sentence,), ending=True))
+    return after(asked, Synthesized(ticket=synthesizing_ticket(asked), pcm=b"", duration=3.0, at=0.0))
 
 
 @given("the speaker only made a noise", target_fixture="turn")

@@ -167,6 +167,7 @@ class Conversation:
     heard: tuple[str, ...] = ()
     settling: int | None = None
     utterances: int = 0
+    reply_heard: bool = False
     voice_ended_at: float | None = None
     acknowledged: bool = False
     next_silence: int = 0
@@ -223,10 +224,12 @@ def _is_current(state: Conversation, ticket: int) -> bool:
 def _play(state: Conversation, event: Synthesized) -> Step:
     if state.synthesizing is None or not _is_current(state, event.ticket):
         return state, ()
+    if state.hearing:
+        return replace(state, synthesizing=None, waiting=(state.synthesizing.sentence, *state.waiting)), ()
     last_end = max((scheduled.ends_at for scheduled in state.playing if scheduled.ends_at > event.at), default=event.at)
     scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
     still_playing = tuple(each for each in state.playing if each.ends_at > event.at)
-    played = replace(state, synthesizing=None, playing=(*still_playing, scheduled))
+    played = replace(state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True)
     voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
     if unspoken(voiced):
         return voiced, commands
@@ -250,7 +253,7 @@ def _skip(state: Conversation, ticket: int) -> Step:
 def _interrupt(state: Conversation, at: float) -> Step:
     if state.hearing:
         return state, ()
-    if not is_talking(state, at):
+    if not is_talking(state, at) or not state.reply_heard:
         return _stop_holding(replace(state, hearing=True, awaiting_hold=None))
     unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.ends_at > at)
     stopped = (*unfinished, *unspoken(state))
@@ -309,6 +312,7 @@ def _forward(state: Conversation, ticket: int, at: float) -> Step:
         settling=None,
         interrupted=False,
         hearing=False,
+        reply_heard=False,
         acknowledged=state.acknowledged or acknowledging,
     )
     commands = (forward, Acknowledge(words=text)) if acknowledging else (forward,)
