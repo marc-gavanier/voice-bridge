@@ -3,7 +3,7 @@ from pathlib import PurePath
 
 import pytest
 
-from voice_bridge.features.recording.domain.take import Heard, begin, extend, file_name, is_over, summary
+from voice_bridge.features.recording.domain.take import Heard, Take, advance, begin, extend, file_name, is_over, summary
 
 TWENTY_MS = bytes(1920)
 
@@ -66,3 +66,37 @@ def test_the_summary_counts_seconds_of_16_bit_audio() -> None:
 def test_the_summary_tells_long_losses_and_gaps_to_the_millisecond() -> None:
     take = extend(begin(heard(0, 1.0)), Heard(pcm=TWENTY_MS, at=3.0, frame_number=102, duration=0.02))
     assert summary(take, rate=48000) == "0.0s, 2 packets, 1000 ms lost, longest gap 2000 ms"
+
+
+def heard_at(at: float) -> Heard:
+    return heard(round(at * 100), at)
+
+
+def take_started_at(at: float) -> Take:
+    return begin(heard_at(at))
+
+
+def test_a_first_packet_begins_a_take() -> None:
+    assert advance(None, heard_at(1.0), now=1.0, silence=1.5) == (take_started_at(1.0), None)
+
+
+def test_a_pause_without_take_records_nothing() -> None:
+    assert advance(None, None, now=1.0, silence=1.5) == (None, None)
+
+
+def test_a_packet_soon_after_extends_the_take() -> None:
+    assert advance(take_started_at(1.0), heard_at(1.02), now=1.02, silence=1.5) == (
+        extend(take_started_at(1.0), heard_at(1.02)),
+        None,
+    )
+
+
+def test_a_packet_after_a_long_silence_finishes_the_take_and_begins_another() -> None:
+    assert advance(take_started_at(1.0), heard_at(5.0), now=5.0, silence=1.5) == (
+        take_started_at(5.0),
+        take_started_at(1.0),
+    )
+
+
+def test_a_long_pause_finishes_the_take() -> None:
+    assert advance(take_started_at(1.0), None, now=5.0, silence=1.5) == (None, take_started_at(1.0))

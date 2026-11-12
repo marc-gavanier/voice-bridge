@@ -53,6 +53,14 @@ def is_over(take: Take, now: float, silence: float) -> bool:
     return now - take.last > silence
 
 
+def advance(take: Take | None, heard: Heard | None, now: float, silence: float) -> tuple[Take | None, Take | None]:
+    finished = take if take is not None and is_over(take, now, silence) else None
+    ongoing = None if finished else take
+    if heard is None:
+        return ongoing, finished
+    return (extend(ongoing, heard) if ongoing else begin(heard)), finished
+
+
 def file_name(take: Take) -> PurePath:
     started = datetime.fromtimestamp(take.start).astimezone()
     return PurePath(f"{started:%Y-%m-%d}", f"{started:%H%M%S}.wav")

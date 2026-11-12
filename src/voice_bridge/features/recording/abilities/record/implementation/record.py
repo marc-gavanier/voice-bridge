@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import anyio
 
-from voice_bridge.features.recording.domain.take import Heard, Take, begin, extend, file_name, is_over, summary
+from voice_bridge.features.recording.domain.take import Heard, Take, advance, file_name, summary
 from voice_bridge.libraries.audio.pcm import duration
 from voice_bridge.libraries.audio.wav import encode
 
@@ -30,15 +30,6 @@ def _heard(recorder: Recorder, packet: Packet) -> Heard:
     )
 
 
-def advance(recorder: Recorder, take: Take | None, tick: Packet | None, now: float) -> tuple[Take | None, Take | None]:
-    finished = take if take is not None and is_over(take, now, recorder.silence) else None
-    ongoing = None if finished else take
-    if tick is None:
-        return ongoing, finished
-    heard = _heard(recorder, tick)
-    return (extend(ongoing, heard) if ongoing else begin(heard)), finished
-
-
 async def save(recorder: Recorder, take: Take) -> Path:
     path = recorder.directory / file_name(take)
     await anyio.Path(path.parent).mkdir(parents=True, exist_ok=True)
@@ -50,6 +41,7 @@ async def save(recorder: Recorder, take: Take) -> Path:
 async def record(recorder: Recorder, ticks: AsyncIterable[Packet | None], clock: Callable[[], float]) -> None:
     take: Take | None = None
     async for tick in ticks:
-        take, finished = advance(recorder, take, tick, clock())
+        heard = None if tick is None else _heard(recorder, tick)
+        take, finished = advance(take, heard, clock(), recorder.silence)
         if finished:
             _ = await save(recorder, finished)
