@@ -24,9 +24,10 @@ rules:
   - id: allowed-test-folders
     kind: dir_absent
     level: error
-    message: "Tests mirror the source folders, plus fixtures."
+    message: "Tests mirror the source folders, plus architecture and fixtures."
     paths:
       - "tests/**"
+      - "!tests/architecture"
       - "!tests/configuration"
       - "!tests/entrypoints"
       - "!tests/features"

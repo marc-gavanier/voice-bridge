@@ -36,6 +36,7 @@ dev = [
     "basedpyright>=1.40.2",
     "commitizen>=4.19.3",
     "deptry>=0.25.1",
+    "grimp>=3.18",
     "hypothesis>=6.170.14",
     "import-linter>=2.15",
     "mutmut>=3.8.1",
@@ -121,48 +122,32 @@ layers = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Features do not know each other"
+name = "Features never import each other"
 type = "independence"
-modules = [
-    "voice_bridge.features.conversation",
-    "voice_bridge.features.hearing",
-    "voice_bridge.features.recording",
-    "voice_bridge.features.speaking",
-    "voice_bridge.features.understanding",
-]
+modules = ["voice_bridge.features.*"]
 
 [[tool.importlinter.contracts]]
-name = "Inside a feature, abilities use implementations, which use the domain"
-type = "layers"
-containers = [
-    "voice_bridge.features.conversation",
-    "voice_bridge.features.hearing",
-    "voice_bridge.features.recording",
-    "voice_bridge.features.speaking",
-    "voice_bridge.features.understanding",
-]
-layers = ["abilities", "(implementation)", "domain"]
-exhaustive = false
+name = "Abilities never import each other"
+type = "independence"
+modules = ["voice_bridge.features.*.abilities.*"]
 
 [[tool.importlinter.contracts]]
-name = "Domains are pure Python"
+name = "Feature-level code never imports an ability"
 type = "forbidden"
-source_modules = ["voice_bridge.features.*.domain"]
-forbidden_modules = [
-    "voice_bridge.libraries",
-    "anyio",
-    "faster_whisper",
-    "httpx",
-    "mcp",
-    "numpy",
-    "platformdirs",
-    "pydantic",
-    "pydantic_settings",
-    "pymumble_rev",
-    "soxr",
-    "stamina",
-    "tokenizers",
-]
+source_modules = ["voice_bridge.features.*.domain", "voice_bridge.features.*.implementation"]
+forbidden_modules = ["voice_bridge.features.*.abilities"]
+
+[[tool.importlinter.contracts]]
+name = "Only entry points import the implementation of an ability"
+type = "protected"
+protected_modules = ["voice_bridge.features.*.abilities.*.implementation"]
+allowed_importers = ["voice_bridge.entrypoints"]
+
+[[tool.importlinter.contracts]]
+name = "Only entry points and the implementations of abilities import the implementation of a feature"
+type = "protected"
+protected_modules = ["voice_bridge.features.*.implementation"]
+allowed_importers = ["voice_bridge.entrypoints", "voice_bridge.features.*.abilities.*.implementation"]
 
 [tool.deptry]
 known_first_party = ["voice_bridge"]
