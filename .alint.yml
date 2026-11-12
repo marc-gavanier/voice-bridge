@@ -3,7 +3,7 @@ rules:
   - id: allowed-source-folders
     kind: dir_absent
     level: error
-    message: "This folder is not part of the architecture: features hold abilities, domain and implementations; libraries hold one folder each."
+    message: "This folder is not part of the architecture: a feature holds a domain, an implementation and abilities, each with a domain and an implementation; libraries hold one folder each."
     paths:
       - "src/voice_bridge/**"
       - "!src/voice_bridge/configuration"
@@ -12,8 +12,11 @@ rules:
       - "!src/voice_bridge/features"
       - "!src/voice_bridge/features/*"
       - "!src/voice_bridge/features/*/abilities"
+      - "!src/voice_bridge/features/*/abilities/*"
+      - "!src/voice_bridge/features/*/abilities/*/domain"
+      - "!src/voice_bridge/features/*/abilities/*/implementation"
       - "!src/voice_bridge/features/*/domain"
-      - "!src/voice_bridge/features/*/implementations"
+      - "!src/voice_bridge/features/*/implementation"
       - "!src/voice_bridge/libraries"
       - "!src/voice_bridge/libraries/*"
       - "!**/__pycache__"
@@ -29,8 +32,11 @@ rules:
       - "!tests/features"
       - "!tests/features/*"
       - "!tests/features/*/abilities"
+      - "!tests/features/*/abilities/*"
+      - "!tests/features/*/abilities/*/domain"
+      - "!tests/features/*/abilities/*/implementation"
       - "!tests/features/*/domain"
-      - "!tests/features/*/implementations"
+      - "!tests/features/*/implementation"
       - "!tests/libraries"
       - "!tests/libraries/*"
       - "!tests/fixtures"

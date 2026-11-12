@@ -12,7 +12,10 @@ from faster_whisper import WhisperModel
 from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
-from voice_bridge.features.conversation.abilities.hold_conversation import Claude, Mouth, hold_conversation
+from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
+    Mouth,
+    hold_conversation,
+)
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     Event,
@@ -22,7 +25,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     VoiceDetected,
 )
-from voice_bridge.features.hearing.abilities.listen import (
+from voice_bridge.features.hearing.abilities.listen.implementation.listen import (
     Ears,
     Heard,
     Speaking,
@@ -32,21 +35,27 @@ from voice_bridge.features.hearing.abilities.listen import (
     VoiceStarted,
     listen,
 )
-from voice_bridge.features.hearing.abilities.transcribe import Transcription, transcribe_utterances
+from voice_bridge.features.hearing.abilities.transcribe.implementation.transcribe import (
+    Transcription,
+    transcribe_utterances,
+)
 from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
-from voice_bridge.features.hearing.implementations.silero import Voicing
-from voice_bridge.features.hearing.implementations.smart_turn import completion, load_session
-from voice_bridge.features.speaking.abilities.acknowledge import Clips, record_acknowledgements
-from voice_bridge.features.speaking.abilities.hold_music import HoldMusic
-from voice_bridge.features.speaking.abilities.speak import sentences_of, voice_of
+from voice_bridge.features.hearing.implementation.silero import Voicing
+from voice_bridge.features.hearing.implementation.smart_turn import completion, load_session
+from voice_bridge.features.speaking.abilities.acknowledge.implementation.acknowledge import (
+    Clips,
+    record_acknowledgements,
+)
+from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic
+from voice_bridge.features.speaking.abilities.speak.implementation.speak import sentences_of, voice_of
 from voice_bridge.features.speaking.domain.track import Track
-from voice_bridge.features.speaking.implementations.clip_cache import CachedVoice
-from voice_bridge.features.speaking.implementations.openai_speech import SpeechEngine, wait_until_ready
-from voice_bridge.features.speaking.implementations.track_file import read_track
-from voice_bridge.features.understanding.abilities.understand import StopFlag, Understanding
+from voice_bridge.features.speaking.implementation.clip_cache import CachedVoice
+from voice_bridge.features.speaking.implementation.openai_speech import SpeechEngine, wait_until_ready
+from voice_bridge.features.speaking.implementation.track_file import read_track
+from voice_bridge.features.understanding.abilities.understand.implementation.understand import StopFlag, Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
-from voice_bridge.features.understanding.implementations.embeddings import load_encoder, router
+from voice_bridge.features.understanding.implementation.embeddings import load_encoder, router
 from voice_bridge.libraries.mumble.audio import (
     MUMBLE_RATE,
     Loudspeaker,
@@ -65,7 +74,8 @@ if TYPE_CHECKING:
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
-    from voice_bridge.features.conversation.implementations.claude_channel import Reply
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude
+    from voice_bridge.features.conversation.implementation.claude_channel import Reply
 
 logger = logging.getLogger(__name__)
 

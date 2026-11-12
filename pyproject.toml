@@ -141,7 +141,7 @@ containers = [
     "voice_bridge.features.speaking",
     "voice_bridge.features.understanding",
 ]
-layers = ["abilities", "(implementations)", "domain"]
+layers = ["abilities", "(implementation)", "domain"]
 exhaustive = false
 
 [[tool.importlinter.contracts]]
@@ -185,7 +185,7 @@ output = "docs/architecture.svg"
 
 [tool.mutmut]
 source_paths = ["src/voice_bridge"]
-only_mutate = ["src/voice_bridge/features/*/domain/*"]
+only_mutate = ["src/voice_bridge/features/*/domain/*", "src/voice_bridge/features/*/abilities/*/domain/*"]
 pytest_add_cli_args = ["--no-cov"]
 do_not_mutate_patterns = ["assert_never\\(", "case _:"]
 

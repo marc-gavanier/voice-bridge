@@ -9,7 +9,7 @@ from voice_bridge.configuration.settings import Settings, load_settings
 from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.logs import configure_logging
 from voice_bridge.entrypoints.voice import access
-from voice_bridge.features.recording.abilities.record import Recorder, record
+from voice_bridge.features.recording.abilities.record.implementation.record import Recorder, record
 from voice_bridge.libraries.mumble.audio import MUMBLE_RATE, Packet, named, pump_audio, with_pauses
 from voice_bridge.libraries.mumble.connection import stay_connected
 

@@ -4,7 +4,7 @@ from typing import Final
 from voice_bridge.configuration.language import language_pack
 from voice_bridge.configuration.settings import load_settings
 from voice_bridge.entrypoints.arguments import config_file
-from voice_bridge.features.understanding.abilities.understand import pre_tool_use_answer
+from voice_bridge.features.understanding.abilities.understand.implementation.understand import pre_tool_use_answer
 
 ALLOWED: Final = frozenset({"mcp__voice__reply", "TaskStop"})
 
