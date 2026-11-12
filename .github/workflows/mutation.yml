@@ -29,3 +29,4 @@ jobs:
             uv run --frozen mutmut results
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - run: "! uv run --frozen mutmut results | grep ': survived'"

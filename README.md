@@ -296,7 +296,7 @@ uv run pytest
 uv run mutmut run
 ```
 
-Besides example tests, [Hypothesis](https://hypothesis.readthedocs.io) checks properties of the domains over generated cases, and [mutmut](https://mutmut.readthedocs.io) injects faults into the domains to check the tests catch them; a weekly workflow lists the surviving mutants in its summary. Three survive by design, since they change no behaviour. [Renovate](https://docs.renovatebot.com) keeps the dependencies, the actions and the actionlint hook up to date.
+Besides example tests, [Hypothesis](https://hypothesis.readthedocs.io) checks properties of the domains over generated cases, and [mutmut](https://mutmut.readthedocs.io) injects faults into the domains to check the tests catch them; a weekly workflow lists the surviving mutants in its summary and fails if any survives. A line whose mutants change no behaviour, and that no test or simpler code can get rid of, carries `# pragma: no mutate`, alone on its line. [Renovate](https://docs.renovatebot.com) keeps the dependencies, the actions and the actionlint hook up to date.
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how to propose a change, and [`SECURITY.md`](SECURITY.md) how to report a vulnerability privately.
 

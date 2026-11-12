@@ -49,7 +49,7 @@ What each gate holds:
 - Keep logic out of test bodies: no loop, branch or counting in a test. Build inputs in named helpers.
 - Test names are sentences that state the behaviour, such as `test_an_asked_sentence_is_played`.
 - The rules of turn taking are Gherkin scenarios in `tests/features/conversation/domain/turn_taking.feature`, run with pytest-bdd, one `Then` each. Change a rule there first.
-- Domains also have Hypothesis property tests (`test_*_properties.py`) and are mutation-tested with `uv run mutmut run`, weekly in CI. Three equivalent mutants survive by design; a new survivor means a missing test.
+- Domains also have Hypothesis property tests (`test_*_properties.py`) and are mutation-tested with `uv run mutmut run`, weekly in CI. No mutant survives: a survivor means a missing test, or code to simplify. Only a mutant that changes no behaviour and that no simpler code removes gets `# pragma: no mutate`, on a line of its own so that it hides nothing else.
 
 ## Trying a change for real
 
