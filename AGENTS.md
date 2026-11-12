@@ -25,8 +25,8 @@ What each gate holds:
 
 - **Ruff** with every rule selected except docstrings, copyright and `COM812`; relative imports are banned. Fix the code rather than adding `noqa`: the source has none.
 - **basedpyright** in `all` mode over `src` and `tests`. Stubs for untyped packages live in `typings/`. The source has no `type: ignore`.
-- **import-linter**, four contracts in `pyproject.toml` ([ADR-005](docs/decisions/ADR-005-features-and-abilities-on-a-hexagonal-core.md)): entry points sit above configuration and features, which sit above libraries; features never import each other; inside a feature, `abilities` sit above `implementations`, above `domain`; a `domain` imports nothing but the standard library. Two features cooperate only through the wiring in `entrypoints/`.
-- **alint** allows only the folders of the architecture: `features/<feature>/{abilities,domain,implementations}`, `libraries/<library>`, `configuration`, `entrypoints`. Tests mirror these folders, plus `tests/fixtures`. A new folder elsewhere fails.
+- **import-linter** and **tests/architecture** check the seven import rules of [ADR-005](docs/decisions/ADR-005-features-and-abilities-on-a-hexagonal-core.md). The contracts in `pyproject.toml`: features never import each other, abilities never import each other, a feature's `domain` and `implementation` never import an ability, only entry points import an ability's `implementation`, and a feature's `implementation` is imported only by entry points and its abilities' implementations; libraries stay below features and configuration. The pytest allow lists, on grimp's graph: a feature's `domain` imports only the standard library and `LANGUAGE_EXTENSIONS`, empty, which only a reviewed change extends; an ability's `domain` adds its feature's `domain`; an ability's `implementation` adds its own ability, its feature, `voice_bridge.libraries` and outside packages. Two features cooperate only through the wiring in `entrypoints/`.
+- **alint** allows only the folders of the architecture: `features/<feature>/{domain,implementation}`, `features/<feature>/abilities/<ability>/{domain,implementation}`, `libraries/<library>`, `configuration`, `entrypoints`. Tests mirror these folders, plus `tests/architecture` and `tests/fixtures`. A new folder elsewhere fails.
 - **pytest** with warnings as errors and **100 % branch coverage**. Only the entry points and `libraries/mumble/connection.py` are omitted, because they only wire tested parts; do not add to that list to make a change pass.
 - **pytest-timeout** fails any test that runs longer than 60 seconds, so a deadlock fails instead of hanging; the slowest test takes about one second. Each CI job also has a `timeout-minutes`.
 - **deptry** checks that declared and imported dependencies match.
@@ -38,8 +38,8 @@ What each gate holds:
 
 ## Writing code
 
-- Domains are pure functions on immutable values: a decision returns new state and commands, and the loops around it carry them out. Turn taking is `step(state, event) -> (state, commands)`.
-- An ability states what it needs as a `typing.Protocol`; entry points build the implementations and pass them in, with no container.
+- Domains are pure functions on immutable values: a decision returns new state and commands, and the shell in the ability's `implementation` carries them out. Turn taking is `step(state, event) -> (state, commands)`.
+- An ability states what it needs as a `typing.Protocol` in its `domain`; entry points build the implementations and pass them in, with no container. Keep every `__init__.py` empty.
 - Concurrency is anyio task groups and memory streams, never threads.
 - No comments or docstrings in the code or the configuration. The reasoning goes in the commit message or an ADR. The one exception is a version annotation that a tool reads next to a pinned digest: `# frozen: vX.Y.Z` after a prek `rev`, and `# vX.Y.Z` after the SHA of a `uses:` in the workflows ([ADR-008](docs/decisions/ADR-008-dev-tools-from-uv-and-official-hooks-pinned-with-their-version.md)).
 

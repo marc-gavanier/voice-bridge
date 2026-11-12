@@ -252,7 +252,7 @@ flowchart LR
     turns -->|"play, stop"| loudspeaker -->|"bridge's audio"| mumble
 ```
 
-The code is split into features, each with a pure domain, its implementations and its abilities, on top of shared libraries; entry points only wire them together.
+The code is split into features, on top of shared libraries; entry points only wire them together.
 
 ```
 src/voice_bridge/
@@ -269,7 +269,28 @@ src/voice_bridge/
   entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder, voice-bridge-stop-hook
 ```
 
-Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Its rules are written as Gherkin scenarios in [`turn_taking.feature`](tests/features/conversation/domain/turn_taking.feature), run by [pytest-bdd](https://pytest-bdd.readthedocs.io). Four [import-linter](https://import-linter.readthedocs.io) contracts in [`pyproject.toml`](pyproject.toml) enforce the layout: features never import each other, domains import nothing beyond the standard library, abilities sit above implementations, and entry points above everything.
+Each feature holds code shared by its abilities, and each ability is a vertical slice:
+
+```
+features/<feature>/
+  domain/                pure code shared by the abilities
+  implementation/        adapters shared by the abilities
+  abilities/<ability>/
+    domain/              the ability's ports, as typing.Protocol, and its pure logic
+    implementation/      the shell that carries out the domain's decisions, and the ability's own adapters
+```
+
+Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Its rules are written as Gherkin scenarios in [`turn_taking.feature`](tests/features/conversation/domain/turn_taking.feature), run by [pytest-bdd](https://pytest-bdd.readthedocs.io). Seven rules govern the imports:
+
+1. Features never import each other; only the entry points assemble them.
+2. An ability never imports another ability.
+3. A feature's `domain` and `implementation` never import an ability.
+4. A feature's `domain` imports only the standard library and the language extensions listed in `LANGUAGE_EXTENSIONS`, none today.
+5. An ability's `domain` imports only what rule 4 allows, plus its feature's `domain`.
+6. An ability's `implementation` imports only its own ability, its feature's `domain` and `implementation`, `voice_bridge.libraries` and outside packages.
+7. Only entry points import an ability's `implementation`; a feature's `implementation` is also imported by the implementations of its abilities.
+
+[import-linter](https://import-linter.readthedocs.io) contracts in [`pyproject.toml`](pyproject.toml) check rules 1, 2, 3 and 7, and keep libraries below features; the allow lists of rules 4, 5 and 6 are checked by [`tests/architecture`](tests/architecture) on the import graph built by [grimp](https://grimp.readthedocs.io). No `__init__.py` re-exports an ability: entry points import each ability's module directly.
 
 The diagram of the dependencies between these parts is drawn from the imports, never committed, so it cannot fall out of date:
 
