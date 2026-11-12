@@ -105,7 +105,8 @@ class Acknowledge:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AwaitSilence:
     ticket: int
-    since: float | None = None
+    until: float | None = None
+    lasting: float = 0.0
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -178,6 +179,8 @@ class Conversation:
     holding: bool = False
     working: bool = False
     ending: bool = False
+    settle: float = 0.0
+    hold_music_delay: float = 0.0
 
 
 type Step = tuple[Conversation, tuple[Command, ...]]
@@ -203,7 +206,7 @@ def _await_hold(state: Conversation, commands: tuple[Command, ...], after: float
         return state, commands
     ticket = state.next_silence
     awaiting = replace(state, awaiting_hold=ticket, next_silence=ticket + 1)
-    return awaiting, (*commands, AwaitHold(ticket=ticket, after=after))
+    return awaiting, (*commands, AwaitHold(ticket=ticket, after=after + state.hold_music_delay))
 
 
 def _hold(state: Conversation, ticket: int) -> Step:
@@ -278,7 +281,11 @@ def _settle(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
     ticket = state.next_silence
     return replace(state, settling=ticket, next_silence=ticket + 1), (
         *commands,
-        AwaitSilence(ticket=ticket, since=state.voice_ended_at),
+        AwaitSilence(
+            ticket=ticket,
+            until=None if state.voice_ended_at is None else state.voice_ended_at + state.settle,
+            lasting=state.settle,
+        ),
     )
 
 

@@ -89,13 +89,13 @@ def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
 
 
 async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
-    elapsed = 0.0 if order.since is None else mouth.clock() - order.since
-    await anyio.sleep(max(0.0, mouth.settle - elapsed))
+    wait = order.lasting if order.until is None else order.until - mouth.clock()
+    await anyio.sleep(max(0.0, wait))
     await emit.send(SilenceLasted(ticket=order.ticket, at=mouth.clock()))
 
 
-async def _await_hold(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitHold) -> None:
-    await anyio.sleep(order.after + mouth.hold_music_delay)
+async def _await_hold(emit: ObjectSendStream[Event], order: AwaitHold) -> None:
+    await anyio.sleep(order.after)
     await emit.send(HoldLasted(ticket=order.ticket))
 
 
@@ -138,7 +138,7 @@ async def _later(
         case AwaitSilence():
             await _await_silence(mouth, emit, command)
         case AwaitHold():
-            await _await_hold(mouth, emit, command)
+            await _await_hold(emit, command)
         case Leave():
             await _leave(mouth, command)
         case _:
@@ -171,7 +171,8 @@ async def _execute(
 
 
 async def hold_conversation(mouth: Mouth, events: AsyncIterable[Event], emit: ObjectSendStream[Event]) -> None:
-    state, playback = Conversation(), _Playback()
+    state = Conversation(settle=mouth.settle, hold_music_delay=mouth.hold_music_delay)
+    playback = _Playback()
     async with anyio.create_task_group() as tasks:
         async for event in events:
             state, commands = step(state, event)

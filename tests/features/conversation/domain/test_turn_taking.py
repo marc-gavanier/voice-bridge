@@ -322,7 +322,7 @@ def test_a_silence_heard_twice_forwards_the_words_once() -> None:
 
 def test_the_silence_is_counted_from_the_end_of_the_voice() -> None:
     assert last_commands(SpeechStarted(at=1.0), SpeechEnded(at=3.0), Transcribed(text="Bonjour.")) == (
-        AwaitSilence(ticket=0, since=3.0),
+        AwaitSilence(ticket=0, until=3.0),
     )
 
 
@@ -333,7 +333,7 @@ def test_a_dismissed_sound_does_not_move_the_end_of_the_voice() -> None:
         Transcribed(text="Bonjour."),
         SpeechStarted(at=3.5),
         SoundDismissed(),
-    ) == (AwaitSilence(ticket=1, since=3.0),)
+    ) == (AwaitSilence(ticket=1, until=3.0),)
 
 
 THIRD = "Troisième phrase assez longue."
@@ -442,3 +442,27 @@ def test_stopping_the_hold_music_leaves_it_off() -> None:
 def test_forwarding_the_words_leaves_the_bridge_no_longer_hearing_and_the_next_reply_unheard() -> None:
     state = state_after(Asked(sentences=(FIRST,)), HEARD, Transcribed(text="Bonjour."), SilenceLasted(ticket=0, at=2.0))
     assert (state.hearing, state.reply_heard) == (False, False)
+
+
+PATIENT = Conversation(settle=1.25, hold_music_delay=2.0)
+
+
+def patient_commands(*events: Event) -> tuple[Command, ...]:
+    return reduce(advance, events, (PATIENT, ()))[1]
+
+
+def test_the_silence_lasts_the_settle_after_the_end_of_the_voice() -> None:
+    assert patient_commands(SpeechStarted(at=1.0), SpeechEnded(at=3.0), Transcribed(text="Bonjour."))[-1] == (
+        AwaitSilence(ticket=0, until=4.25, lasting=1.25)
+    )
+
+
+def test_the_whole_settle_is_awaited_when_the_end_of_the_voice_is_unknown() -> None:
+    assert patient_commands(Transcribed(text="Bonjour.")) == (AwaitSilence(ticket=0, until=None, lasting=1.25),)
+
+
+def test_the_hold_music_waits_its_delay_after_the_reply() -> None:
+    assert patient_commands(
+        Asked(sentences=("Je regarde.",), working=True),
+        Synthesized(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
+    )[-1] == AwaitHold(ticket=0, after=2.5)
