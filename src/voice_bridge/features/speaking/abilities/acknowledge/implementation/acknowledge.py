@@ -1,12 +1,13 @@
 import logging
-import secrets
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from voice_bridge.features.speaking.domain.acknowledgement import fresh
+from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import candidates
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
+
+    from voice_bridge.features.speaking.abilities.acknowledge.domain.ports import Draw
 
 logger = logging.getLogger(__name__)
 
@@ -19,22 +20,18 @@ def _no_kind(_words: str) -> int | None:
 
 @dataclass(slots=True, kw_only=True)
 class Clips:
+    draw: Draw
     kind: Callable[[str], int | None] = field(default=_no_kind)
     pools: list[dict[str, bytes]] = field(default_factory=list)
     last: dict[int, str] = field(default_factory=dict)
-    choose: Callable[[Sequence[str]], str] = field(default=secrets.choice)
 
     def __call__(self, words: str) -> Clip | None:
-        if not self.pools:
+        found = candidates(self.pools, self.kind(words), self.last)
+        if found is None:
             return None
-        found = self.kind(words)
-        kind = len(self.pools) - 1 if found is None else found
-        pool = self.pools[kind]
-        if not pool:
-            return None
-        sentence = self.choose(fresh(tuple(pool), self.last.get(kind)))
-        self.last[kind] = sentence
-        return sentence, pool[sentence]
+        sentence = self.draw(found.sentences)
+        self.last[found.pool] = sentence
+        return sentence, self.pools[found.pool][sentence]
 
 
 async def _voiced(voice: Callable[[str], Awaitable[bytes | None]], sentences: Sequence[str]) -> dict[str, bytes]:

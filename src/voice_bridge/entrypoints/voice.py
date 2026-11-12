@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import secrets
 import signal
 import time
 from functools import partial
@@ -267,7 +268,7 @@ async def converse(
             rate=MUMBLE_RATE,
             health=speech_settings.health,
         )
-        clips = Clips(kind=lambda words: understanding(words).route)
+        clips = Clips(draw=secrets.choice, kind=lambda words: understanding(words).route)
         mouth = Mouth(
             voice=partial(voice_of, engine),
             speaker=speaker,

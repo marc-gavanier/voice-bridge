@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 import pytest
 
+from voice_bridge.features.speaking.abilities.acknowledge.domain.ports import Draw
 from voice_bridge.features.speaking.abilities.acknowledge.implementation.acknowledge import (
     Clips,
     record_acknowledgements,
@@ -15,6 +16,9 @@ def first(pool: Sequence[str]) -> str:
     return pool[0]
 
 
+DRAW_FIRST: Draw = first
+
+
 def kind(words: str) -> int | None:
     if words.endswith("?"):
         return 0
@@ -26,13 +30,13 @@ async def voiced(sentence: str) -> bytes | None:
 
 
 async def recorded() -> Clips:
-    clips = Clips(kind=kind, choose=first)
+    clips = Clips(kind=kind, draw=DRAW_FIRST)
     await record_acknowledgements(clips, voiced, POOLS)
     return clips
 
 
 def test_no_clip_is_chosen_before_they_are_recorded() -> None:
-    assert Clips(kind=kind, choose=first)("Where are we?") is None
+    assert Clips(kind=kind, draw=DRAW_FIRST)("Where are we?") is None
 
 
 @pytest.mark.anyio
@@ -47,7 +51,7 @@ async def test_words_of_no_kind_get_the_last_pool() -> None:
 
 @pytest.mark.anyio
 async def test_without_a_kind_every_words_get_the_last_pool() -> None:
-    clips = Clips(choose=first)
+    clips = Clips(draw=DRAW_FIRST)
     await record_acknowledgements(clips, voiced, POOLS)
     assert clips("Where are we?") == ("Alright.", SOUND)
 
