@@ -26,16 +26,15 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     VoiceDetected,
 )
-from voice_bridge.features.hearing.abilities.listen.implementation.listen import (
-    Ears,
+from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Heard,
     Speaking,
     Turn,
     TurnChecked,
     Utterance,
     VoiceStarted,
-    listen,
 )
+from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, listen
 from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing
 from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, load_session
 from voice_bridge.features.hearing.abilities.transcribe.implementation.transcribe import (

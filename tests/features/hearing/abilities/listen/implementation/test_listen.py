@@ -7,18 +7,15 @@ import anyio
 import pytest
 from faster_whisper.vad import get_vad_model
 
-from voice_bridge.features.hearing.abilities.listen.implementation.listen import (
-    Ears,
+from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Heard,
-    Hearing,
     Speaking,
     Turn,
     TurnChecked,
     Utterance,
     VoiceStarted,
-    advance,
-    listen,
 )
+from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, Hearing, advance, listen
 from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.libraries.mumble.audio import Packet
