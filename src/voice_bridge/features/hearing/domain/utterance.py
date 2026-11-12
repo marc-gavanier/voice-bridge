@@ -120,7 +120,7 @@ def close(
         return state, None
     voice = _voice_duration(state.utterance)
     closing = (
-        Kept(pcm=utterance_audio(state), ended=now if state.last_voice_at is None else state.last_voice_at)
+        Kept(pcm=utterance_audio(state), ended=max(frame.at for frame in state.utterance if frame.voiced))
         if voice >= rules.shortest_voice
         else Dismissed(voice=voice, duration=_duration(state.utterance))
     )

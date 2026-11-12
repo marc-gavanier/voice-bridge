@@ -13,6 +13,6 @@ def test_empty_text_and_whisper_hallucinations_are_noise(text: str) -> None:
     assert is_noise(text, HALLUCINATIONS)
 
 
-@pytest.mark.parametrize("text", ["Thank you, let us go on.", "Can you hear me?"])
+@pytest.mark.parametrize("text", ["Thank you, let us go on.", "Can you hear me?", "Thank you X."])
 def test_real_speech_is_not_noise(text: str) -> None:
     assert not is_noise(text, HALLUCINATIONS)

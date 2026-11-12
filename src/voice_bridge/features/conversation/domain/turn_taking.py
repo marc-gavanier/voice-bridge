@@ -154,6 +154,9 @@ class Scheduled:
     sentence: str
     ends_at: float
 
+    def plays_at(self, at: float) -> bool:
+        return self.ends_at > at
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Conversation:
@@ -186,7 +189,7 @@ def unspoken(state: Conversation) -> tuple[str, ...]:
 
 
 def is_talking(state: Conversation, at: float) -> bool:
-    return bool(unspoken(state)) or any(scheduled.ends_at > at for scheduled in state.playing)
+    return bool(unspoken(state)) or any(scheduled.plays_at(at) for scheduled in state.playing)
 
 
 def _stop_holding(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
@@ -226,15 +229,15 @@ def _play(state: Conversation, event: Synthesized) -> Step:
         return state, ()
     if state.hearing:
         return replace(state, synthesizing=None, waiting=(state.synthesizing.sentence, *state.waiting)), ()
-    last_end = max((scheduled.ends_at for scheduled in state.playing if scheduled.ends_at > event.at), default=event.at)
+    last_end = max((event.at, *(scheduled.ends_at for scheduled in state.playing)))
     scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
-    still_playing = tuple(each for each in state.playing if each.ends_at > event.at)
+    still_playing = tuple(each for each in state.playing if each.plays_at(event.at))
     played = replace(state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True)
     voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
     if unspoken(voiced):
         return voiced, commands
     if voiced.ending:
-        return replace(voiced, ending=False), (*commands, Leave(until=scheduled.ends_at))
+        return voiced, (*commands, Leave(until=scheduled.ends_at))
     return _await_hold(voiced, commands, after=scheduled.ends_at - event.at)
 
 
@@ -246,8 +249,8 @@ def _skip(state: Conversation, ticket: int) -> Step:
         return skipped, commands
     if skipped.ending:
         until = max((scheduled.ends_at for scheduled in skipped.playing), default=0.0)
-        return replace(skipped, ending=False), (*commands, Leave(until=until))
-    return _stop_holding(skipped, commands)
+        return skipped, (*commands, Leave(until=until))
+    return _stop_holding(skipped)
 
 
 def _interrupt(state: Conversation, at: float) -> Step:
@@ -255,7 +258,7 @@ def _interrupt(state: Conversation, at: float) -> Step:
         return state, ()
     if not is_talking(state, at) or not state.reply_heard:
         return _stop_holding(replace(state, hearing=True, awaiting_hold=None))
-    unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.ends_at > at)
+    unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.plays_at(at))
     stopped = (*unfinished, *unspoken(state))
     silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True, hearing=True)
     return replace(silenced, paused=(*(state.paused or ()), *stopped)), (StopPlaying(heard_at=at),)

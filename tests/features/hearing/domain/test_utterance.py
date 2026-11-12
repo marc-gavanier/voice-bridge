@@ -13,6 +13,7 @@ from voice_bridge.features.hearing.domain.utterance import (
     hear,
     is_speaking,
     needs_turn_check,
+    silent_for,
     turn_checked,
 )
 
@@ -275,3 +276,11 @@ def test_new_words_after_an_unfinished_turn_bring_back_the_usual_silence() -> No
     state, now = unfinished()
     resumed = hear(state, frame(voiced=True, at=now + PACKET), PATIENT)
     assert isinstance(close(resumed, now + PACKET + 0.9, PATIENT)[1], Kept)
+
+
+def test_no_silence_is_counted_before_any_voice() -> None:
+    assert silent_for(heard_quarters(), 5.0) == 0.0
+
+
+def test_a_pause_of_exactly_the_short_pause_calls_for_a_turn_check() -> None:
+    assert needs_turn_check(heard_quarters(quarter(voiced=True, at=1.0)), 1.25, UtteranceRules(short_pause=0.25))

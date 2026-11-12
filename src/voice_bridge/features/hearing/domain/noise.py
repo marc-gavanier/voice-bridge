@@ -9,7 +9,7 @@ class Hallucinations:
 
 
 def _normalize(text: str) -> str:
-    return " ".join(re.sub(r"[^\w\s'-]", " ", text.lower()).split()).strip("- ")
+    return " ".join(re.sub(r"[^\w\s'-]", " ", text).split()).strip("- ").lower()
 
 
 def is_noise(text: str, hallucinations: Hallucinations) -> bool:

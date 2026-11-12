@@ -2,16 +2,21 @@ from functools import reduce
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
+    AwaitHold,
     AwaitSilence,
     Command,
     Conversation,
     Event,
     Forward,
+    HoldLasted,
+    Leave,
     Play,
     SilenceLasted,
     SoundDismissed,
     SpeechEnded,
     SpeechStarted,
+    StopHoldMusic,
+    StopPlaying,
     SynthesisFailed,
     Synthesize,
     Synthesized,
@@ -329,3 +334,111 @@ def test_a_dismissed_sound_does_not_move_the_end_of_the_voice() -> None:
         SpeechStarted(at=3.5),
         SoundDismissed(),
     ) == (AwaitSilence(ticket=1, since=3.0),)
+
+
+THIRD = "Troisième phrase assez longue."
+
+
+def announced(*events: Event) -> tuple[Event, ...]:
+    return (
+        Asked(sentences=("Je regarde.",), working=True),
+        Synthesized(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
+        *events,
+    )
+
+
+def test_the_hold_music_is_stopped_only_once() -> None:
+    assert StopHoldMusic() not in last_commands(
+        *announced(
+            HoldLasted(ticket=0),
+            Asked(sentences=(FIRST,)),
+            Synthesized(ticket=1, pcm=SOUND, duration=1.0, at=10.0),
+            Asked(sentences=(SECOND,)),
+            Synthesized(ticket=2, pcm=SOUND, duration=1.0, at=20.0),
+        )
+    )
+
+
+def test_the_hold_music_starts_only_once_for_a_wait() -> None:
+    assert last_commands(*announced(HoldLasted(ticket=0), HoldLasted(ticket=0))) == ()
+
+
+def test_words_forwarded_while_claude_works_bring_the_hold_music_back_at_once() -> None:
+    assert AwaitHold(ticket=2, after=0.0) in last_commands(
+        *announced(Transcribed(text="Et les journaux aussi."), SilenceLasted(ticket=1, at=2.0))
+    )
+
+
+def test_the_speaker_talking_after_the_announcement_cancels_the_coming_hold_music() -> None:
+    assert last_commands(*announced(VoiceDetected(at=2.0), HoldLasted(ticket=0))) == ()
+
+
+def test_words_before_the_goodbye_is_voiced_keep_the_session_going() -> None:
+    assert not any(
+        isinstance(command, Leave)
+        for command in last_commands(
+            Asked(sentences=("Au revoir.",), ending=True),
+            Transcribed(text="Attends."),
+            SilenceLasted(ticket=0, at=1.0),
+            Synthesized(ticket=0, pcm=SOUND, duration=1.0, at=2.0),
+        )
+    )
+
+
+def test_words_drop_every_sentence_of_the_reply_they_cut() -> None:
+    assert (
+        unspoken(
+            state_after(
+                Asked(sentences=(FIRST, SECOND, THIRD)),
+                HEARD,
+                VoiceDetected(at=1.0),
+                Transcribed(text="Attends."),
+            )
+        )
+        == ()
+    )
+
+
+def test_a_reply_after_an_interruption_is_scheduled_after_its_own_start() -> None:
+    assert AwaitHold(ticket=1, after=1.0) in last_commands(
+        Asked(sentences=(FIRST,)),
+        HEARD,
+        VoiceDetected(at=1.0),
+        Transcribed(text="Attends."),
+        SilenceLasted(ticket=0, at=2.0),
+        Asked(sentences=("Je regarde.",), working=True),
+        Synthesized(ticket=1, pcm=SOUND, duration=1.0, at=1.25),
+    )
+
+
+def test_a_reply_arriving_after_an_interruption_waits_for_the_speakers_words() -> None:
+    assert last_commands(Asked(sentences=(FIRST,)), HEARD, VoiceDetected(at=1.0), Asked(sentences=(SECOND,))) == ()
+
+
+def test_a_reply_heard_before_the_speakers_words_does_not_make_the_next_one_cuttable() -> None:
+    assert StopPlaying(heard_at=3.0) not in last_commands(
+        Asked(sentences=(FIRST,)),
+        HEARD,
+        Transcribed(text="Et ensuite ?"),
+        SilenceLasted(ticket=0, at=2.0),
+        Asked(sentences=(SECOND,)),
+        VoiceDetected(at=3.0),
+    )
+
+
+def test_stopping_the_hold_music_leaves_it_off() -> None:
+    assert (
+        state_after(
+            *announced(
+                HoldLasted(ticket=0),
+                Asked(sentences=(FIRST,)),
+                Synthesized(ticket=1, pcm=SOUND, duration=1.0, at=10.0),
+            )
+        ).holding
+        is False
+    )
+
+
+def test_forwarding_the_words_leaves_the_bridge_no_longer_hearing_and_the_next_reply_unheard() -> None:
+    state = state_after(Asked(sentences=(FIRST,)), HEARD, Transcribed(text="Bonjour."), SilenceLasted(ticket=0, at=2.0))
+    assert (state.hearing, state.reply_heard) == (False, False)
