@@ -66,6 +66,22 @@ Feature: Turn taking
       When the speaker only makes a noise
       Then nothing happens
 
+    Scenario: A sound too short to be heard does not resume the reply
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And the speaker cut Claude off
+      When the speaker makes a sound too short to be heard
+      Then nothing happens
+
+    Scenario: Words still being transcribed after a short sound reach Claude as an interruption
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And the speaker began some words
+      And the speaker cut Claude off
+      And the speaker began some words
+      And the speaker made a sound too short to be heard
+      And the speaker said "Wait, I have a question."
+      When the speaker stays silent
+      Then Claude hears "Wait, I have a question." as an interruption
+
   Rule: Words drop the reply they cut and reach Claude as an interruption
 
     Scenario: Words after an interruption drop the rest of the reply
@@ -139,6 +155,14 @@ Feature: Turn taking
       And the speaker said "I would like a ticket."
       And the speaker went on
       And the speaker only made a noise
+      When the speaker stays silent
+      Then Claude hears "I would like a ticket."
+
+    Scenario: A sound too short to be heard after a pause does not hold the words back
+      Given Claude is silent
+      And the speaker said "I would like a ticket."
+      And the speaker went on
+      And the speaker made a sound too short to be heard
       When the speaker stays silent
       Then Claude hears "I would like a ticket."
 

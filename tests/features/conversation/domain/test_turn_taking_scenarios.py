@@ -15,6 +15,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Leave,
     Play,
     SilenceLasted,
+    SoundDismissed,
     SpeechStarted,
     StartHoldMusic,
     StopHoldMusic,
@@ -132,6 +133,16 @@ def claude_said_goodbye(turn: Turn, sentence: str) -> Turn:
 @given("the speaker only made a noise", target_fixture="turn")
 def the_speaker_made_a_noise(turn: Turn) -> Turn:
     return after(turn, Transcribed(text="", noise=True))
+
+
+@given("the speaker made a sound too short to be heard", target_fixture="turn")
+def the_speaker_made_a_short_sound(turn: Turn) -> Turn:
+    return after(turn, SoundDismissed())
+
+
+@when("the speaker makes a sound too short to be heard", target_fixture="turn")
+def the_speaker_makes_a_short_sound(turn: Turn) -> Turn:
+    return after(turn, SoundDismissed())
 
 
 @given("the hold music plays", target_fixture="turn")

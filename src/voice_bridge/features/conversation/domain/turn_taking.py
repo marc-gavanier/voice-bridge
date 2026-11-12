@@ -34,6 +34,11 @@ class Transcribed:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class SoundDismissed:
+    pass
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class SpeechStarted:
     at: float
 
@@ -50,7 +55,15 @@ class HoldLasted:
 
 
 type Event = (
-    Asked | Synthesized | SynthesisFailed | VoiceDetected | Transcribed | SpeechStarted | SilenceLasted | HoldLasted
+    Asked
+    | Synthesized
+    | SynthesisFailed
+    | VoiceDetected
+    | Transcribed
+    | SoundDismissed
+    | SpeechStarted
+    | SilenceLasted
+    | HoldLasted
 )
 
 
@@ -267,6 +280,12 @@ def _noise(state: Conversation) -> Step:
     return _settle(_transcribed(state))
 
 
+def _dismiss(state: Conversation) -> Step:
+    if not state.heard:
+        return _transcribed(state), ()
+    return _settle(_transcribed(state))
+
+
 def _forward(state: Conversation, ticket: int, at: float) -> Step:
     if state.settling != ticket:
         return state, ()
@@ -306,9 +325,7 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
             assert_never(event)
 
 
-def _on_speaker(
-    state: Conversation, event: VoiceDetected | Transcribed | SpeechStarted | SilenceLasted | HoldLasted
-) -> Step:
+def _on_speaker(state: Conversation, event: VoiceDetected | Transcribed | SoundDismissed | SpeechStarted) -> Step:
     match event:
         case VoiceDetected(at=at):
             return _interrupt(state, at)
@@ -316,8 +333,16 @@ def _on_speaker(
             return _noise(state)
         case Transcribed(text=text):
             return _hear(state, text)
+        case SoundDismissed():
+            return _dismiss(state)
         case SpeechStarted():
             return replace(state, utterances=state.utterances + 1, settling=None), ()
+        case _:
+            assert_never(event)
+
+
+def _on_wait(state: Conversation, event: SilenceLasted | HoldLasted) -> Step:
+    match event:
         case SilenceLasted(ticket=ticket, at=at):
             return _forward(state, ticket, at)
         case HoldLasted(ticket=ticket):
@@ -330,7 +355,9 @@ def step(state: Conversation, event: Event) -> Step:
     match event:
         case Asked() | Synthesized() | SynthesisFailed():
             return _on_claude(state, event)
-        case VoiceDetected() | Transcribed() | SpeechStarted() | SilenceLasted() | HoldLasted():
+        case VoiceDetected() | Transcribed() | SoundDismissed() | SpeechStarted():
             return _on_speaker(state, event)
+        case SilenceLasted() | HoldLasted():
+            return _on_wait(state, event)
         case _:
             assert_never(event)

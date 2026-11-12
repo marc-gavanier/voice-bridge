@@ -16,6 +16,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation import Claud
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     Event,
+    SoundDismissed,
     SpeechStarted,
     Transcribed,
     VoiceDetected,
@@ -156,7 +157,7 @@ async def _route(
             await utterances.send(pcm)
         case Dismissed():
             _log_hearing(each, silence)
-            await events.send(Transcribed(text="", noise=True))
+            await events.send(SoundDismissed())
         case TurnChecked():
             _log_hearing(each, silence)
         case _:

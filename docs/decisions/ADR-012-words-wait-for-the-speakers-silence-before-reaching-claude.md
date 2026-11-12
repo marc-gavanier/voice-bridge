@@ -15,7 +15,7 @@ Voice agent frameworks wait for the same reason: [LiveKit](https://docs.livekit.
 
 - Transcribed words wait in the turn-taking domain until the speaker has kept silent for `hearing.settle`, 1.2 s by default, after their transcript, about 1.75 s after the end of the voice. Words said within that silence are joined to them, separated by a space, and reach Claude as one message; Claude's reply waits as well.
 - The domain counts the utterances started and not yet transcribed, so words still being transcribed when the speaker goes on are held back too.
-- A sound dismissed as too short now reaches the conversation as noise, like a filtered hallucination, so that a noise after a pause cannot hold the words back forever.
+- A sound dismissed as too short now reaches the conversation as its own event, so that a noise after a pause cannot hold the words back forever. Unlike a transcript filtered as noise, it never resumes a paused reply: a click dismissed while Whisper still transcribes the words that interrupted would resume the reply too early and send those words unmarked, as #24 found.
 - The acknowledgement plays when the words are pushed, under the same rules as before: none while Claude talks or after one already played since Claude last replied. `hearing.settle` replaces `hearing.acknowledgement_delay`.
 - A message joined from several pieces is logged with their number.
 
