@@ -19,8 +19,8 @@ from voice_bridge.features.hearing.abilities.listen.implementation.listen import
     advance,
     listen,
 )
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
-from voice_bridge.features.hearing.implementation.silero import Voicing
 from voice_bridge.libraries.mumble.audio import Packet
 
 RATE = 48000

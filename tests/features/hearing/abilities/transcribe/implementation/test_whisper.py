@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from voice_bridge.features.hearing.implementation.whisper import Transcript, transcribe
+from voice_bridge.features.hearing.abilities.transcribe.implementation.whisper import Transcript, transcribe
 
 
 @dataclass(frozen=True)

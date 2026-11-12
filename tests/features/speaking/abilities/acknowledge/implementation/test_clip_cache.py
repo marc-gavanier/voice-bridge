@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from voice_bridge.features.speaking.implementation.clip_cache import CachedVoice
+from voice_bridge.features.speaking.abilities.acknowledge.implementation.clip_cache import CachedVoice
 
 pytestmark = pytest.mark.anyio
 

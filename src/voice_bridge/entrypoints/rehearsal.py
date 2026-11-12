@@ -10,7 +10,7 @@ from voice_bridge.configuration.settings import Settings, load_settings
 from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.logs import configure_logging
 from voice_bridge.entrypoints.voice import converse
-from voice_bridge.features.conversation.implementation.claude_channel import Reply
+from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
 
 USERNAME: Final = "rehearsal"
 

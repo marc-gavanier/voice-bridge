@@ -14,7 +14,7 @@ The first version of this decision translated abilities as a layer above the fea
 ## Decision
 
 - **Features first.** `features/` holds `hearing`, `speaking`, `conversation`, `understanding` and `recording`. Shared technical code lives in `libraries/`, settings in `configuration/`, and the commands in `entrypoints/`.
-- **Abilities are vertical slices.** A feature holds a `domain` and an `implementation` shared by its abilities, and each ability lives in `abilities/<ability>/` with a `domain` for its ports and pure logic, when it has some, and an `implementation` for its shell and its own adapters. Every package's `__init__.py` stays empty: no package re-exports an ability, and entry points import each ability's module directly.
+- **Abilities are vertical slices.** A feature holds a `domain` and an `implementation` shared by its abilities, and each ability lives in `abilities/<ability>/` with a `domain` for its ports and pure logic, when it has some, and an `implementation` for its shell and its own adapters. An adapter used by one ability alone, whether its shell imports it or the entry points pass it in to fill one of its ports, lives in that ability's `implementation`; only an adapter used by several abilities goes to the feature's `implementation`, which no feature needs today. Every package's `__init__.py` stays empty: no package re-exports an ability, and entry points import each ability's module directly.
 - **Functional core, imperative shell.** Business decisions belong in a domain, as pure functions on immutable values: utterance detection is a fold over audio frames, turn taking a state machine `step(state, event) -> (state, commands)`. The shell in the ability's `implementation` only receives events, runs the anyio loop and carries out commands.
 - **Ports as protocols.** An ability states what it needs with a `typing.Protocol` in its `domain`; tests pass fakes typed with these ports, never mocks.
 - **Wiring in entry points.** Entry points build the implementations and pass them in, with no container.
@@ -35,7 +35,7 @@ The first version of this decision translated abilities as a layer above the fea
 - The interruption logic, the hardest part of the bridge, is tested as plain values.
 - Features talk to each other only through the wiring, which keeps the entry point that assembles the voice loop longer than the others.
 - A new package used by a domain fails the tests until it is added to the allow list, and a new import between abilities or features fails the contracts.
-- An ability's shell may still use its feature's adapters and the libraries directly; replacing such an adapter means introducing a port in the ability's domain first.
+- Each adapter sits next to the only ability that uses it, so the folders say which ability depends on Silero, Whisper or the speech API. An ability's shell may still import its own adapters and the libraries directly; replacing such an adapter means introducing a port in the ability's domain first.
 - Some decisions still sit in shells, such as `advance` in `listen` and `record`; moving them into a domain is a later change, guided by the rule above.
 - Logger names follow module paths, so the log lines of an ability carry its full path.
 - Branch coverage is required at 100 %, except for the entry points and the network connection, which only wire tested parts.

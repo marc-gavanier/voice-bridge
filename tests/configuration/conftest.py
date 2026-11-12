@@ -4,9 +4,13 @@ import pytest
 
 from voice_bridge.configuration.language import language_pack
 from voice_bridge.configuration.settings import Language
+from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import (
+    Encoder,
+    load_encoder,
+    router,
+)
 from voice_bridge.features.understanding.abilities.understand.implementation.understand import Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
-from voice_bridge.features.understanding.implementation.embeddings import Encoder, load_encoder, router
 
 
 @pytest.fixture(scope="session")

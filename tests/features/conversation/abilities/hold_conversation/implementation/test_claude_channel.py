@@ -11,7 +11,7 @@ from mcp import ClientSession, types
 from mcp.shared.memory import create_client_server_memory_streams
 from mcp.shared.message import SessionMessage
 
-from voice_bridge.features.conversation.implementation.claude_channel import (
+from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
     EndSessionTool,
     Forwarder,
     Reply,

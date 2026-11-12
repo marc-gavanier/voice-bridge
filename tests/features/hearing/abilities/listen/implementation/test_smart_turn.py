@@ -5,10 +5,10 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from voice_bridge.features.hearing.implementation.smart_turn import completion, features, load_session
+from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, features, load_session
 
 RATE = 48000
-SPEECH = Path(__file__).parents[3] / "fixtures" / "speech.wav"
+SPEECH = Path(__file__).parents[5] / "fixtures" / "speech.wav"
 
 
 def speech() -> bytes:

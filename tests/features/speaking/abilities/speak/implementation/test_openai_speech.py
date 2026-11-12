@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import stamina
 
-from voice_bridge.features.speaking.implementation.openai_speech import (
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import (
     SpeechEngine,
     SynthesisError,
     is_ready,

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 import anyio
 
+from voice_bridge.features.hearing.abilities.transcribe.implementation.whisper import SpeechModel, transcribe
 from voice_bridge.features.hearing.domain.noise import Hallucinations, is_noise
-from voice_bridge.features.hearing.implementation.whisper import SpeechModel, transcribe
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable

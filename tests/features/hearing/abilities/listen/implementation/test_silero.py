@@ -5,12 +5,12 @@ from pathlib import Path
 import numpy as np
 from faster_whisper.vad import get_vad_model
 
-from voice_bridge.features.hearing.implementation.silero import Silero, Voicing, is_voiced, listen
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Silero, Voicing, is_voiced, listen
 from voice_bridge.libraries.audio.pcm import from_float
 
 RATE = 48000
 PACKET_BYTES = 960 * 2
-SPEECH = Path(__file__).parents[3] / "fixtures" / "speech.wav"
+SPEECH = Path(__file__).parents[5] / "fixtures" / "speech.wav"
 QUIET_ENOUGH = Voicing(volume_threshold=0.0, probability=0.5)
 
 

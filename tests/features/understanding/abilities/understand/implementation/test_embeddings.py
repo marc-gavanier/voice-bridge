@@ -2,7 +2,11 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from voice_bridge.features.understanding.implementation.embeddings import Vectors, load_encoder, router
+from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import (
+    Vectors,
+    load_encoder,
+    router,
+)
 
 AXES = {"stop": (1.0, 0.0), "yes": (0.0, 1.0), "meh": (0.6, 0.8)}
 

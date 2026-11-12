@@ -274,10 +274,10 @@ Each feature holds code shared by its abilities, and each ability is a vertical 
 ```
 features/<feature>/
   domain/                pure code shared by the abilities
-  implementation/        adapters shared by the abilities
+  implementation/        adapters shared by several abilities, none today
   abilities/<ability>/
     domain/              the ability's ports, as typing.Protocol, and its pure logic
-    implementation/      the shell that carries out the domain's decisions, and the ability's own adapters
+    implementation/      the shell that carries out the domain's decisions, and the adapters only this ability uses
 ```
 
 Turn taking is a pure state machine, `step(state, event) -> (state, commands)`, in [`turn_taking.py`](src/voice_bridge/features/conversation/domain/turn_taking.py). Its rules are written as Gherkin scenarios in [`turn_taking.feature`](tests/features/conversation/domain/turn_taking.feature), run by [pytest-bdd](https://pytest-bdd.readthedocs.io). Seven rules govern the imports:

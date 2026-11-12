@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from voice_bridge.features.speaking.implementation.track_file import read_track
+from voice_bridge.features.speaking.abilities.hold_music.implementation.track_file import read_track
 from voice_bridge.libraries.audio.pcm import level
 
 RATE = 48000

@@ -1,7 +1,11 @@
 import logging
 
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import (
+    SpeechEngine,
+    SynthesisError,
+    synthesize,
+)
 from voice_bridge.features.speaking.domain.text import for_the_ear, split_sentences
-from voice_bridge.features.speaking.implementation.openai_speech import SpeechEngine, SynthesisError, synthesize
 
 logger = logging.getLogger(__name__)
 

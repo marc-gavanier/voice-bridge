@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, assert_never
 
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Session, Silero, Voicing, is_voiced
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import listen as score
 from voice_bridge.features.hearing.domain.utterance import (
     Dismissed,
     Frame,
@@ -15,8 +17,6 @@ from voice_bridge.features.hearing.domain.utterance import (
     turn_checked,
     utterance_audio,
 )
-from voice_bridge.features.hearing.implementation.silero import Session, Silero, Voicing, is_voiced
-from voice_bridge.features.hearing.implementation.silero import listen as score
 from voice_bridge.libraries.audio.pcm import duration
 
 if TYPE_CHECKING:
