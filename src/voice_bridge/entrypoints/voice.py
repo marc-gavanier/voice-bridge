@@ -4,6 +4,7 @@ import os
 import secrets
 import signal
 import time
+from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Final, assert_never
 
@@ -15,7 +16,7 @@ from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
-    Activity,
+    News,
     listen_to_claude,
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
@@ -24,8 +25,6 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
-    ClaudeBusy,
-    ClaudeIdle,
     Event,
     SoundDismissed,
     SpeechEnded,
@@ -88,6 +87,7 @@ if TYPE_CHECKING:
     from voice_bridge.configuration.settings import Settings
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
+    from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 
 logger = logging.getLogger(__name__)
 
@@ -249,9 +249,14 @@ def _following_stops(claude: Claude, understanding: Understanding, flag: StopFla
     return forward
 
 
-async def converse(
-    settings: Settings, language: LanguagePack, claude: Claude, replies: ObjectReceiveStream[Reply], username: str
-) -> None:
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ClaudeSide:
+    claude: Claude
+    replies: ObjectReceiveStream[Reply]
+    board: WorkBoard
+
+
+async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide, username: str) -> None:
     events_in, events_out = anyio.create_memory_object_stream[Event](math.inf)
     packets_in, packets_out = anyio.create_memory_object_stream[Packet](math.inf)
     utterances_in, utterances_out = anyio.create_memory_object_stream[bytes](math.inf)
@@ -280,11 +285,12 @@ async def converse(
         stops = not noise and understanding(text).stops
         await events_in.send(Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None))
 
-    async def claude_is(activity: Activity) -> None:
-        await events_in.send(ClaudeBusy(at=anyio.current_time()) if activity == "busy" else ClaudeIdle())
+    async def claude_is(news: News) -> None:
+        for event in side.board.events_of(news, anyio.current_time()):
+            await events_in.send(event)
 
     async def relay_replies() -> None:
-        async for reply in replies:
+        async for reply in side.replies:
             await events_in.send(Asked(sentences=sentences_of(reply.text), ending=reply.ending))
 
     async with (
@@ -310,7 +316,7 @@ async def converse(
         mouth = Mouth(
             voice=partial(voice_of, engine),
             speaker=speaker,
-            claude=_following_stops(claude, understanding, StopFlag(settings.understanding.stop_flag)),
+            claude=_following_stops(side.claude, understanding, StopFlag(settings.understanding.stop_flag)),
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,

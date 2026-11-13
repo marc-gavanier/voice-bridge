@@ -1,6 +1,7 @@
 import logging
 import math
 import sys
+from datetime import datetime
 from functools import partial
 from typing import Final
 
@@ -12,12 +13,17 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, watching_hangs
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
-from voice_bridge.entrypoints.voice import converse
+from voice_bridge.entrypoints.voice import ClaudeSide, converse
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
+from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 
 USERNAME: Final = "rehearsal"
 
 logger = logging.getLogger(__name__)
+
+
+def now() -> datetime:
+    return datetime.now().astimezone()
 
 
 async def rehearse(settings: Settings, language: LanguagePack) -> None:
@@ -33,7 +39,8 @@ async def rehearse(settings: Settings, language: LanguagePack) -> None:
             )
             await said_in.send(Reply(text=text))
 
-        await converse(settings, language, repeat, said_out, USERNAME)
+        side = ClaudeSide(claude=repeat, replies=said_out, board=WorkBoard(clock=now))
+        await converse(settings, language, side, USERNAME)
 
 
 def main() -> None:
