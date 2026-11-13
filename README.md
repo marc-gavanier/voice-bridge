@@ -12,7 +12,7 @@ flowchart LR
         claude["Claude Code session"]
         bridge["voice-bridge<br/>Silero, Whisper, MiniLM"]
         voxtral["Voxtral<br/>vLLM, systemd user unit"]
-        hook["voice-bridge-stop-hook<br/>PreToolUse hook"]
+        hook["voice-bridge-tool-hook<br/>PreToolUse hook"]
         flag[("stop flag")]
         activity["voice-bridge-activity-hook<br/>UserPromptSubmit, Stop,<br/>StopFailure, SessionEnd hooks"]
     end
@@ -36,7 +36,8 @@ flowchart LR
 2. **The bridge** listens to one person only: the user whose client certificate matches `speaker_certificate_hash`. A sound counts as voice when it is loud enough and [Silero VAD](https://github.com/snakers4/silero-vad) recognises speech in it, so a loud noise alone is neither transcribed nor taken for an interruption. About 0.8 s of silence ends a sentence; with `hearing.smart_turn` on, [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges from the audio after a 0.2 s pause whether you have finished: it ends the sentence there when you have, and waits up to 2 s of silence when you have not.
 3. **Whisper**, through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) on the GPU, transcribes the sentence.
 4. **The `voice` channel** pushes the text into the Claude Code session once you have kept silent for `hearing.settle` since the end of your voice, 1.2 s by default: speaking again within it holds the words back, and the sentences said with pauses reach Claude as one message, so Claude neither hears nor answers half a thought ([ADR-012](docs/decisions/ADR-012-words-wait-for-the-speakers-silence-before-reaching-claude.md)). With them, the bridge plays a short acknowledgement in Claude's voice, without waiting for Claude: none if Claude is still voicing or saying a reply, or if one already played since Claude last replied, otherwise one suited to what you said: a small multilingual model, MiniLM, turns your words into a vector of their meaning and compares it with the example sentences of a dozen routes set in one TOML file per language in [`languages/`](src/voice_bridge/configuration/languages), such as a request, a question, a reported problem, an unfinished sentence or a stop; the closest route above its threshold gives one of its four to eight sentences, a neutral one plays when no route is close enough, and the same one never plays twice in a row ([ADR-010](docs/decisions/ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md)). The sentences are synthesized once, when Voxtral is ready, kept in memory, and cached on disk under `cache_directory`, so later starts do not voice them again. The acknowledgement is chosen as your words are pushed, and they reach Claude with it in an `acknowledgement` attribute, so the instructions tell Claude not to acknowledge a second time.
-   When your words ask to stop, such as « stop », « laisse tomber » or « ne fais pas ça », the bridge creates the file `understanding.stop_flag`, and the next sentence that does not ask to stop removes it. While it exists, `voice-bridge-stop-hook`, a `PreToolUse` hook the launcher registers, refuses Claude every tool but `reply` and `TaskStop`, so Claude stops from its next tool call; a tool already running still runs to its end.
+   When your words ask to stop, such as « stop », « laisse tomber » or « ne fais pas ça », the bridge creates the file `understanding.stop_flag`, and the next sentence that does not ask to stop removes it. While it exists, `voice-bridge-tool-hook`, a `PreToolUse` hook the launcher registers, refuses Claude and its agents every tool but `reply` and `TaskStop`, so Claude stops from its next tool call; a tool already running still runs to its end.
+   Claude itself only talks and hands out work, so that you can keep talking while the work goes on ([ADR-015](docs/decisions/ADR-015-the-main-agent-delegates-in-voice-sessions.md)): the instructions tell it to hand every task that is not instant to a background agent and end its turn at once, and the same hook enforces it. It refuses the main agent every tool but `reply`, `end_session`, `Agent`, `SendMessage`, `TaskStop`, `ListAgents`, `Read`, `Grep`, `Glob` and `ToolSearch`, with a reason that tells it to delegate; the agents it starts keep every tool. Claude Code marks an agent's tool call with an `agent_id`, absent from the main agent's. This holds in every session the launcher starts, even when you type; to let Claude work by itself, start Claude Code without the launcher.
    With `hold_music.file` set, music fills the wait whenever Claude works and stays silent, without Claude having to say so ([ADR-014](docs/decisions/ADR-014-claude-codes-hooks-tell-when-claude-works.md)). Claude works from the moment your words are pushed to it, or from a turn Claude Code starts on its own, such as a background agent reporting back, until Claude Code's `Stop` hook reports nothing left in the background, or `StopFailure` or `SessionEnd` runs: `voice-bridge-activity-hook`, which the launcher registers on those hooks and on `UserPromptSubmit`, tells the bridge over the Unix socket `activity_socket`. The music starts `hold_music.delay`, 2 s by default, after any voice still playing ends, rises over `hold_music.fade_in`, stops when the first sentence of a reply is ready to play, when you speak or when Claude is done, falling over `hold_music.fade_out`, which delays the reply's voice by as much, comes back after another wait while Claude still works, and picks up the track where it left off, looping at its end. After an interrupt with Escape, Claude Code runs no `Stop` hook, so the music goes on until you speak or the next turn ends.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
@@ -137,7 +138,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `hold_music.fade_in`, `hold_music.fade_out` | `1.0`, `0.3` | Seconds the music takes to rise and to fall; the fall plays before a reply's voice and delays it by as much |
 | `understanding.threshold` | `0.5` | The cosine similarity to its closest example a sentence needs to take a route; the stop route asks 0.75, set in each language's TOML file in [`languages/`](src/voice_bridge/configuration/languages). The model, 220 MB, is downloaded from Hugging Face on first start |
 | `activity_socket` | `$XDG_RUNTIME_DIR/voice-bridge/activity.sock` | The Unix socket where `voice-bridge-activity-hook` tells the bridge whether Claude works; a Unix socket path holds at most 107 bytes |
-| `understanding.stop_flag` | `$XDG_RUNTIME_DIR/voice-bridge/stop` | The file whose presence makes `voice-bridge-stop-hook` refuse Claude's tools after a stop |
+| `understanding.stop_flag` | `$XDG_RUNTIME_DIR/voice-bridge/stop` | The file whose presence makes `voice-bridge-tool-hook` refuse Claude's tools after a stop |
 | `claude_pid` | none | The Claude Code process the bridge ends after a goodbye; `claude-voice.sh` sets it through `VOICE_BRIDGE_CLAUDE_PID`. Without it, `end_session` says goodbye and leaves the session open |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`languages/`](src/voice_bridge/configuration/languages) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
@@ -301,6 +302,7 @@ Two more commands help test the voice path without Claude:
 | No greeting | `scripts/voxtral.sh status`, then the log |
 | The wrong acknowledgement, or a stop missed or wrongly taken | Lines `understood '…' as <route> (<score>)`: add the sentence to the right route's examples in the language's TOML file in [`languages/`](src/voice_bridge/configuration/languages), or adjust `understanding.threshold` and the stop route's threshold |
 | Claude's tools are refused after a stop | `stop asked` and `stop lifted` in the log: any sentence that does not ask to stop lifts it |
+| Claude says it cannot edit, write or run a command itself | Expected in a session started by `scripts/claude-voice.sh`: `voice-bridge-tool-hook` refuses the main agent its working tools, and Claude should hand the task to a background agent. To run it once by hand: `echo '{"tool_name": "Bash"}' \| uv run voice-bridge-tool-hook` prints the refusal, and the same input with an `"agent_id"` prints nothing |
 | No acknowledgement after you speak | `acknowledgements ready` in the log: until Voxtral has voiced them, the bridge has none to play |
 | `server:voice · no MCP server configured with that name` | The session was not started with `scripts/claude-voice.sh` |
 | The bridge hears you but Claude never answers | `/mcp` in the session, then the log for `forwarded` lines |
@@ -359,14 +361,15 @@ src/voice_bridge/
   features/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
     speaking/      sentences written for the ear, synthesis (OpenAI speech API, Voxtral by default)
-    conversation/  turn taking, interruptions, turn traces, the Claude channel (MCP)
+    conversation/  turn taking, interruptions, turn traces, the Claude channel (MCP), delegation by the main agent
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
   libraries/
     audio/         PCM and WAV with numpy and soxr
     mumble/        pinned connection, speaker audio, loudspeaker (pymumble-rev)
+    claude_code/   the input and the refusal of Claude Code's PreToolUse hook
   configuration/   settings (pydantic-settings), languages, default instructions
-  entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder, voice-bridge-stop-hook, voice-bridge-activity-hook
+  entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder, voice-bridge-tool-hook, voice-bridge-activity-hook
 ```
 
 Each feature holds code shared by its abilities, and each ability is a vertical slice:
@@ -438,6 +441,7 @@ The last command succeeds once the checks have passed on the rebased branch; Git
 
 - Permissions are not answered by voice.
 - Interrupting Claude cuts its voice, not its task; asking it to stop refuses its next tools, not the one already running.
+- In a session started by the launcher, Claude never works by itself, even on a typed request; start Claude Code without the launcher for that.
 - Speaking over an acknowledgement does not cut it, and the routes read only the words: about a third of real sentences got another kind than a person would pick in the measurements of [ADR-010](docs/decisions/ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md), and a sentence that quotes or denies a stop, such as « je n'ai pas dit stop », comes close to the stop route.
 - Voice reaches the bridge over TCP only, the one transport pymumble-rev implements, so a lossy mobile link can delay it.
 - Channels are a Claude Code research preview: the bridge serves them on the MCP handshake protocol, since Claude Code does not deliver channel messages on the 2026-07-28 protocol.

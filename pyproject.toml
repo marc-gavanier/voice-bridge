@@ -28,7 +28,7 @@ dependencies = [
 voice-bridge-channel = "voice_bridge.entrypoints.channel:main"
 voice-bridge-rehearsal = "voice_bridge.entrypoints.rehearsal:main"
 voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
-voice-bridge-stop-hook = "voice_bridge.entrypoints.stop_hook:main"
+voice-bridge-tool-hook = "voice_bridge.entrypoints.tool_hook:main"
 voice-bridge-activity-hook = "voice_bridge.entrypoints.activity_hook:main"
 
 [project.optional-dependencies]
@@ -117,7 +117,7 @@ omit = [
     "*/voice_bridge/entrypoints/logs.py",
     "*/voice_bridge/entrypoints/recorder.py",
     "*/voice_bridge/entrypoints/rehearsal.py",
-    "*/voice_bridge/entrypoints/stop_hook.py",
+    "*/voice_bridge/entrypoints/tool_hook.py",
     "*/voice_bridge/entrypoints/voice.py",
     "*/voice_bridge/libraries/mumble/connection.py",
 ]

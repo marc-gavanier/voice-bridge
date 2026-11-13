@@ -1,11 +1,9 @@
-import json
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
-
 from voice_bridge.features.understanding.domain.meaning import Meaning, Route, meaning_of, refused
+from voice_bridge.libraries.claude_code.hooks import denial, tool_call
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,19 +43,7 @@ class StopFlag:
             logger.info("stop lifted by a new message")
 
 
-class _ToolEvent(BaseModel):
-    tool_name: str = ""
-
-
 def pre_tool_use_answer(event: str, *, stopped: bool, allowed: frozenset[str], reason: str) -> str | None:
-    if not refused(_ToolEvent.model_validate_json(event).tool_name, stopped=stopped, allowed=allowed):
+    if not refused(tool_call(event).tool, stopped=stopped, allowed=allowed):
         return None
-    return json.dumps(
-        {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": reason,
-            }
-        }
-    )
+    return denial(reason)

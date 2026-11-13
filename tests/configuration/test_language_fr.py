@@ -76,3 +76,7 @@ def test_french_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) 
 
 def test_french_refuses_tools_in_french() -> None:
     assert "arrêter" in language_pack("fr").stop_refusal
+
+
+def test_french_asks_the_main_agent_to_delegate_in_french() -> None:
+    assert "arrière-plan" in language_pack("fr").delegation_refusal

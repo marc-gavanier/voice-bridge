@@ -31,6 +31,14 @@ def test_english_describes_the_end_of_session_tool_in_english() -> None:
     assert language_pack("en").end_tool_description.startswith("Say goodbye")
 
 
+def test_english_asks_the_main_agent_to_delegate_in_english() -> None:
+    assert "background agent" in language_pack("en").delegation_refusal
+
+
+def test_english_instructions_ask_to_hand_work_to_a_background_agent() -> None:
+    assert "to a background agent" in language_pack("en").instructions
+
+
 def test_default_instructions_are_written_in_the_language() -> None:
     assert "in English" in language_pack("en").instructions
 
@@ -97,6 +105,7 @@ whisper_code = "en"
 voice = "neutral_female"
 greeting = "Hello."
 stop_refusal = "Stopped."
+delegation_refusal = "Delegate."
 reply_tool_description = "Speak"
 reply_text_description = "Text"
 end_tool_description = "End"

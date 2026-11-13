@@ -46,7 +46,7 @@ jq --null-input --arg project "$project" '
         PreToolUse: [
           {
             matcher: "*",
-            hooks: [{type: "command", command: ($run + "voice-bridge-stop-hook")}]
+            hooks: [{type: "command", command: ($run + "voice-bridge-tool-hook")}]
           }
         ],
         UserPromptSubmit: $activity,

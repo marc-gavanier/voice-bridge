@@ -1,7 +1,7 @@
 # ADR-010 — Semantic routing chooses the acknowledgement and detects a stop
 
 **Date**: 2026-11-11
-**Status**: accepted
+**Status**: accepted; its hook, renamed `voice-bridge-tool-hook`, also enforces [ADR-015](ADR-015-the-main-agent-delegates-in-voice-sessions.md)
 
 ## Context
 

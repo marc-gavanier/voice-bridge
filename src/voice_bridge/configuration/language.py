@@ -29,6 +29,7 @@ class LanguagePack(_Strict):
     acknowledgements: tuple[AcknowledgementRoute, ...]
     neutral_acknowledgements: tuple[str, ...]
     stop_refusal: str
+    delegation_refusal: str
     reply_tool_description: str
     reply_text_description: str
     end_tool_description: str
