@@ -57,4 +57,4 @@ jq --null-input --arg project "$project" '
         SubagentStop: $activity
       }
     }' >"$settings"
-exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply mcp__voice__end_session --dangerously-load-development-channels server:voice "$@"
+exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply mcp__voice__end_session mcp__voice__board --dangerously-load-development-channels server:voice "$@"

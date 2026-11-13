@@ -12,6 +12,7 @@ from mcp.shared.memory import create_client_server_memory_streams
 from mcp.shared.message import SessionMessage
 
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
+    BoardTool,
     EndSessionTool,
     Forwarder,
     Reply,
@@ -29,6 +30,14 @@ TOOL = ReplyTool(
     text_description="The text to speak",
 )
 END_TOOL = EndSessionTool(description="Say goodbye and end the session", text_description="The goodbye to speak")
+BOARD = '{"at_work": [], "finished": []}'
+
+
+def board() -> str:
+    return BOARD
+
+
+BOARD_TOOL = BoardTool(description="Read the board of agents", read=board)
 
 
 @dataclass(frozen=True)
@@ -41,7 +50,9 @@ class Connection:
 @asynccontextmanager
 async def connected() -> AsyncGenerator[Connection]:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
-    server = channel_server(instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, replies=replies_in)
+    server = channel_server(
+        instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, board_tool=BOARD_TOOL, replies=replies_in
+    )
     async with (
         replies_in,
         replies_out,
@@ -110,10 +121,33 @@ async def test_calling_reply_confirms_the_text_was_sent() -> None:
     assert result.content == [types.TextContent(type="text", text="sent")]
 
 
-async def test_the_end_session_tool_is_listed_after_reply() -> None:
+async def test_the_board_tool_is_listed_after_end_session() -> None:
     async with connected() as connection:
         tools = await connection.session.list_tools()
-    assert [tool.name for tool in tools.tools] == ["reply", "end_session"]
+    assert [tool.name for tool in tools.tools] == ["reply", "end_session", "board"]
+
+
+async def test_the_board_tool_takes_nothing_and_is_always_loaded() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert (tools.tools[2].description, tools.tools[2].input_schema, tools.tools[2].meta) == (
+        "Read the board of agents",
+        {"type": "object", "properties": {}},
+        {"anthropic/alwaysLoad": True},
+    )
+
+
+async def test_reading_the_board_gives_it_to_claude() -> None:
+    async with connected() as connection:
+        result = await connection.session.call_tool("board", {})
+    assert result.content == [types.TextContent(type="text", text=BOARD)]
+
+
+async def test_reading_the_board_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with connected() as connection:
+        _ = await connection.session.call_tool("board", {})
+    assert "board read by Claude" in caplog.text
 
 
 async def test_the_end_session_tool_requires_a_goodbye() -> None:
@@ -211,7 +245,9 @@ HANDSHAKE = {
 
 async def exchanged(*requests: Mapping[str, object]) -> list[types.JSONRPCMessage]:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
-    server = channel_server(instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, replies=replies_in)
+    server = channel_server(
+        instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, board_tool=BOARD_TOOL, replies=replies_in
+    )
     written = io.StringIO()
 
     async def converse(claude: Forwarder) -> None:

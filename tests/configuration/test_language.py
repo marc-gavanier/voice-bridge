@@ -28,6 +28,10 @@ def test_english_greets_in_english() -> None:
     assert language_pack("en").greeting == "I'm listening."
 
 
+def test_english_describes_the_board_tool_in_english() -> None:
+    assert language_pack("en").board_tool_description.startswith("Read the board")
+
+
 def test_english_describes_the_end_of_session_tool_in_english() -> None:
     assert language_pack("en").end_tool_description.startswith("Say goodbye")
 
@@ -111,6 +115,7 @@ reply_tool_description = "Speak"
 reply_text_description = "Text"
 end_tool_description = "End"
 end_text_description = "Goodbye"
+board_tool_description = "Board"
 hallucinations = ["", "you"]
 hallucination_prefixes = ["subtitles by"]
 neutral_acknowledgements = ["Okay."]

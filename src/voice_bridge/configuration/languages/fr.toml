@@ -7,6 +7,7 @@ reply_tool_description = "Dire une réponse à voix haute dans le casque de l'ut
 reply_text_description = "Le texte à prononcer, rédigé pour l'oreille"
 end_tool_description = "Dire au revoir à voix haute, puis terminer toute la session vocale : le pont et cette session Claude Code"
 end_text_description = "Le court au revoir à prononcer avant la fin de la session"
+board_tool_description = "Lire le tableau des agents au travail et de ceux qui ont terminé : leur type, la description de leur tâche, depuis quand ils travaillent, et le dernier message de chacun de ceux qui ont fini. S'en servir pour dire ce qui tourne, même après le résumé de la conversation"
 hallucinations = [
   "",
   "je vous prie",

@@ -7,6 +7,7 @@ reply_tool_description = "Eine Antwort laut im Kopfhörer des Nutzers sprechen"
 reply_text_description = "Der zu sprechende Text, für das Ohr geschrieben"
 end_tool_description = "Laut auf Wiedersehen sagen und dann die ganze Sprachsitzung beenden: die Brücke und diese Claude-Code-Sitzung"
 end_text_description = "Das kurze Auf Wiedersehen, das vor dem Ende der Sitzung gesprochen wird"
+board_tool_description = "Die Tafel der arbeitenden und der fertigen Agenten lesen: ihr Typ, die Beschreibung ihrer Aufgabe, seit wann sie arbeiten und die letzte Nachricht jedes fertigen. Damit sagen, was läuft, auch nachdem das Gespräch zusammengefasst wurde"
 hallucinations = [
   "",
   "vielen dank fürs zuschauen",

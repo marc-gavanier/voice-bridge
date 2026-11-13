@@ -7,6 +7,7 @@ reply_tool_description = "Een antwoord hardop uitspreken in de koptelefoon van d
 reply_text_description = "De tekst om uit te spreken, geschreven voor het oor"
 end_tool_description = "Hardop gedag zeggen en daarna de hele spraaksessie beëindigen: de brug en deze Claude Code-sessie"
 end_text_description = "Het korte afscheid dat wordt uitgesproken voordat de sessie eindigt"
+board_tool_description = "Het bord lezen van de agenten aan het werk en van die klaar zijn: hun type, de beschrijving van hun taak, sinds wanneer ze werken en het laatste bericht van elke agent die klaar is. Gebruik het om te zeggen wat er loopt, ook nadat het gesprek is samengevat"
 hallucinations = [
   "",
   "bedankt voor het kijken",

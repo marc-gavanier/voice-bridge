@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 SERVER_NAME: Final = "voice"
 TOOL_NAME: Final = "reply"
 END_TOOL_NAME: Final = "end_session"
+BOARD_TOOL_NAME: Final = "board"
 ALWAYS_LOAD: Final = {"anthropic/alwaysLoad": True}
 CHANNEL_CAPABILITY: Final = "claude/channel"
 CHANNEL_NOTIFICATION: Final = "notifications/claude/channel"
@@ -42,6 +43,12 @@ class ReplyTool:
 class EndSessionTool:
     description: str
     text_description: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class BoardTool:
+    description: str
+    read: Callable[[], str]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -77,6 +84,22 @@ def _end_session_tool(tool: EndSessionTool) -> types.Tool:
     )
 
 
+def _board_tool(tool: BoardTool) -> types.Tool:
+    return types.Tool.model_validate(
+        {
+            "name": BOARD_TOOL_NAME,
+            "description": tool.description,
+            "inputSchema": {"type": "object", "properties": {}},
+            "_meta": ALWAYS_LOAD,
+        }
+    )
+
+
+def _board(tool: BoardTool) -> types.CallToolResult:
+    logger.info("board read by Claude")
+    return types.CallToolResult(content=[types.TextContent(type="text", text=tool.read())])
+
+
 def _reply_of(name: str, arguments: dict[str, object]) -> Reply | types.CallToolResult:
     try:
         if name == END_TOOL_NAME:
@@ -95,7 +118,12 @@ def _logged(reply: Reply) -> None:
 
 
 def channel_server(
-    *, instructions: str, tool: ReplyTool, end_tool: EndSessionTool, replies: ObjectSendStream[Reply]
+    *,
+    instructions: str,
+    tool: ReplyTool,
+    end_tool: EndSessionTool,
+    board_tool: BoardTool,
+    replies: ObjectSendStream[Reply],
 ) -> Server[object]:
     reply = types.Tool.model_validate(
         {
@@ -112,15 +140,18 @@ def channel_server(
         }
     )
     end_session = _end_session_tool(end_tool)
+    board = _board_tool(board_tool)
 
     async def list_tools(
         _context: ServerRequestContext[object], _params: types.PaginatedRequestParams | None
     ) -> types.ListToolsResult:
-        return types.ListToolsResult(tools=[reply, end_session])
+        return types.ListToolsResult(tools=[reply, end_session, board])
 
     async def call_tool(
         _context: ServerRequestContext[object], params: types.CallToolRequestParams
     ) -> types.CallToolResult:
+        if params.name == BOARD_TOOL_NAME:
+            return _board(board_tool)
         if params.name not in {TOOL_NAME, END_TOOL_NAME}:
             return _error(f"unknown tool: {params.name}")
         received = _reply_of(params.name, params.arguments or {})

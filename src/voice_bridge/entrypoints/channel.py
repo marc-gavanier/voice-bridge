@@ -14,6 +14,7 @@ from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
 from voice_bridge.entrypoints.voice import ClaudeSide, converse
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
+    BoardTool,
     EndSessionTool,
     Forwarder,
     Reply,
@@ -42,6 +43,7 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
         end_tool=EndSessionTool(
             description=language.end_tool_description, text_description=language.end_text_description
         ),
+        board_tool=BoardTool(description=language.board_tool_description, read=board.report),
         replies=replies_in,
     )
     async with replies_in, replies_out:

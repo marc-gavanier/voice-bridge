@@ -88,3 +88,7 @@ def test_french_announces_the_agents_at_work_in_french() -> None:
 
 def test_french_announces_that_no_agent_is_left_in_french() -> None:
     assert language_pack("fr").announcements.none_at_work == "Plus aucun agent au travail."
+
+
+def test_french_describes_the_board_tool_in_french() -> None:
+    assert language_pack("fr").board_tool_description.startswith("Lire le tableau des agents")

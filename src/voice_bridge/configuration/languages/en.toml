@@ -7,6 +7,7 @@ reply_tool_description = "Speak a reply aloud in the user's headset"
 reply_text_description = "The text to speak, written for the ear"
 end_tool_description = "Say goodbye aloud, then end the whole voice session: the bridge and this Claude Code session"
 end_text_description = "The short goodbye to speak before the session ends"
+board_tool_description = "Read the board of the agents at work and of those that finished: their type, the description of their task, since when they work, and the last message of each finished one. Use it to say what runs, even after the conversation was summarized"
 hallucinations = [
   "",
   "thank you",

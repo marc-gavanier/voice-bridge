@@ -7,6 +7,7 @@ reply_tool_description = "Decir una respuesta en voz alta en los auriculares del
 reply_text_description = "El texto que se va a decir, escrito para el oído"
 end_tool_description = "Despedirse en voz alta y luego terminar toda la sesión de voz: el puente y esta sesión de Claude Code"
 end_text_description = "La breve despedida que se dice antes de terminar la sesión"
+board_tool_description = "Leer el tablero de los agentes trabajando y de los que terminaron: su tipo, la descripción de su tarea, desde cuándo trabajan y el último mensaje de cada uno que terminó. Úsalo para decir qué está en marcha, incluso después de resumir la conversación"
 hallucinations = [
   "",
   "gracias por ver el video",

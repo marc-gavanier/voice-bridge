@@ -43,6 +43,7 @@ class LanguagePack(_Strict):
     reply_text_description: str
     end_tool_description: str
     end_text_description: str
+    board_tool_description: str
     hallucinations: frozenset[str]
     hallucination_prefixes: tuple[str, ...]
     instructions: str
