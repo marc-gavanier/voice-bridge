@@ -466,3 +466,12 @@ def test_the_hold_music_waits_its_delay_after_the_reply() -> None:
         Asked(sentences=("Je regarde.",), working=True),
         Synthesized(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
     )[-1] == AwaitHold(ticket=0, after=2.5)
+
+
+def test_a_stop_drops_the_sentences_still_waiting_for_their_voice() -> None:
+    assert (
+        unspoken(
+            state_after(Asked(sentences=(FIRST, SECOND, "Troisième.")), HEARD, Transcribed(text="Stop.", stop_at=1.0))
+        )
+        == ()
+    )

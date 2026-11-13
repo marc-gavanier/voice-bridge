@@ -38,7 +38,7 @@ flowchart LR
    With `hold_music.file` set, music fills the wait while Claude works on what it announced: when Claude calls `reply` with `working` set to true, the music starts `hold_music.delay`, 2 s by default, after that sentence ends, stops when the first sentence of the next reply is ready to play or when you speak, comes back after another wait if you spoke, and picks up the track where it left off, looping at its end. The acknowledgement alone brings no music.
 5. **Claude** answers with the `reply` tool, and **[Voxtral](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603)** speaks the answer, sentence by sentence, while the next ones are synthesized.
 
-Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. A reply you have not heard a sound of yet is not cut: it waits for the end of your words and plays after them. Claude's work in progress goes on either way.
+Speaking while Claude talks cuts its voice: the bridge pauses the reply. If what interrupted was only noise, the reply resumes; if you said something, the rest of the reply is dropped and your words reach Claude marked as an interruption. A reply you have not heard a sound of yet is not cut: it waits for the end of your words and plays after them. A word as short as « stop » holds less voice than `hearing.barge_in`, so it does not cut Claude off as you say it: once transcribed and understood as a stop, it cuts the voice itself and drops the rest of the reply. Claude's work in progress goes on either way.
 
 Saying the session is over, in your own words, ends it: Claude calls the `end_session` tool with a goodbye, asking you to confirm when in doubt; the bridge says the goodbye after any reply still to come, then sends SIGTERM to Claude Code, whose process ID `claude-voice.sh` passes as `VOICE_BRIDGE_CLAUDE_PID`, and the bridge ends with it. Speaking over the goodbye keeps the session going. `claude-voice.sh --continue` resumes the conversation later ([ADR-011](docs/decisions/ADR-011-a-goodbye-ends-claude-code-with-sigterm.md)).
 
@@ -75,6 +75,11 @@ sequenceDiagram
             bridge->>claude: channel message, marked as an interruption
             Note over bridge: the rest of the reply is dropped
         end
+    end
+    opt you ask to stop while Claude talks, too briefly to cut it off
+        bridge->>bridge: Whisper transcribes, the stop route matches
+        Note over bridge: the voice stops, the rest of the reply is dropped
+        bridge->>claude: channel message, marked as an interruption
     end
 ```
 

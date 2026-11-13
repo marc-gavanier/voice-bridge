@@ -31,6 +31,7 @@ class VoiceDetected:
 class Transcribed:
     text: str
     noise: bool = False
+    stop_at: float | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -293,9 +294,16 @@ def _transcribed(state: Conversation) -> Conversation:
     return replace(state, utterances=max(0, state.utterances - 1))
 
 
-def _hear(state: Conversation, text: str) -> Step:
-    heard = replace(_transcribed(state), heard=(*state.heard, text), paused=None, hearing=True, ending=False)
-    return _settle(heard)
+def _cut(state: Conversation, at: float | None) -> Step:
+    if at is None or not is_talking(state, at):
+        return state, ()
+    return replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True), (StopPlaying(heard_at=at),)
+
+
+def _hear(state: Conversation, text: str, stop_at: float | None) -> Step:
+    cut, commands = _cut(state, stop_at)
+    heard = replace(_transcribed(cut), heard=(*cut.heard, text), paused=None, hearing=True, ending=False)
+    return _settle(heard, commands)
 
 
 def _noise(state: Conversation) -> Step:
@@ -358,8 +366,8 @@ def _on_speaker(
             return _interrupt(state, at)
         case Transcribed(noise=True):
             return _noise(state)
-        case Transcribed(text=text):
-            return _hear(state, text)
+        case Transcribed(text=text, stop_at=stop_at):
+            return _hear(state, text, stop_at)
         case SoundDismissed():
             return _dismiss(state)
         case SpeechStarted():

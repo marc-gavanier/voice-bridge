@@ -243,7 +243,8 @@ async def converse(
         await _route(each, events_in, utterances_in, settings.hearing.silence)
 
     async def transcribed(text: str, *, noise: bool) -> None:
-        await events_in.send(Transcribed(text=text, noise=noise))
+        stops = not noise and understanding(text).stops
+        await events_in.send(Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None))
 
     async def relay_replies() -> None:
         async for reply in replies:

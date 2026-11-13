@@ -197,6 +197,16 @@ def the_speaker_said(turn: Turn, words: str) -> Turn:
     return after(turn, Transcribed(text=words))
 
 
+@given(parsers.parse('the speaker asked to stop with "{words}"'), target_fixture="turn")
+def the_speaker_asked_to_stop(turn: Turn, words: str) -> Turn:
+    return the_speaker_asks_to_stop(turn, words)
+
+
+@when(parsers.parse('the speaker asks to stop with "{words}"'), target_fixture="turn")
+def the_speaker_asks_to_stop(turn: Turn, words: str) -> Turn:
+    return after(turn, Transcribed(text=words, stop_at=SILENT_AT))
+
+
 @given("the speaker stayed silent", target_fixture="turn")
 def the_speaker_stayed_silent(turn: Turn) -> Turn:
     return after(turn, SilenceLasted(ticket=latest_silence(turn), at=SILENT_AT))
@@ -250,6 +260,16 @@ def the_silence_after_the_first_words_ends(turn: Turn) -> Turn:
 @then("Claude's voice stops")
 def claudes_voice_stops(turn: Turn) -> None:
     assert turn.commands == (StopPlaying(heard_at=SPEAKING_AT),)
+
+
+@then("Claude's voice stops when the stop is understood")
+def claudes_voice_stops_when_the_stop_is_understood(turn: Turn) -> None:
+    assert StopPlaying(heard_at=SILENT_AT) in turn.commands
+
+
+@then("Claude's voice is not stopped")
+def claudes_voice_is_not_stopped(turn: Turn) -> None:
+    assert not any(isinstance(command, StopPlaying) for command in turn.commands)
 
 
 @then("nothing happens")

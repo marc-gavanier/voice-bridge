@@ -40,7 +40,7 @@ EVENTS: st.SearchStrategy[Event] = st.one_of(
     ),
     st.builds(SynthesisFailed, ticket=TICKETS),
     st.builds(VoiceDetected, at=MOMENTS),
-    st.builds(Transcribed, text=st.text(), noise=st.booleans()),
+    st.builds(Transcribed, text=st.text(), noise=st.booleans(), stop_at=st.none() | MOMENTS),
     st.builds(SoundDismissed),
     st.builds(SpeechStarted, at=MOMENTS),
     st.builds(SpeechEnded, at=MOMENTS),

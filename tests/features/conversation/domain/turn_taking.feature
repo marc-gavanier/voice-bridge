@@ -141,6 +141,51 @@ Feature: Turn taking
       When the speaker stays silent
       Then Claude hears "And the logs too."
 
+  Rule: A stop cuts Claude's voice, however short
+    A single word such as « stop » holds too little voice to cut Claude off, so the words,
+    once understood as a stop, cut the voice themselves and drop the rest of the reply.
+
+    Scenario: A stop said over Claude's voice stops it
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      When the speaker asks to stop with "Stop."
+      Then Claude's voice stops when the stop is understood
+
+    Scenario: A stop drops the rest of the reply
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      When the speaker asks to stop with "Stop."
+      Then Claude has nothing left to say
+
+    Scenario: A stop that cut Claude's voice reaches Claude as an interruption
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And the speaker asked to stop with "Stop."
+      When the speaker stays silent
+      Then Claude hears "Stop." as an interruption
+
+    Scenario: A stop that cut Claude's voice is acknowledged
+      Given Claude is silent
+      And Claude is saying "I found three of them."
+      And the speaker asked to stop with "Stop."
+      When the speaker stays silent
+      Then the bridge acknowledges "Stop."
+
+    Scenario: A stop after Claude's voice ended stops nothing
+      Given Claude is silent
+      And Claude said "I found three of them."
+      When the speaker asks to stop with "Stop."
+      Then Claude's voice is not stopped
+
+    Scenario: A stop after the speaker cut Claude off does not stop the voice twice
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And the speaker cut Claude off
+      When the speaker asks to stop with "Stop."
+      Then Claude's voice is not stopped
+
+    Scenario: A stop while Claude is silent reaches Claude plainly
+      Given Claude is silent
+      And the speaker asked to stop with "Stop."
+      When the speaker stays silent
+      Then Claude hears "Stop."
+
   Rule: Words reach Claude once the speaker stays silent, joined into one message
     A speaker who thinks aloud pauses mid-sentence: words wait for a silence long enough
     that the speaker has finished, so that Claude neither hears nor answers half a thought.
