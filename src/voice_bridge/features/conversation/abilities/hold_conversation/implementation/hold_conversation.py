@@ -6,6 +6,7 @@ import anyio
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
+    Announce,
     AwaitHold,
     AwaitSilence,
     Command,
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
 
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
         Acknowledgement,
+        Announcement,
         Claude,
         HoldMusic,
         Speaker,
@@ -52,6 +54,7 @@ class Mouth:
     rate: int
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
+    announcement: Announcement
     settle: float
     hold_music: HoldMusic | None
     hold_music_delay: float
@@ -91,6 +94,16 @@ def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
     sentence, pcm = clip
     mouth.speaker.play(pcm)
     logger.info("acknowledged with %r", sentence)
+
+
+def _announce(mouth: Mouth, order: Announce) -> None:
+    clip = mouth.announcement(order.at_work, finished=order.finished)
+    if clip is None:
+        logger.info("no announcement ready for %d agents at work", order.at_work)
+        return
+    sentence, pcm = clip
+    mouth.speaker.play(pcm)
+    logger.info("announced %r", sentence)
 
 
 async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
@@ -164,6 +177,8 @@ async def _execute(
             )
         case Acknowledge():
             _acknowledge(mouth, playback)
+        case Announce():
+            _announce(mouth, command)
         case StartHoldMusic():
             await _start_music(mouth, playback, tasks)
         case StopHoldMusic():

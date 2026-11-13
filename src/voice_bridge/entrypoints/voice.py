@@ -55,6 +55,11 @@ from voice_bridge.features.speaking.abilities.acknowledge.implementation.acknowl
     record_acknowledgements,
 )
 from voice_bridge.features.speaking.abilities.acknowledge.implementation.clip_cache import CachedVoice
+from voice_bridge.features.speaking.abilities.announce.domain.wording import Wording
+from voice_bridge.features.speaking.abilities.announce.implementation.announce import (
+    Announcements,
+    record_announcements,
+)
 from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic
 from voice_bridge.features.speaking.abilities.hold_music.implementation.track_file import read_track
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import SpeechEngine, wait_until_ready
@@ -217,6 +222,17 @@ def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
     return understanding
 
 
+def _wording(language: LanguagePack) -> Wording:
+    announcements = language.announcements
+    return Wording(
+        at_work=announcements.at_work,
+        many_at_work=announcements.many_at_work,
+        finished=announcements.finished,
+        many_left=announcements.many_left,
+        none_at_work=announcements.none_at_work,
+    )
+
+
 async def _end_claude_code(pid: int | None) -> None:
     if pid is None:
         logger.warning("no Claude Code process to end: start the bridge with scripts/claude-voice.sh")
@@ -290,6 +306,7 @@ async def converse(
             health=speech_settings.health,
         )
         clips = Clips(draw=secrets.choice, kind=lambda words: understanding(words).route)
+        announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
             voice=partial(voice_of, engine),
             speaker=speaker,
@@ -297,6 +314,7 @@ async def converse(
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,
+            announcement=announcements,
             settle=settings.hearing.settle,
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
@@ -304,18 +322,22 @@ async def converse(
             telemetry=telemetry,
         )
 
+        def cached(directory: str) -> CachedVoice:
+            return CachedVoice(
+                voice=partial(voice_of, engine),
+                directory=settings.cache_directory / directory,
+                key=f"{engine.model} {engine.voice} {engine.gain} {MUMBLE_RATE}",
+            )
+
         async def greet() -> None:
             await wait_until_ready(engine)
             await events_in.send(Asked(sentences=sentences_of(language.greeting)))
             await record_acknowledgements(
                 clips,
-                CachedVoice(
-                    voice=partial(voice_of, engine),
-                    directory=settings.cache_directory / "acknowledgements",
-                    key=f"{engine.model} {engine.voice} {engine.gain} {MUMBLE_RATE}",
-                ),
+                cached("acknowledgements"),
                 [*(route.sentences for route in language.acknowledgements), language.neutral_acknowledgements],
             )
+            await record_announcements(announcements, cached("announcements"))
 
         _ = tasks.start_soon(stay_connected, access(settings, username), connected)
         _ = tasks.start_soon(listen, _ears(settings), with_pauses(packets_out, PATIENCE), heard, anyio.current_time)

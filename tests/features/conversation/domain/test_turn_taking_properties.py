@@ -6,6 +6,8 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from voice_bridge.features.conversation.domain.turn_taking import (
+    AgentsChanged,
+    Announce,
     Asked,
     AwaitHold,
     AwaitSilence,
@@ -45,6 +47,7 @@ EVENTS: st.SearchStrategy[Event] = st.one_of(
     st.builds(SpeechEnded, at=MOMENTS),
     st.builds(SilenceLasted, ticket=TICKETS, at=MOMENTS),
     st.builds(HoldLasted, ticket=TICKETS),
+    st.builds(AgentsChanged, at_work=st.integers(min_value=0, max_value=8), finished=st.booleans()),
 )
 FLAGS = [field.name for field in fields(Conversation) if field.default is False]
 
@@ -107,3 +110,30 @@ def test_every_flag_of_the_conversation_stays_a_boolean(events: list[Event]) -> 
 def test_a_wait_ticket_is_never_reused(events: list[Event]) -> None:
     tickets = wait_tickets(commands_of(events))
     assert len(tickets) == len(set(tickets))
+
+
+def announced(commands: tuple[Command, ...]) -> int:
+    return sum(1 for command in commands if isinstance(command, Announce))
+
+
+def changes(events: list[Event]) -> int:
+    return sum(1 for event in events if isinstance(event, AgentsChanged))
+
+
+@given(st.lists(EVENTS, max_size=50))
+def test_agents_are_never_announced_more_often_than_they_change(events: list[Event]) -> None:
+    assert announced(commands_of(events)) <= changes(events)
+
+
+def announced_while_heard(events: list[Event]) -> list[Announce]:
+    def advance(history: tuple[Conversation, list[Announce]], event: Event) -> tuple[Conversation, list[Announce]]:
+        state, commands = step(history[0], event)
+        heard = state.hearing or state.utterances > 0
+        return state, [*history[1], *(command for command in commands if heard and isinstance(command, Announce))]
+
+    return reduce(advance, events, (Conversation(), list[Announce]()))[1]
+
+
+@given(st.lists(EVENTS, max_size=50))
+def test_no_announcement_is_made_while_the_speaker_is_heard(events: list[Event]) -> None:
+    assert announced_while_heard(events) == []

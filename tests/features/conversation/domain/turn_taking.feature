@@ -442,6 +442,100 @@ Feature: Turn taking
       When the wait goes on
       Then the hold music starts
 
+  Rule: The bridge announces the agents at work once nobody speaks
+    The bridge says how many agents are at work each time one starts or finishes, from clips
+    voiced at startup. It never cuts Claude's voice nor the speaker's: the announcement waits
+    for the end of Claude's reply and of the speaker's words, and only the latest count is said.
+
+    Scenario: An agent starting while all is silent is announced at once
+      Given Claude is silent
+      When an agent starts and 1 is at work
+      Then the bridge announces 1 at work
+
+    Scenario: An agent finishing is announced with the agents left at work
+      Given Claude is silent
+      When an agent finishes and 2 are left at work
+      Then the bridge announces an agent finished with 2 left at work
+
+    Scenario: An agent starting while Claude replies waits for its reply
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      When an agent starts and 1 is at work
+      Then the bridge announces nothing
+
+    Scenario: The announcement follows the last sentence of Claude's reply
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And an agent started and 1 is at work
+      When Claude's voice for "I found three of them." is ready
+      Then the announcement follows Claude's voice
+
+    Scenario: The announcement follows a reply that cannot be voiced
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And an agent started and 1 is at work
+      When Claude's voice for "I found three of them." fails
+      Then the bridge announces 1 at work
+
+    Scenario: An agent starting while the speaker talks waits for their words
+      Given the speaker is talking
+      When an agent starts and 1 is at work
+      Then nothing happens
+
+    Scenario: An agent starting while the speaker begins some words waits for them
+      Given Claude is silent
+      And the speaker began some words
+      When an agent starts and 1 is at work
+      Then nothing happens
+
+    Scenario: The announcement follows the acknowledgement of the speaker's words
+      Given the speaker is talking
+      And an agent started and 1 is at work
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the announcement follows the acknowledgement
+
+    Scenario: The announcement is made after a sound too short to be heard
+      Given Claude is silent
+      And the speaker began some words
+      And an agent started and 1 is at work
+      When the speaker makes a sound too short to be heard
+      Then the bridge announces 1 at work
+
+    Scenario: The announcement is made after a noise
+      Given the speaker is talking
+      And an agent started and 1 is at work
+      When the speaker only makes a noise
+      Then the bridge announces 1 at work
+
+    Scenario: Only the latest count is announced
+      Given the speaker is talking
+      And an agent started and 1 is at work
+      And an agent started and 2 are at work
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the bridge announces 2 at work only
+
+    Scenario: An announcement is made once
+      Given Claude is silent
+      And an agent started and 1 is at work
+      When the speaker only makes a noise
+      Then nothing happens
+
+    Scenario: The announcement stops the hold music before it plays
+      Given the hold music plays
+      When an agent starts and 1 is at work
+      Then the hold music stops before the announcement
+
+    Scenario: The hold music comes back after the announcement
+      Given the hold music plays
+      When an agent starts and 1 is at work
+      Then the bridge waits for the hold music
+
+    Scenario: An agent changing during the goodbye is not announced
+      Given Claude is silent
+      And Claude said goodbye with "See you tomorrow."
+      And Claude's voice for "See you tomorrow." was ready
+      When an agent finishes and 0 are left at work
+      Then nothing happens
+
   Rule: A goodbye ends the session once the speaker has heard it
 
     Scenario: The goodbye ends the session when its voice ends

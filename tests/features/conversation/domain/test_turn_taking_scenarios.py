@@ -4,6 +4,8 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
+    AgentsChanged,
+    Announce,
     Asked,
     AwaitHold,
     AwaitSilence,
@@ -178,6 +180,21 @@ def the_speaker_makes_a_short_sound(turn: Turn) -> Turn:
 def the_hold_music_plays() -> Turn:
     working = working_on("Where are we?")
     return after(working, HoldLasted(ticket=working.holds[-1]))
+
+
+@given(parsers.re(r"an agent started and (?P<count>\d+) (?:is|are) at work"), target_fixture="turn")
+def an_agent_started(turn: Turn, count: str) -> Turn:
+    return after(turn, AgentsChanged(at_work=int(count)))
+
+
+@when(parsers.re(r"an agent starts and (?P<count>\d+) (?:is|are) at work"), target_fixture="turn")
+def an_agent_starts(turn: Turn, count: str) -> Turn:
+    return after(turn, AgentsChanged(at_work=int(count)))
+
+
+@when(parsers.re(r"an agent finishes and (?P<count>\d+) (?:is|are) left at work"), target_fixture="turn")
+def an_agent_finishes(turn: Turn, count: str) -> Turn:
+    return after(turn, AgentsChanged(at_work=int(count), finished=True))
 
 
 @given("the speaker cut in", target_fixture="turn")
@@ -400,3 +417,46 @@ def the_bridge_does_not_leave_yet(turn: Turn) -> None:
 @then("the session goes on")
 def the_session_goes_on(turn: Turn) -> None:
     assert not turn.state.ending
+
+
+def announcements(commands: tuple[Command, ...]) -> tuple[Announce, ...]:
+    return tuple(command for command in commands if isinstance(command, Announce))
+
+
+def position(commands: tuple[Command, ...], kind: type[Command]) -> int:
+    return next(index for index, command in enumerate(commands) if isinstance(command, kind))
+
+
+@then(parsers.parse("the bridge announces {count:d} at work only"))
+def the_bridge_announces_only(turn: Turn, count: int) -> None:
+    assert announcements(turn.commands) == (Announce(at_work=count),)
+
+
+@then(parsers.parse("the bridge announces {count:d} at work"))
+def the_bridge_announces(turn: Turn, count: int) -> None:
+    assert Announce(at_work=count) in turn.commands
+
+
+@then(parsers.parse("the bridge announces an agent finished with {count:d} left at work"))
+def the_bridge_announces_a_finished_agent(turn: Turn, count: int) -> None:
+    assert Announce(at_work=count, finished=True) in turn.commands
+
+
+@then("the bridge announces nothing")
+def the_bridge_announces_nothing(turn: Turn) -> None:
+    assert announcements(turn.commands) == ()
+
+
+@then("the announcement follows Claude's voice")
+def the_announcement_follows_claudes_voice(turn: Turn) -> None:
+    assert position(turn.commands, Play) < position(turn.commands, Announce)
+
+
+@then("the announcement follows the acknowledgement")
+def the_announcement_follows_the_acknowledgement(turn: Turn) -> None:
+    assert position(turn.commands, Acknowledge) < position(turn.commands, Announce)
+
+
+@then("the hold music stops before the announcement")
+def the_hold_music_stops_before_the_announcement(turn: Turn) -> None:
+    assert turn.commands[:2] == (StopHoldMusic(), Announce(at_work=1))

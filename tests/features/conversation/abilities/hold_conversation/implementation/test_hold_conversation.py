@@ -8,12 +8,13 @@ from anyio import wait_all_tasks_blocked
 from anyio.abc import ObjectReceiveStream
 from anyio.streams.memory import MemoryObjectSendStream
 
-from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Acknowledgement
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Acknowledgement, Announcement
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
     Mouth,
     hold_conversation,
 )
 from voice_bridge.features.conversation.domain.turn_taking import (
+    AgentsChanged,
     Asked,
     ClaudeBusy,
     Event,
@@ -32,6 +33,7 @@ QUESTION_CLIP = b"\x02\x00" * 480
 STATEMENT_CLIP = b"\x03\x00" * 480
 MUSIC = b"\x04\x00" * 480
 FADE = b"\x05\x00" * 48
+ANNOUNCEMENT_CLIP = b"\x06\x00" * 480
 SOUND_DURATION = 0.1
 
 
@@ -70,6 +72,12 @@ READY = Clips(question=("Voyons.", QUESTION_CLIP), statement=("D'accord.", STATE
 NOT_READY = Clips(question=None, statement=None)
 
 
+def announced(at_work: int, *, finished: bool) -> tuple[str, bytes] | None:
+    if at_work > 1:
+        return None
+    return ("One finished, one left." if finished else "One at work.", ANNOUNCEMENT_CLIP)
+
+
 async def voiced(sentence: str) -> bytes | None:
     return None if sentence.startswith("Silent") else SOUND
 
@@ -85,7 +93,11 @@ class Talk:
 
 @asynccontextmanager
 async def talking(
-    acknowledgement: Acknowledgement = READY, *, music: bool = True, settle: float = 0.0
+    acknowledgement: Acknowledgement = READY,
+    *,
+    music: bool = True,
+    settle: float = 0.0,
+    announcement: Announcement = announced,
 ) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
@@ -109,6 +121,7 @@ async def talking(
         rate=48000,
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
+        announcement=announcement,
         settle=settle,
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
@@ -244,6 +257,38 @@ async def test_the_reply_stops_the_hold_music_before_it_plays() -> None:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = [await talk.played.receive(), await talk.played.receive(), await talk.played.receive()]
     assert played == [b"", FADE, SOUND]
+
+
+async def test_an_agent_starting_is_announced() -> None:
+    async with talking() as talk:
+        await talk.say.send(AgentsChanged(at_work=1))
+        played = await talk.played.receive()
+    assert played == ANNOUNCEMENT_CLIP
+
+
+async def test_the_announcement_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with talking() as talk:
+        await talk.say.send(AgentsChanged(at_work=1, finished=True))
+        _ = await talk.played.receive()
+    assert "announced 'One finished, one left.'" in caplog.text
+
+
+async def test_an_announcement_not_ready_is_not_played() -> None:
+    async with talking() as talk:
+        await talk.say.send(AgentsChanged(at_work=2))
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        played = await talk.played.receive()
+    assert played == SOUND
+
+
+async def test_an_announcement_not_ready_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with talking() as talk:
+        await talk.say.send(AgentsChanged(at_work=2))
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        _ = await talk.played.receive()
+    assert "no announcement ready for 2 agents at work" in caplog.text
 
 
 async def test_without_hold_music_claude_at_work_stays_silent() -> None:

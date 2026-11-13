@@ -69,6 +69,12 @@ class ClaudeIdle:
     pass
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AgentsChanged:
+    at_work: int
+    finished: bool = False
+
+
 type Event = (
     Asked
     | Synthesized
@@ -82,6 +88,7 @@ type Event = (
     | HoldLasted
     | ClaudeBusy
     | ClaudeIdle
+    | AgentsChanged
 )
 
 
@@ -142,6 +149,12 @@ class Leave:
     until: float
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Announce:
+    at_work: int
+    finished: bool = False
+
+
 type Command = (
     Synthesize
     | Play
@@ -153,6 +166,7 @@ type Command = (
     | StartHoldMusic
     | StopHoldMusic
     | Leave
+    | Announce
 )
 
 
@@ -191,6 +205,7 @@ class Conversation:
     holding: bool = False
     working: bool = False
     ending: bool = False
+    announcing: Announce | None = None
     settle: float = 0.0
     hold_music_delay: float = 0.0
 
@@ -234,9 +249,23 @@ def _hold(state: Conversation, ticket: int) -> Step:
     return replace(state, awaiting_hold=None, holding=True), (StartHoldMusic(),)
 
 
+def _is_quiet(state: Conversation) -> bool:
+    return not (state.hearing or state.utterances or state.ending or unspoken(state))
+
+
+def _announce(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
+    if state.announcing is None or not _is_quiet(state):
+        return state, commands
+    announced = replace(state, announcing=None)
+    if not state.holding:
+        return announced, (*commands, state.announcing)
+    stopped = replace(announced, holding=False)
+    return _await_hold(stopped, (*commands, StopHoldMusic(), state.announcing), after=0.0)
+
+
 def _synthesize_next(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
     if state.hearing or state.synthesizing is not None or not state.waiting:
-        return state, commands
+        return _announce(state, commands)
     synthesis = Synthesis(ticket=state.next_ticket, sentence=state.waiting[0])
     started = replace(state, waiting=state.waiting[1:], synthesizing=synthesis, next_ticket=synthesis.ticket + 1)
     return started, (*commands, Synthesize(ticket=synthesis.ticket, sentence=synthesis.sentence))
@@ -272,7 +301,7 @@ def _skip(state: Conversation, ticket: int) -> Step:
     if skipped.ending:
         until = max((scheduled.ends_at for scheduled in skipped.playing), default=0.0)
         return skipped, (*commands, Leave(until=until))
-    return _stop_holding(skipped)
+    return _stop_holding(skipped, commands)
 
 
 def _interrupt(state: Conversation, at: float) -> Step:
@@ -332,7 +361,7 @@ def _noise(state: Conversation) -> Step:
 
 def _dismiss(state: Conversation) -> Step:
     if not state.heard:
-        return _transcribed(state), ()
+        return _announce(_transcribed(state))
     return _settle(_transcribed(state))
 
 
@@ -417,6 +446,10 @@ def _on_activity(state: Conversation, event: ClaudeBusy | ClaudeIdle) -> Step:
             assert_never(event)
 
 
+def _on_agents(state: Conversation, event: AgentsChanged) -> Step:
+    return _announce(replace(state, announcing=Announce(at_work=event.at_work, finished=event.finished)))
+
+
 def step(state: Conversation, event: Event) -> Step:
     match event:
         case Asked() | Synthesized() | SynthesisFailed():
@@ -427,5 +460,7 @@ def step(state: Conversation, event: Event) -> Step:
             return _on_wait(state, event)
         case ClaudeBusy() | ClaudeIdle():
             return _on_activity(state, event)
+        case AgentsChanged():
+            return _on_agents(state, event)
         case _:
             assert_never(event)
