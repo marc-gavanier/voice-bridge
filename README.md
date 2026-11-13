@@ -148,9 +148,10 @@ Each signal goes to the tool you choose, several at once if you like, and nothin
 |---|---|---|
 | The log | Any handler of Python's `logging`: file, journald, syslog | `[logging]` in `config.toml`, [below](#send-the-log-elsewhere) |
 | Traces, metrics, and the log again | An OpenTelemetry collector, which can route each signal to its own backend | `OTEL_*` variables in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
-| Errors | Sentry | `SENTRY_*` variables in the tools' environment file, [below](#report-errors-to-sentry) |
+| Metrics, read by Prometheus itself | [Prometheus](https://prometheus.io/), which scrapes `http://localhost:9464/metrics` | `OTEL_METRICS_EXPORTER=prometheus` in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
+| Errors | Sentry, or GlitchTip and Bugsink, free and self-hosted, which take the same SDK | `SENTRY_*` variables in the tools' environment file, [below](#report-errors-to-sentry) |
 
-The bridge's own settings stay in `config.toml`. The tools keep the environment variables their own documentation gives, which their SDKs read: `scripts/claude-voice.sh` reads them from `~/.config/voice-bridge/environment`, one `KEY=value` per line, `#` for comments, and passes them to the bridge only, not to Claude Code. It installs and starts what they need: the `otel` extra and `opentelemetry-instrument` when an OTLP endpoint is set, the `sentry` extra when `SENTRY_DSN` is. Keep the file readable by you only, since a DSN is a secret:
+The bridge's own settings stay in `config.toml`. The tools keep the environment variables their own documentation gives, which their SDKs read: `scripts/claude-voice.sh` reads them from `~/.config/voice-bridge/environment`, one `KEY=value` per line, `#` for comments, and passes them to the bridge only, not to Claude Code. It installs and starts what they need: the `otel` extra and `opentelemetry-instrument` when an OTLP endpoint is set or an `OTEL_*_EXPORTER` other than `none` is chosen, the `sentry` extra when `SENTRY_DSN` is. Keep the file readable by you only, since a DSN is a secret:
 
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317
@@ -192,9 +193,18 @@ Nothing leaves the machine by default. With the `otel` extra installed and an OT
 
 - **one trace per turn**: a `turn` span from the end of your voice until your next words reach Claude, with a span for each step: `transcription`, `settle` before your words are pushed, `claude` until its first reply, each `synthesis` or `failed synthesis`, and each `playback`, cut where you interrupted; the turn tells whether it was `interrupted`;
 - **metrics**: `voice_bridge.turn.duration` and `voice_bridge.step.duration` by step, in seconds; `voice_bridge.events`, the interruptions and the sounds dismissed as too short; `voice_bridge.audio.stall.duration`, the gaps in your audio reaching the bridge;
+- **the process and the machine**: memory, CPU, threads, open files, garbage collection, and the machine's CPU, memory, disks and network, from OpenTelemetry's [system metrics instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/system_metrics/system_metrics.html);
 - **the log**, alongside the handlers of `[logging]` or the default log, which keep writing.
 
-The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, and imports OpenTelemetry only then ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)). The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): with an endpoint in the [tools' environment file](#one-tool-per-signal), `scripts/claude-voice.sh` starts the bridge under `opentelemetry-instrument`, with `OTEL_SERVICE_NAME=voice-bridge` unless the file sets another.
+The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, or when `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` names an exporter other than `none`, and imports OpenTelemetry only then ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)). The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): with an endpoint in the [tools' environment file](#one-tool-per-signal), `scripts/claude-voice.sh` starts the bridge under `opentelemetry-instrument`, with `OTEL_SERVICE_NAME=voice-bridge` unless the file sets another.
+
+For Prometheus to scrape the metrics without a collector, choose its exporter and turn off the signals with nowhere to go, since `opentelemetry-instrument` otherwise sends them over OTLP to `localhost:4317`; `OTEL_EXPORTER_PROMETHEUS_HOST` and `OTEL_EXPORTER_PROMETHEUS_PORT` move the endpoint:
+
+```bash
+OTEL_METRICS_EXPORTER=prometheus
+OTEL_TRACES_EXPORTER=none
+OTEL_LOGS_EXPORTER=none
+```
 
 ### Report errors to Sentry
 

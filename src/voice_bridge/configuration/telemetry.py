@@ -10,8 +10,13 @@ OTLP_ENDPOINTS: Final = (
 )
 
 
+EXPORTERS: Final = ("OTEL_TRACES_EXPORTER", "OTEL_METRICS_EXPORTER", "OTEL_LOGS_EXPORTER")
+
+
 def exports_telemetry(environ: Mapping[str, str]) -> bool:
-    return any(environ.get(name) for name in OTLP_ENDPOINTS)
+    return any(environ.get(name) for name in OTLP_ENDPOINTS) or any(
+        environ.get(name, "none") not in {"", "none"} for name in EXPORTERS
+    )
 
 
 def reports_errors(environ: Mapping[str, str]) -> bool:

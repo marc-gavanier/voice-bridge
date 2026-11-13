@@ -21,6 +21,24 @@ def test_an_endpoint_for_metrics_only_exports() -> None:
     assert exports_telemetry({"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": "http://127.0.0.1:4318/v1/metrics"})
 
 
+def test_a_chosen_metrics_exporter_exports_without_an_endpoint() -> None:
+    assert exports_telemetry({"OTEL_METRICS_EXPORTER": "prometheus"})
+
+
+def test_a_chosen_traces_exporter_exports_without_an_endpoint() -> None:
+    assert exports_telemetry({"OTEL_TRACES_EXPORTER": "console"})
+
+
+def test_exporters_all_set_to_none_export_nothing() -> None:
+    assert not exports_telemetry(
+        {"OTEL_TRACES_EXPORTER": "none", "OTEL_METRICS_EXPORTER": "none", "OTEL_LOGS_EXPORTER": "none"}
+    )
+
+
+def test_an_empty_exporter_exports_nothing() -> None:
+    assert not exports_telemetry({"OTEL_METRICS_EXPORTER": ""})
+
+
 def test_no_sentry_dsn_reports_no_error() -> None:
     assert not reports_errors({})
 

@@ -18,7 +18,10 @@ if [[ -f "$environment_file" ]]; then
 fi
 config="${XDG_RUNTIME_DIR:-/tmp}/voice-bridge-mcp.json"
 jq --null-input --arg project "$project" --arg pid "$$" --argjson environment "$environment" '
-  ($environment | to_entries | any((.key | test("^OTEL_EXPORTER_OTLP_(TRACES_|METRICS_|LOGS_)?ENDPOINT$")) and .value != "")) as $otel
+  ($environment | to_entries | any(
+    ((.key | test("^OTEL_EXPORTER_OTLP_(TRACES_|METRICS_|LOGS_)?ENDPOINT$")) and .value != "")
+    or ((.key | test("^OTEL_(TRACES|METRICS|LOGS)_EXPORTER$")) and .value != "" and .value != "none")
+  )) as $otel
   | (($environment.SENTRY_DSN // "") != "") as $sentry
   | {
       mcpServers: {

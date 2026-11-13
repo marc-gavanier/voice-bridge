@@ -35,7 +35,9 @@ otel = [
     "opentelemetry-api>=1.45.2",
     "opentelemetry-distro>=0.66b2",
     "opentelemetry-exporter-otlp>=1.45.2",
+    "opentelemetry-exporter-prometheus>=0.66b2",
     "opentelemetry-instrumentation-logging>=0.66b2",
+    "opentelemetry-instrumentation-system-metrics>=0.66b2",
 ]
 sentry = [
     "sentry-sdk>=2.73.0",
@@ -172,7 +174,9 @@ DEP002 = [
     "nvidia-cudnn-cu12",
     "opentelemetry-distro",
     "opentelemetry-exporter-otlp",
+    "opentelemetry-exporter-prometheus",
     "opentelemetry-instrumentation-logging",
+    "opentelemetry-instrumentation-system-metrics",
 ]
 
 [tool.commitizen]
