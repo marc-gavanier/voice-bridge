@@ -13,13 +13,15 @@ voice-bridge lets a person talk to a Claude Code session over Mumble. The [READM
 
 ## Checks
 
-Run them all before proposing a change; the CI runs the same ones on every pull request and on `main`:
+Every commit runs the fast checks, everything below but pytest and uv audit, and its message is checked. Every push runs them again with the whole test suite and uv audit ([ADR-017](docs/decisions/ADR-017-the-test-suite-runs-on-push-not-on-commit.md)). The CI runs them all on every pull request and on `main`.
+
+`uv run prek run --all-files` runs only the commit checks, without the tests. Run everything before proposing a change:
 
 ```bash
-uv run prek run --all-files
+uv run prek run --all-files --hook-stage pre-push
 ```
 
-The Ruff, final newline and trailing whitespace hooks fix what they can, so this command may change files in the working tree: review the diff before committing.
+The Ruff, final newline and trailing whitespace hooks fix what they can, so these commands may change files in the working tree: review the diff before committing.
 
 What each gate holds:
 
@@ -45,6 +47,7 @@ What each gate holds:
 
 ## Writing tests
 
+- Work test first, running only the tests concerned between commits, such as `uv run pytest tests/features/conversation --no-cov`; the push runs the whole suite. Commit each behaviour on its own, test and code together, so that history reads well: it stays linear and commits are never squashed.
 - Tests pass fakes written as small classes or functions, never mocks. `monkeypatch` is only used to set environment variables.
 - Keep logic out of test bodies: no loop, branch or counting in a test. Build inputs in named helpers.
 - Test names are sentences that state the behaviour, such as `test_an_asked_sentence_is_played`.

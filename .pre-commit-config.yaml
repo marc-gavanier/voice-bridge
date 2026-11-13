@@ -85,8 +85,9 @@ repos:
         name: pytest
         entry: uv run --frozen pytest --quiet
         language: system
-        types_or: [python, pyi, toml]
+        stages: [pre-push]
         pass_filenames: false
+        always_run: true
       - id: uv-lock
         name: uv lock is up to date
         entry: uv lock --check

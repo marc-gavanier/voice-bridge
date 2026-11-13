@@ -409,10 +409,10 @@ uv sync
 uv run prek install
 ```
 
-[prek](https://prek.j178.dev) then checks every commit with Ruff, basedpyright in its strictest mode, the import-linter contracts, deptry, the tests with full branch coverage and a time limit, the lockfile, ShellCheck, gitleaks and the spelling with typos; the hygiene of every text file (final newline, trailing whitespace, merge conflict markers, large files, TOML and YAML syntax) with pre-commit-hooks, `pyproject.toml` with validate-pyproject, and the workflows with actionlint and zizmor; every commit message against [Conventional Commits](https://www.conventionalcommits.org) with commitizen; and the dependencies with `uv audit` before every push. The CI runs the same checks on every pull request.
+[prek](https://prek.j178.dev) then checks every commit with Ruff, basedpyright in its strictest mode, the import-linter contracts, deptry, the lockfile, ShellCheck, gitleaks and the spelling with typos; the hygiene of every text file (final newline, trailing whitespace, merge conflict markers, large files, TOML and YAML syntax) with pre-commit-hooks, `pyproject.toml` with validate-pyproject, and the workflows with actionlint and zizmor; every commit message against [Conventional Commits](https://www.conventionalcommits.org) with commitizen; and, before every push, the same checks again with the tests, with full branch coverage and a time limit, and the dependencies with `uv audit` ([ADR-017](docs/decisions/ADR-017-the-test-suite-runs-on-push-not-on-commit.md)). The CI runs them all on every pull request and on `main`.
 
 ```bash
-uv run prek run --all-files
+uv run prek run --all-files --hook-stage pre-push
 uv run pytest
 uv run mutmut run
 ```
