@@ -98,7 +98,7 @@ sequenceDiagram
 uv sync
 ```
 
-`uv sync --extra otel` adds OpenTelemetry, to [export traces, metrics and the log](#export-traces-metrics-and-the-log) to a collector.
+`uv sync --extra otel` adds OpenTelemetry, to [export traces, metrics and the log](#export-traces-metrics-and-the-log) to a collector; `--extra sentry` adds Sentry, to [report errors](#report-errors-to-sentry). Each tool gets its own signal, and several can run together.
 
 ## Configure
 
@@ -177,6 +177,12 @@ Nothing leaves the machine by default. With the `otel` extra installed and an OT
 
 The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, and imports OpenTelemetry only then ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)). The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): in `scripts/claude-voice.sh`, run `opentelemetry-instrument voice-bridge-channel` instead of `voice-bridge-channel`, with the endpoint and `OTEL_SERVICE_NAME=voice-bridge` in the environment.
 
+
+### Report errors to Sentry
+
+An error nobody expected stops the bridge, and is first written to the log with its traceback, as `stopped on an unexpected error`, so it reaches every handler of `[logging]`. With the `sentry` extra installed and `SENTRY_DSN` set, the [Sentry SDK](https://docs.sentry.io/platforms/python/) also sends every line logged at `ERROR` or above, with its traceback, as a Sentry event; `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE` are read as usual.
+
+Nothing said reaches Sentry: the bridge turns off breadcrumbs, which would carry the lines logged before the error, transcripts and replies included, and the local variables of the traceback's frames.
 
 ### Add a language
 
@@ -264,6 +270,7 @@ Two more commands help test the voice path without Claude:
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
 | `certificate verify failed` | The server has a new certificate: export it again |
 | A slow turn, without knowing which step took the time | With [telemetry exported](#export-traces-metrics-and-the-log), the turn's trace shows each step; without it, the log's timing lines tell the same, one by one |
+| The bridge stopped, and Claude Code lost the `voice` channel | `stopped on an unexpected error` in the log, with its traceback; with `SENTRY_DSN` set, the same error in Sentry |
 | Claude's voice cuts itself off | Lines `interrupted` with no one speaking: use headphones, or raise `hearing.volume_threshold` |
 | Claude answers half a sentence, or its acknowledgement plays while you are still thinking | Lines `joined N pieces said with pauses` show the pauses `hearing.settle` already covered; a `forwarded` line followed within seconds by words that continue it calls for a longer `hearing.settle` |
 | With `hearing.smart_turn`, sentences are cut while you pause mid-thought | Lines `turn finished (p=…)` before the cut: raise `hearing.turn_threshold` or `hearing.short_pause`; lines `turn not finished (p=…)` before the cut: raise `hearing.unfinished_silence`; `end of turn judged in … ms` tells what each decision costs |

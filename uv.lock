@@ -1766,6 +1766,19 @@ wheels = [
 ]
 
 [[package]]
+name = "sentry-sdk"
+version = "2.73.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c5/3b/1e47acf2456781c26e12007379ecc154bf310b8f64d40390d78b791d55c3/sentry_sdk-2.73.0.tar.gz", hash = "sha256:4a2ab97b16e4693c325ab361c7bbbb346dbc7d0bc0150922d795a25bac8d5280", size = 1079078, upload-time = "2026-10-22T09:08:49.63Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/88/cabf98d017d7b940720e514e5f8ee02e3e6f7495caf93c30735a38387ec4/sentry_sdk-2.73.0-py3-none-any.whl", hash = "sha256:0bcfa6928ea5adbb89591858b514d27adac27c7a3cccc31b20ed10e0b09eda9e", size = 549011, upload-time = "2026-10-22T09:08:47.88Z" },
+]
+
+[[package]]
 name = "setproctitle"
 version = "1.3.8"
 source = { registry = "https://pypi.org/simple" }
@@ -2146,6 +2159,9 @@ otel = [
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-instrumentation-logging" },
 ]
+sentry = [
+    { name = "sentry-sdk" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -2166,6 +2182,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-timeout" },
     { name = "ruff" },
+    { name = "sentry-sdk" },
     { name = "shellcheck-py" },
     { name = "typos" },
     { name = "validate-pyproject", extra = ["all"] },
@@ -2192,11 +2209,12 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.14.2" },
     { name = "pydantic-settings", specifier = ">=2.16.2" },
     { name = "pymumble-rev", specifier = "==0.1.0" },
+    { name = "sentry-sdk", marker = "extra == 'sentry'", specifier = ">=2.73.0" },
     { name = "soxr", specifier = ">=1.1.0" },
     { name = "stamina", specifier = ">=26.1.0" },
     { name = "tokenizers", specifier = ">=0.23.3" },
 ]
-provides-extras = ["otel"]
+provides-extras = ["otel", "sentry"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2217,6 +2235,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "ruff", specifier = ">=0.17.3" },
+    { name = "sentry-sdk", specifier = ">=2.73.0" },
     { name = "shellcheck-py", specifier = ">=0.11.0.1" },
     { name = "typos", specifier = ">=1.51.1" },
     { name = "validate-pyproject", extras = ["all"], specifier = ">=0.27" },

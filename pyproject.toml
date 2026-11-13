@@ -37,6 +37,9 @@ otel = [
     "opentelemetry-exporter-otlp>=1.45.2",
     "opentelemetry-instrumentation-logging>=0.66b2",
 ]
+sentry = [
+    "sentry-sdk>=2.73.0",
+]
 
 [dependency-groups]
 dev = [
@@ -57,6 +60,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-timeout>=2.4.0",
     "ruff>=0.17.3",
+    "sentry-sdk>=2.73.0",
     "shellcheck-py>=0.11.0.1",
     "typos>=1.51.1",
     "validate-pyproject-schema-store>=2026.10.30",

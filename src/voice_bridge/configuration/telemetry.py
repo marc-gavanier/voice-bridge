@@ -12,3 +12,7 @@ OTLP_ENDPOINTS: Final = (
 
 def exports_telemetry(environ: Mapping[str, str]) -> bool:
     return any(environ.get(name) for name in OTLP_ENDPOINTS)
+
+
+def reports_errors(environ: Mapping[str, str]) -> bool:
+    return bool(environ.get("SENTRY_DSN"))

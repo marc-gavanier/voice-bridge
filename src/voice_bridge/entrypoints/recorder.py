@@ -7,7 +7,8 @@ import anyio
 
 from voice_bridge.configuration.settings import Settings, load_settings
 from voice_bridge.entrypoints.arguments import config_file
-from voice_bridge.entrypoints.logs import configure_logging
+from voice_bridge.entrypoints.logs import configure_logging, run_logged
+from voice_bridge.entrypoints.telemetry import report_errors
 from voice_bridge.entrypoints.voice import access
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.telemetry import no_stall
 from voice_bridge.features.recording.abilities.record.implementation.record import Recorder, record
@@ -36,4 +37,5 @@ async def record_bridge(settings: Settings) -> None:
 def main() -> None:
     settings = load_settings(config_file("Record the bridge's voice as it reaches Mumble.", sys.argv[1:]))
     configure_logging(settings.log_file.with_name("recorder.log"))
-    anyio.run(record_bridge, settings)
+    _ = report_errors()
+    run_logged(record_bridge, settings)

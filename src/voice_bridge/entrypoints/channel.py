@@ -7,7 +7,8 @@ import anyio
 from voice_bridge.configuration.language import LanguagePack, language_pack, load_instructions
 from voice_bridge.configuration.settings import Settings, load_settings
 from voice_bridge.entrypoints.arguments import config_file
-from voice_bridge.entrypoints.logs import configure_logging
+from voice_bridge.entrypoints.logs import configure_logging, run_logged
+from voice_bridge.entrypoints.telemetry import report_errors
 from voice_bridge.entrypoints.voice import converse
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
     EndSessionTool,
@@ -55,4 +56,5 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
 def main() -> None:
     settings = load_settings(config_file("Talk to this Claude Code session over Mumble.", sys.argv[1:]))
     configure_logging(settings.log_file, settings.logging)
-    anyio.run(serve, settings, language_pack(settings.language))
+    _ = report_errors()
+    run_logged(serve, settings, language_pack(settings.language))
