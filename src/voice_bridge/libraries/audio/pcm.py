@@ -29,6 +29,11 @@ def boost(pcm: bytes, gain: float) -> bytes:
     return from_float(np.tanh(to_float(pcm) * gain))
 
 
+def ramp(pcm: bytes, start: float, end: float) -> bytes:
+    samples = to_float(pcm)
+    return from_float(samples * np.linspace(start, end, num=samples.size, dtype=np.float32))
+
+
 def resample(pcm: bytes, from_rate: int, to_rate: int) -> bytes:
     if from_rate == to_rate:
         return pcm

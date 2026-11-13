@@ -31,6 +31,7 @@ SOUND = b"\x01\x00" * 4800
 QUESTION_CLIP = b"\x02\x00" * 480
 STATEMENT_CLIP = b"\x03\x00" * 480
 MUSIC = b"\x04\x00" * 480
+FADE = b"\x05\x00" * 48
 SOUND_DURATION = 0.1
 
 
@@ -43,6 +44,17 @@ class StreamedSpeaker:
 
     def stop(self) -> None:
         self.played.send_nowait(b"")
+
+
+@dataclass(frozen=True)
+class FakeMusic:
+    played: MemoryObjectSendStream[bytes]
+
+    async def __call__(self) -> None:
+        self.played.send_nowait(MUSIC)
+
+    def fade(self) -> None:
+        self.played.send_nowait(FADE)
 
 
 @dataclass(frozen=True)
@@ -85,8 +97,7 @@ async def talking(
     async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
         await forwarded_in.send((text, interrupted, acknowledgement))
 
-    async def hold_music() -> None:
-        played_in.send_nowait(MUSIC)
+    hold_music = FakeMusic(played=played_in)
 
     async def leave() -> None:
         await left_in.send(anyio.current_time() - started)
@@ -231,8 +242,8 @@ async def test_the_reply_stops_the_hold_music_before_it_plays() -> None:
         await talk.say.send(ClaudeBusy(at=0.0))
         _ = [await talk.played.receive(), await talk.played.receive()]
         await talk.say.send(Asked(sentences=("Bonjour.",)))
-        played = [await talk.played.receive(), await talk.played.receive()]
-    assert played == [b"", SOUND]
+        played = [await talk.played.receive(), await talk.played.receive(), await talk.played.receive()]
+    assert played == [b"", FADE, SOUND]
 
 
 async def test_without_hold_music_claude_at_work_stays_silent() -> None:

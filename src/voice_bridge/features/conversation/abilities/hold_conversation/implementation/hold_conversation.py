@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
         Acknowledgement,
         Claude,
+        HoldMusic,
         Speaker,
         Telemetry,
     )
@@ -52,7 +53,7 @@ class Mouth:
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
     settle: float
-    hold_music: Callable[[], Awaitable[None]] | None
+    hold_music: HoldMusic | None
     hold_music_delay: float
     leave: Callable[[], Awaitable[None]]
     telemetry: Telemetry
@@ -109,9 +110,7 @@ async def _leave(mouth: Mouth, order: Leave) -> None:
     await mouth.leave()
 
 
-async def _play_music(
-    hold_music: Callable[[], Awaitable[None]], playback: _Playback, *, task_status: TaskStatus[None]
-) -> None:
+async def _play_music(hold_music: HoldMusic, playback: _Playback, *, task_status: TaskStatus[None]) -> None:
     with anyio.CancelScope() as scope:
         playback.scopes.append(scope)
         task_status.started()
@@ -124,12 +123,13 @@ async def _start_music(mouth: Mouth, playback: _Playback, tasks: TaskGroup) -> N
 
 
 def _stop_music(mouth: Mouth, playback: _Playback) -> None:
-    if not playback.scopes:
+    if mouth.hold_music is None or not playback.scopes:
         return
     for scope in playback.scopes:
         scope.cancel()
     playback.scopes.clear()
     mouth.speaker.stop()
+    mouth.hold_music.fade()
     logger.info("hold music stopped")
 
 

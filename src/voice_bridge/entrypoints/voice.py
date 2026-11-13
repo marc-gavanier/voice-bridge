@@ -191,7 +191,13 @@ async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | N
         partial(read_track, hold_music.file, rate=MUMBLE_RATE, volume=hold_music.volume)
     )
     logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(pcm) / 2 / MUMBLE_RATE)
-    return HoldMusic(track=Track(pcm=pcm), speaker=speaker, rate=MUMBLE_RATE)
+    return HoldMusic(
+        track=Track(pcm=pcm),
+        speaker=speaker,
+        rate=MUMBLE_RATE,
+        fade_in=hold_music.fade_in,
+        fade_out=hold_music.fade_out,
+    )
 
 
 def _understanding(settings: Settings, language: LanguagePack) -> Understanding:

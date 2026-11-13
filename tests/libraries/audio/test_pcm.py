@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from voice_bridge.libraries.audio.pcm import boost, duration, from_float, level, resample, to_float
+from voice_bridge.libraries.audio.pcm import boost, duration, from_float, level, ramp, resample, to_float
 
 
 def pcm_of(*values: int) -> bytes:
@@ -54,3 +54,15 @@ def test_resample_keeps_audio_at_the_same_rate() -> None:
 
 def test_duration_counts_seconds_of_mono_16_bit_audio() -> None:
     assert duration(bytes(96000), rate=48000) == 1.0
+
+
+def test_a_ramp_up_starts_silent_and_ends_whole() -> None:
+    assert to_float(ramp(pcm_of(16384, 16384, 16384), 0.0, 1.0)).tolist() == [0.0, 0.25, 0.5]
+
+
+def test_a_ramp_down_ends_silent() -> None:
+    assert to_float(ramp(pcm_of(16384, 16384, 16384), 1.0, 0.0)).tolist() == [0.5, 0.25, 0.0]
+
+
+def test_a_ramp_of_nothing_is_nothing() -> None:
+    assert ramp(b"", 0.0, 1.0) == b""

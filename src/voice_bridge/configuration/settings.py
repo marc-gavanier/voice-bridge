@@ -3,7 +3,16 @@ from pathlib import Path
 from typing import ClassVar, Literal, Self, override
 
 from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path
-from pydantic import BaseModel, ConfigDict, HttpUrl, JsonValue, PositiveFloat, SecretStr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    HttpUrl,
+    JsonValue,
+    NonNegativeFloat,
+    PositiveFloat,
+    SecretStr,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 APP_NAME = "voice-bridge"
@@ -80,6 +89,8 @@ class HoldMusicSettings(Section):
     file: Path | None = None
     delay: float = 2.0
     volume: float = 0.3
+    fade_in: NonNegativeFloat = 1.0
+    fade_out: NonNegativeFloat = 0.3
 
 
 class UnderstandingSettings(Section):

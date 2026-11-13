@@ -1,5 +1,7 @@
+from array import array
 from dataclasses import dataclass, field
 
+import numpy as np
 import pytest
 
 from voice_bridge.features.speaking.abilities.hold_music.domain.ports import Speaker
@@ -72,3 +74,38 @@ async def test_the_music_resumes_where_it_stopped() -> None:
     await played(music, sleeps=0)
     await played(music, sleeps=0)
     assert speaker.played == [b"ab", b"cd", b"ef", b"gh"]
+
+
+LOUD = np.full(8, 16384, dtype=np.int16).tobytes()
+
+
+def loud_for(speaker: Speaker, *, fade_in: float = 0.0, fade_out: float = 0.0) -> HoldMusic:
+    return HoldMusic(track=Track(pcm=LOUD), speaker=speaker, rate=RATE, chunk=1.0, fade_in=fade_in, fade_out=fade_out)
+
+
+def samples_of(pcm: bytes) -> list[int]:
+    return array("h", pcm).tolist()
+
+
+async def test_the_music_fades_in_before_its_first_chunk() -> None:
+    speaker = RecordedSpeaker()
+    await played(loud_for(speaker, fade_in=2.0), sleeps=0)
+    assert samples_of(speaker.played[0]) == [0, 5461, 10922, 16384]
+
+
+async def test_without_a_fade_in_the_music_starts_whole() -> None:
+    speaker = RecordedSpeaker()
+    await played(loud_for(speaker), sleeps=0)
+    assert samples_of(speaker.played[0]) == [16384, 16384]
+
+
+def test_fading_out_plays_the_next_of_the_music_down_to_silence() -> None:
+    speaker = RecordedSpeaker()
+    loud_for(speaker, fade_out=2.0).fade()
+    assert samples_of(speaker.played[0]) == [16384, 10922, 5461, 0]
+
+
+def test_without_a_fade_out_stopping_plays_nothing_more() -> None:
+    speaker = RecordedSpeaker()
+    loud_for(speaker).fade()
+    assert speaker.played == []
