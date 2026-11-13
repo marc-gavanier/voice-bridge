@@ -103,6 +103,7 @@ class Settings(BaseSettings):
     log_file: Path = user_log_path(APP_NAME) / f"{APP_NAME}.log"
     logging: dict[str, JsonValue] | None = None
     hang_after: PositiveFloat = 30.0
+    activity_socket: Path = user_runtime_path(APP_NAME) / "activity.sock"
     cache_directory: Path = user_cache_path(APP_NAME)
     claude_pid: int | None = None
 

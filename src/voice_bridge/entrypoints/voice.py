@@ -14,12 +14,18 @@ from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
+from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
+    Activity,
+    listen_to_claude,
+)
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
     Mouth,
     hold_conversation,
 )
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
+    ClaudeBusy,
+    ClaudeIdle,
     Event,
     SoundDismissed,
     SpeechEnded,
@@ -252,6 +258,9 @@ async def converse(
         stops = not noise and understanding(text).stops
         await events_in.send(Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None))
 
+    async def claude_is(activity: Activity) -> None:
+        await events_in.send(ClaudeBusy(at=anyio.current_time()) if activity == "busy" else ClaudeIdle())
+
     async def relay_replies() -> None:
         async for reply in replies:
             await events_in.send(Asked(sentences=sentences_of(reply.text), ending=reply.ending))
@@ -307,4 +316,5 @@ async def converse(
         _ = tasks.start_soon(transcribe_utterances, transcription, utterances_out, transcribed)
         _ = tasks.start_soon(hold_conversation, mouth, events_out, events_in.clone())
         _ = tasks.start_soon(relay_replies)
+        _ = tasks.start_soon(listen_to_claude, settings.activity_socket, claude_is)
         _ = tasks.start_soon(greet)
