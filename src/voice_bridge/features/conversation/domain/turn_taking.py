@@ -213,7 +213,7 @@ def _stop_holding(state: Conversation, commands: tuple[Command, ...] = ()) -> St
     return replace(state, holding=False), (StopHoldMusic(), *commands)
 
 
-def _await_hold(state: Conversation, commands: tuple[Command, ...], after: float = 0.0) -> Step:
+def _await_hold(state: Conversation, commands: tuple[Command, ...], after: float) -> Step:
     if not state.working:
         return state, commands
     ticket = state.next_silence
@@ -254,9 +254,7 @@ def _play(state: Conversation, event: Synthesized) -> Step:
     last_end = max((event.at, *(scheduled.ends_at for scheduled in state.playing)))
     scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
     still_playing = tuple(each for each in state.playing if each.plays_at(event.at))
-    played = replace(
-        state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True, awaiting_hold=None
-    )
+    played = replace(state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True)
     voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
     if unspoken(voiced):
         return voiced, commands

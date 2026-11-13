@@ -478,3 +478,18 @@ def test_a_stop_drops_the_sentences_still_waiting_for_their_voice() -> None:
         )
         == ()
     )
+
+
+def test_words_given_to_a_silent_claude_bring_the_music_after_its_delay_alone() -> None:
+    assert AwaitHold(ticket=1, after=0.0) in last_commands(
+        Transcribed(text="Où en est-on ?"), SilenceLasted(ticket=0, at=2.0)
+    )
+
+
+def test_words_given_after_claude_s_voice_ended_bring_the_music_after_its_delay_alone() -> None:
+    assert AwaitHold(ticket=1, after=0.0) in last_commands(
+        Asked(sentences=(FIRST,)),
+        Synthesized(ticket=0, pcm=SOUND, duration=1.0, at=0.0),
+        Transcribed(text="Et ensuite ?"),
+        SilenceLasted(ticket=0, at=5.0),
+    )

@@ -389,6 +389,13 @@ Feature: Turn taking
       When the wait goes on
       Then nothing happens
 
+    Scenario: A reply once Claude was done at work leaves no room for music
+      Given Claude is working on "Where are we?"
+      And Claude is done
+      And Claude replied "Good."
+      When Claude's voice for "Good." is ready
+      Then the bridge waits for no hold music
+
     Scenario: Claude done stops the hold music
       Given the hold music plays
       When Claude is done
