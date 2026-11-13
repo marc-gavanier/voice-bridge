@@ -1,7 +1,7 @@
 # ADR-014 — Claude Code's hooks tell when Claude works
 
 **Date**: 2026-11-13
-**Status**: accepted
+**Status**: accepted, partly superseded by [ADR-016](ADR-016-the-bridge-keeps-and-speaks-the-board-of-agents.md) for the socket's messages
 
 ## Context
 
