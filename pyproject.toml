@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Talk to a Claude Code session by voice over Mumble"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.14,<3.15"
+requires-python = ">=3.15,<3.16"
 dependencies = [
     "anyio>=4.15.1",
     "faster-whisper",
