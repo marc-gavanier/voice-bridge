@@ -54,5 +54,5 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
 
 def main() -> None:
     settings = load_settings(config_file("Talk to this Claude Code session over Mumble.", sys.argv[1:]))
-    configure_logging(settings.log_file)
+    configure_logging(settings.log_file, settings.logging)
     anyio.run(serve, settings, language_pack(settings.language))

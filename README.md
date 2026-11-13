@@ -135,6 +135,33 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`languages/`](src/voice_bridge/configuration/languages) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
+| `logging` | none | Where the bridge's log goes, its levels and its format, in the standard library's [`dictConfig`](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema) schema; see below. Without it, the log goes to stderr and to `log_file`. The recorder and the rehearsal keep their own files |
+
+### Send the log elsewhere
+
+The `[logging]` section replaces the default log with any setup of Python's [`logging`](https://docs.python.org/3/library/logging.html): loggers pick what is logged and at which level, handlers where it goes, formatters what a line looks like. `version = 1` and `disable_existing_loggers = false` are set for you, so the bridge's loggers, created before the section applies, keep logging. A section `dictConfig` refuses stops the bridge at start with `invalid [logging] section:` and the reason.
+
+To the systemd journal, through the `/dev/log` socket it listens on, with `httpx` quieted, then read it with `journalctl -t voice-bridge -f`:
+
+```toml
+[logging.formatters.journal]
+format = "%(levelname)s %(name)s %(message)s"
+
+[logging.handlers.journal]
+class = "logging.handlers.SysLogHandler"
+address = "/dev/log"
+formatter = "journal"
+"." = { ident = "voice-bridge: " }
+
+[logging.loggers.httpx]
+level = "WARNING"
+
+[logging.root]
+level = "INFO"
+handlers = ["journal"]
+```
+
+To a syslog server on the network, a handler with `address = ["logs.example.org", 514]` sends over UDP; add `socktype = "ext://socket.SOCK_STREAM"` for TCP, which connects at start, so an unreachable server stops the bridge. To keep the file as well, add a `logging.handlers.RotatingFileHandler` handler with its `filename` and list both handlers in `root`.
 
 ### Add a language
 

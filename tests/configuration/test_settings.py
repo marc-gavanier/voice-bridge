@@ -139,3 +139,12 @@ def test_the_hold_music_comes_from_the_config_file(tmp_path: Path) -> None:
 
 def test_the_speech_engine_is_checked_on_its_health_route_by_default(config_file: Path) -> None:
     assert load_settings(config_file).speech.health == "/health"
+
+
+def test_no_logging_section_is_set_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).logging is None
+
+
+def test_the_logging_section_comes_from_the_config_file(config_file: Path) -> None:
+    _ = config_file.write_text(f'{MINIMAL}\n[logging.loggers.httpx]\nlevel = "WARNING"\n', encoding="utf-8")
+    assert load_settings(config_file).logging == {"loggers": {"httpx": {"level": "WARNING"}}}
