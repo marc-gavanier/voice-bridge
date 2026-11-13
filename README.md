@@ -98,6 +98,8 @@ sequenceDiagram
 uv sync
 ```
 
+`uv sync --extra otel` adds OpenTelemetry, to [export traces, metrics and the log](#export-traces-metrics-and-the-log) to a collector.
+
 ## Configure
 
 The bridge reads `~/.config/voice-bridge/config.toml`; `--config` points at another file. Variables named `VOICE_BRIDGE_<KEY>`, or `VOICE_BRIDGE_<SECTION>__<KEY>` for a key inside a section, override the file. An unknown key or a missing value stops the bridge at start. Start from [`config.example.toml`](config.example.toml) and keep the file readable by you only, since it holds the server password:
@@ -163,7 +165,18 @@ handlers = ["journal"]
 
 To a syslog server on the network, a handler with `address = ["logs.example.org", 514]` sends over UDP; add `socktype = "ext://socket.SOCK_STREAM"` for TCP, which connects at start, so an unreachable server stops the bridge. To keep the file as well, add a `logging.handlers.RotatingFileHandler` handler with its `filename` and list both handlers in `root`.
 
-To an OpenTelemetry collector over OTLP, nothing goes in the section: start the bridge under [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/), with `opentelemetry-distro`, `opentelemetry-exporter-otlp` and `opentelemetry-instrumentation-logging` installed next to it: `scripts/claude-voice.sh` then runs `opentelemetry-instrument voice-bridge-channel` instead of `voice-bridge-channel`, with `OTEL_SERVICE_NAME=voice-bridge`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none` set. Its handler joins the ones of the section, or of the default log, which stays written as well.
+To an OpenTelemetry collector, see below: the log joins the traces and metrics there, and the section's handlers keep writing it.
+
+### Export traces, metrics and the log
+
+Nothing leaves the machine by default. With the `otel` extra installed and an OTLP endpoint set, the bridge exports, to the collector of your choice:
+
+- **one trace per turn**: a `turn` span from the end of your voice until your next words reach Claude, with a span for each step: `transcription`, `settle` before your words are pushed, `claude` until its first reply, each `synthesis` or `failed synthesis`, and each `playback`, cut where you interrupted; the turn tells whether it was `interrupted`;
+- **metrics**: `voice_bridge.turn.duration` and `voice_bridge.step.duration` by step, in seconds; `voice_bridge.events`, the interruptions and the sounds dismissed as too short; `voice_bridge.audio.stall.duration`, the gaps in your audio reaching the bridge;
+- **the log**, alongside the handlers of `[logging]` or the default log, which keep writing.
+
+The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, and imports OpenTelemetry only then ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)). The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): in `scripts/claude-voice.sh`, run `opentelemetry-instrument voice-bridge-channel` instead of `voice-bridge-channel`, with the endpoint and `OTEL_SERVICE_NAME=voice-bridge` in the environment.
+
 
 ### Add a language
 
@@ -250,6 +263,7 @@ Two more commands help test the voice path without Claude:
 | The bridge hears you but Claude never answers | `/mcp` in the session, then the log for `forwarded` lines |
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
 | `certificate verify failed` | The server has a new certificate: export it again |
+| A slow turn, without knowing which step took the time | With [telemetry exported](#export-traces-metrics-and-the-log), the turn's trace shows each step; without it, the log's timing lines tell the same, one by one |
 | Claude's voice cuts itself off | Lines `interrupted` with no one speaking: use headphones, or raise `hearing.volume_threshold` |
 | Claude answers half a sentence, or its acknowledgement plays while you are still thinking | Lines `joined N pieces said with pauses` show the pauses `hearing.settle` already covered; a `forwarded` line followed within seconds by words that continue it calls for a longer `hearing.settle` |
 | With `hearing.smart_turn`, sentences are cut while you pause mid-thought | Lines `turn finished (p=…)` before the cut: raise `hearing.turn_threshold` or `hearing.short_pause`; lines `turn not finished (p=…)` before the cut: raise `hearing.unfinished_silence`; `end of turn judged in … ms` tells what each decision costs |
@@ -271,9 +285,11 @@ flowchart LR
         channel["Channel<br/>MCP server"]
         mouth["Voice<br/>sentences for the ear"]
         loudspeaker["Loudspeaker<br/>playback buffer"]
+        telemetry["Telemetry<br/>OpenTelemetry, optional"]
     end
     claude["Claude Code"]
     voxtral["Voxtral"]
+    collector["OTLP collector"]
 
     mumble -->|"speaker's audio"| connection --> ears
     ears -->|"utterance"| whisper
@@ -284,6 +300,9 @@ flowchart LR
     turns -->|"synthesize"| mouth <-->|"HTTP"| voxtral
     mouth -->|"speech"| turns
     turns -->|"play, stop"| loudspeaker -->|"bridge's audio"| mumble
+    turns -.->|"turns, counts"| telemetry
+    connection -.->|"stalls"| telemetry
+    telemetry -.->|"OTLP"| collector
 ```
 
 The code is split into features, on top of shared libraries; entry points only wire them together.
@@ -293,7 +312,7 @@ src/voice_bridge/
   features/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
     speaking/      sentences written for the ear, synthesis (OpenAI speech API, Voxtral by default)
-    conversation/  turn taking, interruptions, the Claude channel (MCP)
+    conversation/  turn taking, interruptions, turn traces, the Claude channel (MCP)
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
   libraries/

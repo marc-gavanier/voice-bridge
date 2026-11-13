@@ -130,7 +130,11 @@ def _report_presence(event: events.Event, listened: Listened) -> None:
 
 
 async def pump_audio(
-    session: Session, listened: Listened, packets: ObjectSendStream[Packet], clock: Callable[[], float]
+    session: Session,
+    listened: Listened,
+    packets: ObjectSendStream[Packet],
+    clock: Callable[[], float],
+    stalled_for: Callable[[float], None],
 ) -> None:
     decoder = opus.Decoder(channels=1)
     previous: Packet | None = None
@@ -160,6 +164,7 @@ async def pump_audio(
                     packet.frame_number,
                     stalled.frames_skipped,
                 )
+                stalled_for(stalled.waited)
                 recovery = Recovery.after(packet)
             await packets.send(packet)
             decoder = opus.Decoder(channels=1) if event.is_terminator else decoder

@@ -17,10 +17,12 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     Event,
     SilenceLasted,
+    SoundDismissed,
     SpeechEnded,
     Transcribed,
     VoiceDetected,
 )
+from voice_bridge.features.conversation.domain.turn_trace import Counted, FinishedTurn, Report, Span
 
 pytestmark = pytest.mark.anyio
 
@@ -65,6 +67,7 @@ class Talk:
     played: ObjectReceiveStream[bytes]
     forwarded: ObjectReceiveStream[tuple[str, bool, str | None]]
     left: ObjectReceiveStream[float]
+    reports: list[Report]
 
 
 @asynccontextmanager
@@ -75,6 +78,7 @@ async def talking(
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
     forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool, str | None]](100)
     left_in, left_out = anyio.create_memory_object_stream[float](100)
+    reports: list[Report] = []
     started = anyio.current_time()
 
     async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
@@ -97,6 +101,7 @@ async def talking(
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
         leave=leave,
+        telemetry=reports.append,
     )
     emit = say.clone()
     async with (
@@ -112,7 +117,7 @@ async def talking(
         anyio.create_task_group() as tasks,
     ):
         _ = tasks.start_soon(hold_conversation, mouth, events, emit)
-        yield Talk(say=say, played=played_out, forwarded=forwarded_out, left=left_out)
+        yield Talk(say=say, played=played_out, forwarded=forwarded_out, left=left_out, reports=reports)
         tasks.cancel_scope.cancel()
 
 
@@ -253,3 +258,26 @@ async def test_the_silence_already_kept_since_the_end_of_the_voice_is_not_waited
         with anyio.fail_after(1):
             forwarded = await talk.forwarded.receive()
     assert forwarded[0] == "Bonjour."
+
+
+async def reported_after(*events: Event) -> list[Report]:
+    async with talking() as talk:
+        for event in events:
+            await talk.say.send(event)
+        await wait_all_tasks_blocked()
+    return talk.reports
+
+
+async def test_a_dismissed_sound_is_reported_at_once() -> None:
+    assert await reported_after(SoundDismissed()) == [Counted(name="sound dismissed")]
+
+
+async def test_the_turn_under_way_is_reported_when_the_conversation_ends() -> None:
+    assert await reported_after(SpeechEnded(at=0.0), Transcribed(text="Bonjour."), SilenceLasted(ticket=0, at=0.0)) == [
+        FinishedTurn(
+            start=0.0,
+            end=0.0,
+            steps=(Span(name="transcription", start=0.0, end=0.0), Span(name="settle", start=0.0, end=0.0)),
+            interrupted=False,
+        )
+    ]

@@ -11,10 +11,17 @@ from voice_bridge.configuration.log_config import apply_logging, default_logging
 LARGEST_LOG = 5_000_000
 
 
+def close_handlers(logger: logging.Logger) -> None:
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        handler.close()
+
+
 @pytest.fixture(autouse=True)
 def plain_logging() -> Iterator[None]:
     yield
     logging.captureWarnings(capture=False)
+    close_handlers(logging.getLogger())
     logging.config.dictConfig({"version": 1, "disable_existing_loggers": False})
 
 

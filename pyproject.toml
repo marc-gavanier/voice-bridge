@@ -30,6 +30,14 @@ voice-bridge-rehearsal = "voice_bridge.entrypoints.rehearsal:main"
 voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
 voice-bridge-stop-hook = "voice_bridge.entrypoints.stop_hook:main"
 
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-api>=1.45.2",
+    "opentelemetry-distro>=0.66b2",
+    "opentelemetry-exporter-otlp>=1.45.2",
+    "opentelemetry-instrumentation-logging>=0.66b2",
+]
+
 [dependency-groups]
 dev = [
     "alint>=0.20.1",
@@ -40,6 +48,7 @@ dev = [
     "hypothesis>=6.170.14",
     "import-linter>=2.15",
     "mutmut>=3.8.1",
+    "opentelemetry-sdk>=1.45.2",
     "pre-commit-hooks>=6.0.0",
     "prek>=0.5.9",
     "pydeps>=3.0.9",
@@ -72,6 +81,7 @@ ignore = ["D", "CPY", "COM812"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "PLR2004", "INP001", "TC001", "TC002", "TC003"]
+"src/voice_bridge/entrypoints/telemetry.py" = ["PLC0415"]
 
 [tool.ruff.lint.flake8-type-checking]
 runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic_settings.BaseSettings"]
@@ -153,7 +163,13 @@ allowed_importers = ["voice_bridge.entrypoints", "voice_bridge.features.*.abilit
 known_first_party = ["voice_bridge"]
 
 [tool.deptry.per_rule_ignores]
-DEP002 = ["nvidia-cublas-cu12", "nvidia-cudnn-cu12"]
+DEP002 = [
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12",
+    "opentelemetry-distro",
+    "opentelemetry-exporter-otlp",
+    "opentelemetry-instrumentation-logging",
+]
 
 [tool.commitizen]
 name = "cz_conventional_commits"

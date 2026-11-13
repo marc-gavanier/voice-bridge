@@ -24,6 +24,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Synthesized,
     step,
 )
+from voice_bridge.features.conversation.domain.turn_trace import Trace, close, observe
 from voice_bridge.libraries.audio.pcm import duration
 
 if TYPE_CHECKING:
@@ -35,7 +36,9 @@ if TYPE_CHECKING:
         Acknowledgement,
         Claude,
         Speaker,
+        Telemetry,
     )
+    from voice_bridge.features.conversation.domain.turn_trace import Report
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +55,7 @@ class Mouth:
     hold_music: Callable[[], Awaitable[None]] | None
     hold_music_delay: float
     leave: Callable[[], Awaitable[None]]
+    telemetry: Telemetry
 
 
 @dataclass(slots=True)
@@ -170,12 +174,29 @@ async def _execute(
             assert_never(command)
 
 
+def _report(mouth: Mouth, reports: tuple[Report, ...]) -> None:
+    for report in reports:
+        mouth.telemetry(report)
+
+
+def _observe(mouth: Mouth, trace: Trace, item: Event | Command) -> Trace:
+    observed, reports = observe(trace, mouth.clock(), item)
+    _report(mouth, reports)
+    return observed
+
+
 async def hold_conversation(mouth: Mouth, events: AsyncIterable[Event], emit: ObjectSendStream[Event]) -> None:
     state = Conversation(settle=mouth.settle, hold_music_delay=mouth.hold_music_delay)
+    trace = Trace()
     playback = _Playback()
-    async with anyio.create_task_group() as tasks:
-        async for event in events:
-            state, commands = step(state, event)
-            for command in commands:
-                await _execute(mouth, emit, tasks, playback, command)
-        tasks.cancel_scope.cancel()
+    try:
+        async with anyio.create_task_group() as tasks:
+            async for event in events:
+                trace = _observe(mouth, trace, event)
+                state, commands = step(state, event)
+                for command in commands:
+                    trace = _observe(mouth, trace, command)
+                    await _execute(mouth, emit, tasks, playback, command)
+            tasks.cancel_scope.cancel()
+    finally:
+        _report(mouth, close(trace))

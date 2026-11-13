@@ -72,12 +72,30 @@ class FakeSession:
             yield event
 
 
-async def pumped(*received: events.Event, clock: Callable[[], float] = lambda: 42.0) -> list[Packet]:
+def no_stall(_seconds: float, /) -> None:
+    return None
+
+
+async def pumped(
+    *received: events.Event, clock: Callable[[], float] = lambda: 42.0, stalled_for: Callable[[float], None] = no_stall
+) -> list[Packet]:
     sent, packets = anyio.create_memory_object_stream[Packet](10)
     async with packets:
         async with sent:
-            await pump_audio(FakeSession(received=received), holds_certificate(SPEAKER_HASH), sent, clock=clock)
+            await pump_audio(
+                FakeSession(received=received),
+                holds_certificate(SPEAKER_HASH),
+                sent,
+                clock=clock,
+                stalled_for=stalled_for,
+            )
         return [packet async for packet in packets]
+
+
+async def stalls_of(*received: events.Event, arrivals: tuple[float, ...]) -> list[float]:
+    stalls: list[float] = []
+    _ = await pumped(*received, clock=iter(arrivals).__next__, stalled_for=stalls.append)
+    return stalls
 
 
 async def test_the_speaker_audio_is_decoded_to_twenty_milliseconds_of_pcm() -> None:
@@ -90,6 +108,14 @@ async def test_a_packet_keeps_its_frame_number() -> None:
 
 async def test_a_packet_is_stamped_with_the_time_it_arrived() -> None:
     assert (await pumped(audio_from(1, 0)))[0].at == 42.0
+
+
+async def test_a_stall_is_reported_with_its_wait() -> None:
+    assert await stalls_of(audio_from(1, 0), audio_from(1, 2), arrivals=(1.0, 1.5)) == [0.5]
+
+
+async def test_packets_on_time_report_no_stall() -> None:
+    assert await stalls_of(audio_from(1, 0), audio_from(1, 1), arrivals=(1.0, 1.02)) == []
 
 
 async def test_the_audio_of_other_users_is_ignored() -> None:

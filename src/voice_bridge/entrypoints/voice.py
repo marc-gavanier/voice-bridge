@@ -13,6 +13,7 @@ from faster_whisper import WhisperModel
 from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
+from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
     Mouth,
     hold_conversation,
@@ -232,11 +233,16 @@ async def converse(
     hold_music = await _hold_music(settings, speaker)
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     speech_settings = settings.speech
+    telemetry, stalled_for = chosen_telemetry(anyio.current_time)
 
     async def connected(client: MumbleClient) -> None:
         _ = client.play(buffer)
         await pump_audio(
-            client, holds_certificate(settings.mumble.speaker_certificate_hash), packets_in, anyio.current_time
+            client,
+            holds_certificate(settings.mumble.speaker_certificate_hash),
+            packets_in,
+            anyio.current_time,
+            stalled_for,
         )
 
     async def heard(each: Heard) -> None:
@@ -280,6 +286,7 @@ async def converse(
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
             leave=partial(_end_claude_code, settings.claude_pid),
+            telemetry=telemetry,
         )
 
         async def greet() -> None:

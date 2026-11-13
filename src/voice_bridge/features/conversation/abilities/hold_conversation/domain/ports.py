@@ -1,4 +1,7 @@
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from voice_bridge.features.conversation.domain.turn_trace import Report
 
 
 class Claude(Protocol):
@@ -12,3 +15,7 @@ class Acknowledgement(Protocol):
 class Speaker(Protocol):
     def play(self, pcm: bytes) -> None: ...
     def stop(self) -> None: ...
+
+
+class Telemetry(Protocol):
+    def __call__(self, report: Report, /) -> None: ...
