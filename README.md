@@ -137,6 +137,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`languages/`](src/voice_bridge/configuration/languages) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
+| `hang_after` | `30.0` | Seconds the bridge's event loop may stay frozen before the stack of every thread is written to the `.crash` file; logged as a warning if the bridge resumes, see [Diagnose](#diagnose) |
 | `logging` | none | Where the bridge's log goes, its levels and its format, in the standard library's [`dictConfig`](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema) schema; see below. Without it, the log goes to stderr and to `log_file`. The recorder and the rehearsal keep their own files |
 
 ### One tool per signal
@@ -200,6 +201,8 @@ The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OT
 An error nobody expected stops the bridge, and is first written to the log with its traceback, as `stopped on an unexpected error`, so it reaches every handler of `[logging]`. With the `sentry` extra installed and `SENTRY_DSN` set, the [Sentry SDK](https://docs.sentry.io/platforms/python/) also sends every line logged at `ERROR` or above, with its traceback, as a Sentry event; `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE` are read as usual.
 
 A crash outside Python, in Whisper's CTranslate2, ONNX Runtime or the CUDA driver, raises no exception: [`faulthandler`](https://docs.python.org/3/library/faulthandler.html) writes the stack of every thread to `voice-bridge.crash`, next to the log, and the next start logs it at `ERROR` as `the previous run crashed outside Python`, so it reaches the log's handlers and Sentry too; the rehearsal and the recorder have their own `.crash` files.
+
+A bridge frozen without crashing is caught too: a task re-arms `faulthandler.dump_traceback_later` several times per `hang_after`, so a loop that stops turning for longer gets the stack of every thread written to the `.crash` file without being stopped, and logged at `WARNING` as `the bridge was blocked for over … s` once it resumes.
 
 Nothing said reaches Sentry: the bridge turns off breadcrumbs, which would carry the lines logged before the error, transcripts and replies included, and the local variables of the traceback's frames.
 
@@ -289,6 +292,8 @@ Two more commands help test the voice path without Claude:
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
 | `certificate verify failed` | The server has a new certificate: export it again |
 | A slow turn, without knowing which step took the time | With [telemetry exported](#export-traces-metrics-and-the-log), the turn's trace shows each step; without it, the log's timing lines tell the same, one by one |
+| Claude's voice or your audio stutters, with no stall in the log | Short freezes of the event loop: add `PYTHONASYNCIODEBUG=1` to `~/.config/voice-bridge/environment` for a session, and asyncio's [debug mode](https://docs.python.org/3/library/asyncio-dev.html#debug-mode) logs every step that held the loop more than 0.1 s, the length of five audio frames, as `Executing … took … seconds`; it slows everything a little, so remove it afterwards |
+| The bridge went silent but still runs | `the bridge was blocked for over … s` in the log, with the stack of every thread at the moment it froze |
 | The bridge stopped, and Claude Code lost the `voice` channel | `stopped on an unexpected error` in the log, with its traceback; with `SENTRY_DSN` set, the same error in Sentry. Nothing in the log: a crash outside Python, written to `voice-bridge.crash` and logged at the next start |
 | Claude's voice cuts itself off | Lines `interrupted` with no one speaking: use headphones, or raise `hearing.volume_threshold` |
 | Claude answers half a sentence, or its acknowledgement plays while you are still thinking | Lines `joined N pieces said with pauses` show the pauses `hearing.settle` already covered; a `forwarded` line followed within seconds by words that continue it calls for a longer `hearing.settle` |

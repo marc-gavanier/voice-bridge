@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import ClassVar, Literal, Self, override
 
 from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path
-from pydantic import BaseModel, ConfigDict, HttpUrl, JsonValue, SecretStr, model_validator
+from pydantic import BaseModel, ConfigDict, HttpUrl, JsonValue, PositiveFloat, SecretStr, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 APP_NAME = "voice-bridge"
@@ -102,6 +102,7 @@ class Settings(BaseSettings):
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = user_log_path(APP_NAME) / f"{APP_NAME}.log"
     logging: dict[str, JsonValue] | None = None
+    hang_after: PositiveFloat = 30.0
     cache_directory: Path = user_cache_path(APP_NAME)
     claude_pid: int | None = None
 

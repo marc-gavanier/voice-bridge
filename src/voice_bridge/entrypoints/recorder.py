@@ -1,13 +1,14 @@
 import math
 import sys
 import time
+from functools import partial
 from typing import TYPE_CHECKING, Final
 
 import anyio
 
 from voice_bridge.configuration.settings import Settings, load_settings
 from voice_bridge.entrypoints.arguments import config_file
-from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes
+from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, watching_hangs
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
 from voice_bridge.entrypoints.voice import access
@@ -39,5 +40,5 @@ def main() -> None:
     settings = load_settings(config_file("Record the bridge's voice as it reaches Mumble.", sys.argv[1:]))
     configure_logging(settings.log_file.with_name("recorder.log"))
     _ = report_errors()
-    with watching_crashes(crash_file_of(settings.log_file.with_name("recorder.log"))):
-        run_logged(record_bridge, settings)
+    with watching_crashes(crash_file_of(settings.log_file.with_name("recorder.log"))) as watch:
+        run_logged(watching_hangs, watch, settings.hang_after, partial(record_bridge, settings))

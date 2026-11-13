@@ -148,3 +148,13 @@ def test_no_logging_section_is_set_by_default(config_file: Path) -> None:
 def test_the_logging_section_comes_from_the_config_file(config_file: Path) -> None:
     _ = config_file.write_text(f'{MINIMAL}\n[logging.loggers.httpx]\nlevel = "WARNING"\n', encoding="utf-8")
     assert load_settings(config_file).logging == {"loggers": {"httpx": {"level": "WARNING"}}}
+
+
+def test_a_hang_is_reported_after_thirty_seconds_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).hang_after == 30.0
+
+
+def test_a_hang_delay_must_be_positive(config_file: Path) -> None:
+    _ = config_file.write_text(f"hang_after = 0\n{MINIMAL}", encoding="utf-8")
+    with pytest.raises(ValidationError, match="hang_after"):
+        _ = load_settings(config_file)
