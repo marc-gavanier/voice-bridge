@@ -22,6 +22,7 @@ On 2026-11-13, `opentelemetry-instrumentation-logging` was tried with the bridge
 - The collector is each user's choice: the bridge names none. One collector can route each signal to its own tool.
 - The tools keep the environment variables of their own specifications, `OTEL_*` and `SENTRY_*`, which their SDKs read, instead of sections of `config.toml` the bridge would translate: `scripts/claude-voice.sh` reads them from one file, `~/.config/voice-bridge/environment`, passes them to the bridge only, and adds the extras and `opentelemetry-instrument` they need. This follows the usual Twelve-Factor split: the application's settings in its file, deployment settings and secrets in the environment.
 - An error nobody expected is logged with its traceback before the entry point exits, instead of reaching only stderr, which Claude Code reads and the log never kept.
+- A crash outside Python, which raises no exception, is written by the standard library's `faulthandler` to a `.crash` file next to the log, since it needs a file descriptor and cannot go through `logging`; the next start logs that dump at `ERROR`, so it reaches the same handlers and Sentry, then empties the file.
 - Errors reach Sentry through its own SDK, in a `sentry` extra, initialized only when `SENTRY_DSN` is set: its logging integration turns each record at `ERROR` or above into an event. Breadcrumbs and the local variables of frames are turned off, since both would carry what the speaker said and Claude's replies.
 
 ## Consequences

@@ -199,6 +199,8 @@ The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OT
 
 An error nobody expected stops the bridge, and is first written to the log with its traceback, as `stopped on an unexpected error`, so it reaches every handler of `[logging]`. With the `sentry` extra installed and `SENTRY_DSN` set, the [Sentry SDK](https://docs.sentry.io/platforms/python/) also sends every line logged at `ERROR` or above, with its traceback, as a Sentry event; `SENTRY_ENVIRONMENT` and `SENTRY_RELEASE` are read as usual.
 
+A crash outside Python, in Whisper's CTranslate2, ONNX Runtime or the CUDA driver, raises no exception: [`faulthandler`](https://docs.python.org/3/library/faulthandler.html) writes the stack of every thread to `voice-bridge.crash`, next to the log, and the next start logs it at `ERROR` as `the previous run crashed outside Python`, so it reaches the log's handlers and Sentry too; the rehearsal and the recorder have their own `.crash` files.
+
 Nothing said reaches Sentry: the bridge turns off breadcrumbs, which would carry the lines logged before the error, transcripts and replies included, and the local variables of the traceback's frames.
 
 ### Add a language
@@ -287,7 +289,7 @@ Two more commands help test the voice path without Claude:
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
 | `certificate verify failed` | The server has a new certificate: export it again |
 | A slow turn, without knowing which step took the time | With [telemetry exported](#export-traces-metrics-and-the-log), the turn's trace shows each step; without it, the log's timing lines tell the same, one by one |
-| The bridge stopped, and Claude Code lost the `voice` channel | `stopped on an unexpected error` in the log, with its traceback; with `SENTRY_DSN` set, the same error in Sentry |
+| The bridge stopped, and Claude Code lost the `voice` channel | `stopped on an unexpected error` in the log, with its traceback; with `SENTRY_DSN` set, the same error in Sentry. Nothing in the log: a crash outside Python, written to `voice-bridge.crash` and logged at the next start |
 | Claude's voice cuts itself off | Lines `interrupted` with no one speaking: use headphones, or raise `hearing.volume_threshold` |
 | Claude answers half a sentence, or its acknowledgement plays while you are still thinking | Lines `joined N pieces said with pauses` show the pauses `hearing.settle` already covered; a `forwarded` line followed within seconds by words that continue it calls for a longer `hearing.settle` |
 | With `hearing.smart_turn`, sentences are cut while you pause mid-thought | Lines `turn finished (p=…)` before the cut: raise `hearing.turn_threshold` or `hearing.short_pause`; lines `turn not finished (p=…)` before the cut: raise `hearing.unfinished_silence`; `end of turn judged in … ms` tells what each decision costs |
