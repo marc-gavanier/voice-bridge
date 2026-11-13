@@ -14,6 +14,7 @@ from voice_bridge.configuration.language import (
 from voice_bridge.configuration.settings import Language, UnderstandingSettings
 
 LANGUAGES: Final[tuple[Language, ...]] = ("ar", "de", "en", "es", "fr", "hi", "it", "nl", "pt")
+ANNOUNCED_AGENTS: Final = 5
 
 
 type RouteOf = Callable[[Language, str], str]
@@ -114,6 +115,13 @@ hallucinations = ["", "you"]
 hallucination_prefixes = ["subtitles by"]
 neutral_acknowledgements = ["Okay."]
 
+[announcements]
+at_work = ["One at work."]
+many_at_work = "Many at work."
+finished = ["One finished, one left."]
+many_left = "One finished, many left."
+none_at_work = "None at work."
+
 [[acknowledgements]]
 name = "yes"
 examples = ["Yes."]
@@ -149,6 +157,38 @@ def test_a_language_file_missing_a_key_is_refused() -> None:
 def test_a_route_with_an_unknown_key_is_refused() -> None:
     with pytest.raises(ValidationError):
         _ = parse_language_pack(MINIMAL_PACK.replace('name = "yes"', 'name = "yes"\nstop = true'), instructions="")
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_language_announces_up_to_five_agents_at_work(language: Language) -> None:
+    assert len(language_pack(language).announcements.at_work) == ANNOUNCED_AGENTS
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_language_announces_up_to_five_agents_left(language: Language) -> None:
+    assert len(language_pack(language).announcements.finished) == ANNOUNCED_AGENTS
+
+
+def every_announcement(language: Language) -> list[str]:
+    announcements = language_pack(language).announcements
+    return [
+        *announcements.at_work,
+        announcements.many_at_work,
+        *announcements.finished,
+        announcements.many_left,
+        announcements.none_at_work,
+    ]
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_announcement_of_a_language_is_its_own_sentence(language: Language) -> None:
+    sentences = every_announcement(language)
+    assert len(set(sentences)) == len(sentences)
+
+
+def test_a_language_file_without_announcements_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        _ = parse_language_pack(MINIMAL_PACK.replace('none_at_work = "None at work."', ""), instructions="")
 
 
 @pytest.mark.parametrize("language", LANGUAGES)

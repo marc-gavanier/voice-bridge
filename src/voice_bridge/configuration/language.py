@@ -22,12 +22,21 @@ class AcknowledgementRoute(_Strict):
     stops: bool = False
 
 
+class AgentAnnouncements(_Strict):
+    at_work: tuple[str, ...]
+    many_at_work: str
+    finished: tuple[str, ...]
+    many_left: str
+    none_at_work: str
+
+
 class LanguagePack(_Strict):
     whisper_code: str
     voice: str
     greeting: str
     acknowledgements: tuple[AcknowledgementRoute, ...]
     neutral_acknowledgements: tuple[str, ...]
+    announcements: AgentAnnouncements
     stop_refusal: str
     delegation_refusal: str
     reply_tool_description: str

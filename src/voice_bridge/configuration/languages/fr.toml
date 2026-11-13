@@ -26,6 +26,25 @@ neutral_acknowledgements = [
   "Ah, d'accord.",
 ]
 
+[announcements]
+at_work = [
+  "Un agent au travail.",
+  "Deux agents au travail.",
+  "Trois agents au travail.",
+  "Quatre agents au travail.",
+  "Cinq agents au travail.",
+]
+many_at_work = "Plus de cinq agents au travail."
+finished = [
+  "Un agent a terminé, il en reste un.",
+  "Un agent a terminé, il en reste deux.",
+  "Un agent a terminé, il en reste trois.",
+  "Un agent a terminé, il en reste quatre.",
+  "Un agent a terminé, il en reste cinq.",
+]
+many_left = "Un agent a terminé, il en reste plus de cinq."
+none_at_work = "Plus aucun agent au travail."
+
 [[acknowledgements]]
 name = "stop"
 threshold = 0.75

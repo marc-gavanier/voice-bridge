@@ -80,3 +80,11 @@ def test_french_refuses_tools_in_french() -> None:
 
 def test_french_asks_the_main_agent_to_delegate_in_french() -> None:
     assert "arrière-plan" in language_pack("fr").delegation_refusal
+
+
+def test_french_announces_the_agents_at_work_in_french() -> None:
+    assert language_pack("fr").announcements.at_work[1] == "Deux agents au travail."
+
+
+def test_french_announces_that_no_agent_is_left_in_french() -> None:
+    assert language_pack("fr").announcements.none_at_work == "Plus aucun agent au travail."
