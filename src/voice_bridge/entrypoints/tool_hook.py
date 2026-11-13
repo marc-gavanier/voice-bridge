@@ -22,6 +22,17 @@ MAIN_AGENT: Final = frozenset(
         "Grep",
         "Glob",
         "ToolSearch",
+        "Skill",
+        "Workflow",
+        "ScheduleWakeup",
+        "CronCreate",
+        "CronList",
+        "CronDelete",
+        "TaskCreate",
+        "TaskGet",
+        "TaskList",
+        "TaskUpdate",
+        "TodoWrite",
     }
 )
 
