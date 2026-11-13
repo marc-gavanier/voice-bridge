@@ -256,11 +256,9 @@ def _is_quiet(state: Conversation) -> bool:
 def _announce(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:
     if state.announcing is None or not _is_quiet(state):
         return state, commands
-    announced = replace(state, announcing=None)
-    if not state.holding:
-        return announced, (*commands, state.announcing)
-    stopped = replace(announced, holding=False)
-    return _await_hold(stopped, (*commands, StopHoldMusic(), state.announcing), after=0.0)
+    announced, music = _stop_holding(replace(state, announcing=None))
+    said = (*commands, *music, state.announcing)
+    return _await_hold(announced, said, after=0.0) if music else (announced, said)
 
 
 def _synthesize_next(state: Conversation, commands: tuple[Command, ...] = ()) -> Step:

@@ -375,6 +375,16 @@ def the_bridge_waits_for_the_hold_music(turn: Turn) -> None:
     assert any(isinstance(command, AwaitHold) for command in turn.commands)
 
 
+@then("the bridge waits for the hold music from now on")
+def the_bridge_waits_for_the_hold_music_from_now_on(turn: Turn) -> None:
+    assert [command.after for command in turn.commands if isinstance(command, AwaitHold)] == [0.0]
+
+
+@then("the hold music is not stopped again")
+def the_hold_music_is_not_stopped_again(turn: Turn) -> None:
+    assert StopHoldMusic() not in turn.commands
+
+
 @then("the bridge waits for no hold music")
 def the_bridge_waits_for_no_hold_music(turn: Turn) -> None:
     assert not any(isinstance(command, AwaitHold) for command in turn.commands)

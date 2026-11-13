@@ -527,7 +527,20 @@ Feature: Turn taking
     Scenario: The hold music comes back after the announcement
       Given the hold music plays
       When an agent starts and 1 is at work
-      Then the bridge waits for the hold music
+      Then the bridge waits for the hold music from now on
+
+    Scenario: An announcement after Claude's reply leaves the hold music to the end of its voice
+      Given Claude is working on "Where are we?"
+      And Claude replied "Good."
+      And an agent started and 1 is at work
+      When Claude's voice for "Good." is ready
+      Then the hold music waits for the end of that voice
+
+    Scenario: The hold music stopped by an announcement is not stopped again
+      Given the hold music plays
+      And an agent started and 1 is at work
+      When Claude is done
+      Then the hold music is not stopped again
 
     Scenario: An agent changing during the goodbye is not announced
       Given Claude is silent

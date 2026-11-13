@@ -1,7 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
 from voice_bridge.features.conversation.domain.board import (
-    KEPT_FINISHED,
     Agent,
     Board,
     Finished,
@@ -30,6 +29,10 @@ def finished_many(count: int) -> Board:
 
 def test_an_agent_started_is_at_work_since_it_started() -> None:
     assert started_once() == Board(at_work=(SEARCHER,))
+
+
+def test_an_agent_started_has_no_description_until_its_task_tells_one() -> None:
+    assert started_once().at_work[0].description == ""
 
 
 def test_an_agent_started_changes_the_count_at_work() -> None:
@@ -65,9 +68,9 @@ def test_an_agent_never_seen_starting_changes_nothing_when_it_stops() -> None:
 
 
 def test_only_the_latest_finished_agents_are_kept() -> None:
-    board = finish(finished_many(KEPT_FINISHED), agent_id="a2", last_message="last", at=LATER)[0]
+    board = finish(finished_many(20), agent_id="a2", last_message="last", at=LATER)[0]
     assert (len(board.finished), board.finished[0].last_message, board.finished[-1].last_message) == (
-        KEPT_FINISHED,
+        20,
         "1",
         "last",
     )
