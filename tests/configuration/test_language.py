@@ -99,7 +99,6 @@ greeting = "Hello."
 stop_refusal = "Stopped."
 reply_tool_description = "Speak"
 reply_text_description = "Text"
-reply_working_description = "Working"
 end_tool_description = "End"
 end_text_description = "Goodbye"
 hallucinations = ["", "you"]

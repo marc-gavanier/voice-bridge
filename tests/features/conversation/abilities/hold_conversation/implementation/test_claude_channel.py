@@ -27,7 +27,6 @@ pytestmark = pytest.mark.anyio
 TOOL = ReplyTool(
     description="Speak a reply aloud",
     text_description="The text to speak",
-    working_description="True when the text announces work to come",
 )
 END_TOOL = EndSessionTool(description="Say goodbye and end the session", text_description="The goodbye to speak")
 
@@ -79,13 +78,10 @@ async def test_the_reply_tool_requires_a_text() -> None:
     assert tools.tools[0].input_schema["required"] == ["text"]
 
 
-async def test_the_reply_tool_takes_an_optional_flag_for_announced_work() -> None:
+async def test_the_reply_tool_takes_only_the_text() -> None:
     async with connected() as connection:
         tools = await connection.session.list_tools()
-    assert tools.tools[0].input_schema["properties"]["working"] == {
-        "type": "boolean",
-        "description": "True when the text announces work to come",
-    }
+    assert tools.tools[0].input_schema["properties"] == {"text": {"type": "string", "description": "The text to speak"}}
 
 
 async def test_the_reply_tool_is_always_loaded() -> None:
@@ -98,14 +94,14 @@ async def test_calling_reply_hands_the_text_to_the_conversation() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="Bonjour.", working=False)
+    assert reply == Reply(text="Bonjour.")
 
 
-async def test_calling_reply_for_announced_work_says_so_to_the_conversation() -> None:
+async def test_a_working_flag_from_former_instructions_is_ignored() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("reply", {"text": "Je regarde.", "working": True})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="Je regarde.", working=True)
+    assert reply == Reply(text="Je regarde.")
 
 
 async def test_calling_reply_confirms_the_text_was_sent() -> None:

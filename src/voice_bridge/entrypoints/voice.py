@@ -254,7 +254,7 @@ async def converse(
 
     async def relay_replies() -> None:
         async for reply in replies:
-            await events_in.send(Asked(sentences=sentences_of(reply.text), working=reply.working, ending=reply.ending))
+            await events_in.send(Asked(sentences=sentences_of(reply.text), ending=reply.ending))
 
     async with (
         events_in,

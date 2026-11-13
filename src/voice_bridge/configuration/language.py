@@ -31,7 +31,6 @@ class LanguagePack(_Strict):
     stop_refusal: str
     reply_tool_description: str
     reply_text_description: str
-    reply_working_description: str
     end_tool_description: str
     end_text_description: str
     hallucinations: frozenset[str]

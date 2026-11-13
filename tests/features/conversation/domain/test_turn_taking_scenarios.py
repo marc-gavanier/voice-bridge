@@ -7,6 +7,8 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     AwaitHold,
     AwaitSilence,
+    ClaudeBusy,
+    ClaudeIdle,
     Command,
     Conversation,
     Event,
@@ -95,7 +97,7 @@ def claudes_voice_was_ready(turn: Turn, sentence: str) -> Turn:
     return claudes_voice_is_ready(turn, sentence)
 
 
-@given(parsers.parse('Claude replied "{sentence}"'), target_fixture="turn")
+@given(parsers.re(r'Claude replied "(?P<sentence>[^"]*)"$'), target_fixture="turn")
 def claude_replied(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,)))
 
@@ -116,24 +118,34 @@ def claude_is_saying(turn: Turn, sentence: str) -> Turn:
     return voiced(turn, sentence, duration=SILENT_AT - SPEAKING_AT + 1.0)
 
 
-@given(parsers.re(r'Claude announced "(?P<sentence>[^"]*)"$'), target_fixture="turn")
-def claude_announced(turn: Turn, sentence: str) -> Turn:
-    return after(turn, Asked(sentences=(sentence,), working=True))
+def working_on(words: str) -> Turn:
+    said = after(Turn(state=Conversation()), Transcribed(text=words))
+    return after(said, SilenceLasted(ticket=latest_silence(said), at=SILENT_AT))
 
 
-@given(parsers.parse('Claude announced "{first}" then "{second}"'), target_fixture="turn")
-def claude_announced_two_sentences(turn: Turn, first: str, second: str) -> Turn:
-    return after(turn, Asked(sentences=(first, second), working=True))
+@given(parsers.parse('Claude is working on "{words}"'), target_fixture="turn")
+def claude_is_working_on(words: str) -> Turn:
+    return working_on(words)
 
 
-def announced_work(sentence: str) -> Turn:
-    asked = after(Turn(state=Conversation()), Asked(sentences=(sentence,), working=True))
-    return after(asked, Synthesized(ticket=synthesizing_ticket(asked), pcm=b"", duration=0.5, at=0.0))
+@given(parsers.parse('Claude replied "{first}" then "{second}"'), target_fixture="turn")
+def claude_replied_two_sentences(turn: Turn, first: str, second: str) -> Turn:
+    return after(turn, Asked(sentences=(first, second)))
 
 
-@given(parsers.parse('Claude announced work with "{sentence}"'), target_fixture="turn")
-def claude_announced_work(sentence: str) -> Turn:
-    return announced_work(sentence)
+@given("Claude is done", target_fixture="turn")
+def claude_was_done(turn: Turn) -> Turn:
+    return after(turn, ClaudeIdle())
+
+
+@when("Claude is done", target_fixture="turn")
+def claude_is_done(turn: Turn) -> Turn:
+    return after(turn, ClaudeIdle())
+
+
+@when("Claude starts working on its own", target_fixture="turn")
+def claude_starts_working_on_its_own(turn: Turn) -> Turn:
+    return after(turn, ClaudeBusy(at=SILENT_AT))
 
 
 @given(parsers.parse('Claude said goodbye with "{sentence}"'), target_fixture="turn")
@@ -164,8 +176,8 @@ def the_speaker_makes_a_short_sound(turn: Turn) -> Turn:
 
 @given("the hold music plays", target_fixture="turn")
 def the_hold_music_plays() -> Turn:
-    announced = announced_work("Let me look at your notes.")
-    return after(announced, HoldLasted(ticket=announced.holds[-1]))
+    working = working_on("Where are we?")
+    return after(working, HoldLasted(ticket=working.holds[-1]))
 
 
 @given("the speaker cut in", target_fixture="turn")
@@ -339,6 +351,11 @@ def claude_starts_saying(turn: Turn, sentence: str) -> None:
 @then("the hold music waits for the end of that voice")
 def the_hold_music_waits_for_the_end_of_that_voice(turn: Turn) -> None:
     assert [command.after for command in turn.commands if isinstance(command, AwaitHold)] == [1.0]
+
+
+@then("the bridge waits for the hold music")
+def the_bridge_waits_for_the_hold_music(turn: Turn) -> None:
+    assert any(isinstance(command, AwaitHold) for command in turn.commands)
 
 
 @then("the bridge waits for no hold music")

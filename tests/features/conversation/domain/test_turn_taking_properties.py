@@ -9,6 +9,8 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     AwaitHold,
     AwaitSilence,
+    ClaudeBusy,
+    ClaudeIdle,
     Command,
     Conversation,
     Event,
@@ -29,12 +31,9 @@ from voice_bridge.features.conversation.domain.turn_taking import (
 TICKETS = st.integers(min_value=0, max_value=10)
 MOMENTS = st.floats(min_value=0.0, max_value=100.0)
 EVENTS: st.SearchStrategy[Event] = st.one_of(
-    st.builds(
-        Asked,
-        sentences=st.lists(st.text(min_size=1), max_size=3).map(tuple),
-        working=st.booleans(),
-        ending=st.booleans(),
-    ),
+    st.builds(Asked, sentences=st.lists(st.text(min_size=1), max_size=3).map(tuple), ending=st.booleans()),
+    st.builds(ClaudeBusy, at=MOMENTS),
+    st.builds(ClaudeIdle),
     st.builds(
         Synthesized, ticket=TICKETS, pcm=st.just(b""), duration=st.floats(min_value=0.0, max_value=5.0), at=MOMENTS
     ),

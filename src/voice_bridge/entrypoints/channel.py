@@ -31,7 +31,6 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
         tool=ReplyTool(
             description=language.reply_tool_description,
             text_description=language.reply_text_description,
-            working_description=language.reply_working_description,
         ),
         end_tool=EndSessionTool(
             description=language.end_tool_description, text_description=language.end_text_description

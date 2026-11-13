@@ -5,7 +5,6 @@ from typing import assert_never
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Asked:
     sentences: tuple[str, ...]
-    working: bool = False
     ending: bool = False
 
 
@@ -60,6 +59,16 @@ class HoldLasted:
     ticket: int
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ClaudeBusy:
+    at: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ClaudeIdle:
+    pass
+
+
 type Event = (
     Asked
     | Synthesized
@@ -71,6 +80,8 @@ type Event = (
     | SpeechEnded
     | SilenceLasted
     | HoldLasted
+    | ClaudeBusy
+    | ClaudeIdle
 )
 
 
@@ -210,6 +221,13 @@ def _await_hold(state: Conversation, commands: tuple[Command, ...], after: float
     return awaiting, (*commands, AwaitHold(ticket=ticket, after=after + state.hold_music_delay))
 
 
+def _await_hold_after_voice(state: Conversation, commands: tuple[Command, ...], at: float) -> Step:
+    if unspoken(state):
+        return state, commands
+    voice_left = max((scheduled.ends_at - at for scheduled in state.playing), default=0.0)
+    return _await_hold(state, commands, after=max(0.0, voice_left))
+
+
 def _hold(state: Conversation, ticket: int) -> Step:
     if state.awaiting_hold != ticket:
         return state, ()
@@ -236,7 +254,9 @@ def _play(state: Conversation, event: Synthesized) -> Step:
     last_end = max((event.at, *(scheduled.ends_at for scheduled in state.playing)))
     scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
     still_playing = tuple(each for each in state.playing if each.plays_at(event.at))
-    played = replace(state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True)
+    played = replace(
+        state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True, awaiting_hold=None
+    )
     voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
     if unspoken(voiced):
         return voiced, commands
@@ -332,21 +352,21 @@ def _forward(state: Conversation, ticket: int, at: float) -> Step:
         hearing=False,
         reply_heard=False,
         acknowledged=state.acknowledged or acknowledging,
+        working=True,
     )
     commands = (forward, Acknowledge(words=text)) if acknowledging else (forward,)
-    return _synthesize_next(*_await_hold(forwarded, commands))
+    return _await_hold_after_voice(*_synthesize_next(forwarded, commands), at)
 
 
 def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
     match event:
-        case Asked(sentences=sentences, working=working, ending=ending):
+        case Asked(sentences=sentences, ending=ending):
             return _synthesize_next(
                 replace(
                     state,
                     waiting=(*state.waiting, *sentences),
                     acknowledged=False,
                     awaiting_hold=None,
-                    working=working,
                     ending=ending,
                 )
             )
@@ -388,6 +408,17 @@ def _on_wait(state: Conversation, event: SilenceLasted | HoldLasted) -> Step:
             assert_never(event)
 
 
+def _on_activity(state: Conversation, event: ClaudeBusy | ClaudeIdle) -> Step:
+    match event:
+        case ClaudeBusy(at=at):
+            busy = replace(state, working=True)
+            return (busy, ()) if busy.hearing else _await_hold_after_voice(busy, (), at)
+        case ClaudeIdle():
+            return _stop_holding(replace(state, working=False, awaiting_hold=None))
+        case _:
+            assert_never(event)
+
+
 def step(state: Conversation, event: Event) -> Step:
     match event:
         case Asked() | Synthesized() | SynthesisFailed():
@@ -396,5 +427,7 @@ def step(state: Conversation, event: Event) -> Step:
             return _on_speaker(state, event)
         case SilenceLasted() | HoldLasted():
             return _on_wait(state, event)
+        case ClaudeBusy() | ClaudeIdle():
+            return _on_activity(state, event)
         case _:
             assert_never(event)

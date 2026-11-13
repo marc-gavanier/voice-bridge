@@ -4,7 +4,6 @@ greeting = "Ich höre zu."
 stop_refusal = "Der Sprecher hat um Abbruch gebeten: Bis zu seiner nächsten Nachricht läuft kein Werkzeug. Versuche es nicht erneut; sag in einem Satz, was abgebrochen wurde und was schon erledigt war."
 reply_tool_description = "Eine Antwort laut im Kopfhörer des Nutzers sprechen"
 reply_text_description = "Der zu sprechende Text, für das Ohr geschrieben"
-reply_working_description = "Wahr, wenn der Text eine Arbeit ankündigt, die du gleich erledigst: Bis zu deiner nächsten Antwort läuft dann Wartemusik"
 end_tool_description = "Laut auf Wiedersehen sagen und dann die ganze Sprachsitzung beenden: die Brücke und diese Claude-Code-Sitzung"
 end_text_description = "Das kurze Auf Wiedersehen, das vor dem Ende der Sitzung gesprochen wird"
 hallucinations = [

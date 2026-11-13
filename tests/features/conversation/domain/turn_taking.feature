@@ -337,42 +337,78 @@ Feature: Turn taking
       When the speaker stays silent
       Then the bridge acknowledges nothing
 
-  Rule: Hold music plays while Claude works on what it announced
+  Rule: Hold music plays while Claude works and stays silent
+    Claude works from the words it was given, or from a turn Claude Code started on its own,
+    until Claude Code tells the bridge it is done; Claude's own replies change nothing to it.
 
-    Scenario: An announced work waits for the end of the announcement before the hold music
+    Scenario: Words given to Claude bring the hold music after a wait
       Given Claude is silent
-      And Claude announced "Let me look at your notes."
-      When Claude's voice for "Let me look at your notes." is ready
-      Then the hold music waits for the end of that voice
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the bridge waits for the hold music
 
-    Scenario: A long wait after an announcement starts the hold music
-      Given Claude announced work with "Let me look at your notes."
+    Scenario: A long wait while Claude works starts the hold music
+      Given Claude is working on "Where are we?"
       When the wait goes on
       Then the hold music starts
 
-    Scenario: An announcement of several sentences waits for its last one
+    Scenario: Words given while Claude still talks wait for the end of its voice
       Given Claude is silent
-      And Claude announced "I found it." then "Let me look at your notes."
+      And Claude is saying "I found three of them."
+      And the speaker said "And the logs too."
+      When the speaker stays silent
+      Then the hold music waits for the end of that voice
+
+    Scenario: A reply of Claude at work waits for the end of its voice before the hold music
+      Given Claude is working on "Where are we?"
+      And Claude replied "Let me look at your notes."
+      When Claude's voice for "Let me look at your notes." is ready
+      Then the hold music waits for the end of that voice
+
+    Scenario: A reply of several sentences waits for its last one
+      Given Claude is working on "Where are we?"
+      And Claude replied "I found it." then "Let me look at your notes."
       When Claude's voice for "I found it." is ready
       Then the bridge waits for no hold music
 
-    Scenario: A reply that announces no work leaves no room for music
+    Scenario: A reply once Claude is done leaves no room for music
       Given Claude is silent
       And Claude replied "Good."
       When Claude's voice for "Good." is ready
       Then the bridge waits for no hold music
 
     Scenario: A reply that comes before the end of the wait leaves no room for music
-      Given Claude announced work with "Let me look at your notes."
+      Given Claude is working on "Where are we?"
       And Claude replied "Good."
       When the wait goes on
       Then nothing happens
 
-    Scenario: The acknowledgement brings no hold music
+    Scenario: Claude done before the end of the wait leaves no room for music
+      Given Claude is working on "Where are we?"
+      And Claude is done
+      When the wait goes on
+      Then nothing happens
+
+    Scenario: Claude done stops the hold music
+      Given the hold music plays
+      When Claude is done
+      Then the hold music stops
+
+    Scenario: A turn Claude Code starts on its own brings the hold music after a wait
       Given Claude is silent
-      And the speaker said "The repository is clean."
-      When the speaker stays silent
-      Then the bridge waits for no hold music
+      When Claude starts working on its own
+      Then the bridge waits for the hold music
+
+    Scenario: A turn Claude Code starts on its own while Claude talks waits for the end of its voice
+      Given Claude is silent
+      And Claude is saying "I found three of them."
+      When Claude starts working on its own
+      Then the hold music waits for the end of that voice
+
+    Scenario: A turn Claude Code starts on its own while the speaker talks brings no music yet
+      Given the speaker is talking
+      When Claude starts working on its own
+      Then nothing happens
 
     Scenario: The first sentence of the reply stops the hold music
       Given the hold music plays

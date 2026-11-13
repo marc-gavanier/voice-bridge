@@ -4,7 +4,6 @@ greeting = "Ti ascolto."
 stop_refusal = "La persona ha chiesto di fermarsi: nessuno strumento viene eseguito fino al suo prossimo messaggio. Non riprovare; di' in una frase cosa è stato fermato e cosa era già fatto."
 reply_tool_description = "Dire una risposta ad alta voce nelle cuffie dell'utente"
 reply_text_description = "Il testo da dire, scritto per l'orecchio"
-reply_working_description = "Vero quando il testo annuncia un lavoro che stai per fare: allora suona una musica d'attesa fino alla tua prossima risposta"
 end_tool_description = "Salutare ad alta voce e poi chiudere tutta la sessione vocale: il ponte e questa sessione di Claude Code"
 end_text_description = "Il breve saluto da dire prima della fine della sessione"
 hallucinations = [

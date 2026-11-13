@@ -36,7 +36,6 @@ class MessageSender(Protocol):
 class ReplyTool:
     description: str
     text_description: str
-    working_description: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -48,13 +47,11 @@ class EndSessionTool:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Reply:
     text: str
-    working: bool = False
     ending: bool = False
 
 
 class ReplyArguments(BaseModel):
     text: str
-    working: bool = False
 
 
 class EndSessionArguments(BaseModel):
@@ -87,14 +84,14 @@ def _reply_of(name: str, arguments: dict[str, object]) -> Reply | types.CallTool
         reply = ReplyArguments.model_validate(arguments)
     except ValidationError as error:
         return _error(str(error))
-    return Reply(text=reply.text, working=reply.working)
+    return Reply(text=reply.text)
 
 
 def _logged(reply: Reply) -> None:
     if reply.ending:
         logger.info("goodbye received from Claude: %r, the session ends after it", reply.text)
         return
-    logger.info("reply received from Claude: %r%s", reply.text, ", work to come" if reply.working else "")
+    logger.info("reply received from Claude: %r", reply.text)
 
 
 def channel_server(
@@ -108,7 +105,6 @@ def channel_server(
                 "type": "object",
                 "properties": {
                     "text": {"type": "string", "description": tool.text_description},
-                    "working": {"type": "boolean", "description": tool.working_description},
                 },
                 "required": ["text"],
             },

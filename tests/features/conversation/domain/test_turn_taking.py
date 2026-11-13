@@ -4,6 +4,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     AwaitHold,
     AwaitSilence,
+    ClaudeBusy,
     Command,
     Conversation,
     Event,
@@ -250,7 +251,7 @@ def test_words_after_a_forwarded_interruption_are_not_marked_as_an_interruption(
         Transcribed(text="Attends."),
         SilenceLasted(ticket=0, at=2.0),
         Transcribed(text="Encore."),
-        SilenceLasted(ticket=1, at=3.0),
+        SilenceLasted(ticket=2, at=3.0),
     ) == [True, False]
 
 
@@ -341,8 +342,9 @@ THIRD = "Troisième phrase assez longue."
 
 def announced(*events: Event) -> tuple[Event, ...]:
     return (
-        Asked(sentences=("Je regarde.",), working=True),
+        Asked(sentences=("Je regarde.",)),
         Synthesized(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
+        ClaudeBusy(at=0.0),
         *events,
     )
 
@@ -400,13 +402,13 @@ def test_words_drop_every_sentence_of_the_reply_they_cut() -> None:
 
 
 def test_a_reply_after_an_interruption_is_scheduled_after_its_own_start() -> None:
-    assert AwaitHold(ticket=1, after=1.0) in last_commands(
+    assert AwaitHold(ticket=2, after=1.0) in last_commands(
         Asked(sentences=(FIRST,)),
         HEARD,
         VoiceDetected(at=1.0),
         Transcribed(text="Attends."),
         SilenceLasted(ticket=0, at=2.0),
-        Asked(sentences=("Je regarde.",), working=True),
+        Asked(sentences=("Je regarde.",)),
         Synthesized(ticket=1, pcm=SOUND, duration=1.0, at=1.25),
     )
 
@@ -463,9 +465,10 @@ def test_the_whole_settle_is_awaited_when_the_end_of_the_voice_is_unknown() -> N
 
 def test_the_hold_music_waits_its_delay_after_the_reply() -> None:
     assert patient_commands(
-        Asked(sentences=("Je regarde.",), working=True),
+        ClaudeBusy(at=0.0),
+        Asked(sentences=("Je regarde.",)),
         Synthesized(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
-    )[-1] == AwaitHold(ticket=0, after=2.5)
+    )[-1] == AwaitHold(ticket=1, after=2.5)
 
 
 def test_a_stop_drops_the_sentences_still_waiting_for_their_voice() -> None:

@@ -15,6 +15,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
+    ClaudeBusy,
     Event,
     SilenceLasted,
     SoundDismissed,
@@ -216,25 +217,28 @@ async def test_nothing_is_played_before_the_clips_are_ready() -> None:
     assert played == SOUND
 
 
-async def test_an_announced_work_plays_the_hold_music_after_its_voice() -> None:
+async def test_claude_at_work_plays_the_hold_music_after_its_reply() -> None:
     async with talking() as talk:
-        await talk.say.send(Asked(sentences=("Je regarde.",), working=True))
+        await talk.say.send(Asked(sentences=("Je regarde.",)))
+        await talk.say.send(ClaudeBusy(at=0.0))
         played = [await talk.played.receive(), await talk.played.receive()]
     assert played == [SOUND, MUSIC]
 
 
 async def test_the_reply_stops_the_hold_music_before_it_plays() -> None:
     async with talking() as talk:
-        await talk.say.send(Asked(sentences=("Je regarde.",), working=True))
+        await talk.say.send(Asked(sentences=("Je regarde.",)))
+        await talk.say.send(ClaudeBusy(at=0.0))
         _ = [await talk.played.receive(), await talk.played.receive()]
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = [await talk.played.receive(), await talk.played.receive()]
     assert played == [b"", SOUND]
 
 
-async def test_without_hold_music_an_announced_work_stays_silent() -> None:
+async def test_without_hold_music_claude_at_work_stays_silent() -> None:
     async with talking(music=False) as talk:
-        await talk.say.send(Asked(sentences=("Je regarde.",), working=True))
+        await talk.say.send(Asked(sentences=("Je regarde.",)))
+        await talk.say.send(ClaudeBusy(at=0.0))
         _ = await talk.played.receive()
         await anyio.sleep(SOUND_DURATION)
         await wait_all_tasks_blocked()
