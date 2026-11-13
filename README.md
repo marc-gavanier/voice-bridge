@@ -163,6 +163,8 @@ handlers = ["journal"]
 
 To a syslog server on the network, a handler with `address = ["logs.example.org", 514]` sends over UDP; add `socktype = "ext://socket.SOCK_STREAM"` for TCP, which connects at start, so an unreachable server stops the bridge. To keep the file as well, add a `logging.handlers.RotatingFileHandler` handler with its `filename` and list both handlers in `root`.
 
+To an OpenTelemetry collector over OTLP, nothing goes in the section: start the bridge under [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/), with `opentelemetry-distro`, `opentelemetry-exporter-otlp` and `opentelemetry-instrumentation-logging` installed next to it: `scripts/claude-voice.sh` then runs `opentelemetry-instrument voice-bridge-channel` instead of `voice-bridge-channel`, with `OTEL_SERVICE_NAME=voice-bridge`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none` set. Its handler joins the ones of the section, or of the default log, which stays written as well.
+
 ### Add a language
 
 The bridge speaks Arabic, Dutch, English, French, German, Hindi, Italian, Portuguese and Spanish, the nine languages Voxtral has voices for. Each one is two files in [`languages/`](src/voice_bridge/configuration/languages), named after its ISO 639-1 code:
