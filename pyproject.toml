@@ -171,7 +171,7 @@ output = "docs/architecture.svg"
 [tool.mutmut]
 source_paths = ["src/voice_bridge"]
 only_mutate = ["src/voice_bridge/features/*/domain/*", "src/voice_bridge/features/*/abilities/*/domain/*"]
-pytest_add_cli_args = ["--no-cov"]
+pytest_add_cli_args = ["--no-cov", "--ignore=tests/architecture"]
 do_not_mutate_patterns = ["assert_never\\(", "case _:"]
 
 [tool.typos.default]

@@ -1,3 +1,5 @@
+import pytest
+
 from voice_bridge.features.understanding.domain.meaning import Meaning, Route, meaning_of, refused
 
 ROUTES = (
@@ -41,3 +43,8 @@ def test_an_allowed_tool_runs_after_a_stop() -> None:
 
 def test_every_tool_runs_without_a_stop() -> None:
     assert not refused("Bash", stopped=False, allowed=frozenset({"mcp__voice__reply"}))
+
+
+def test_scores_that_do_not_match_the_routes_are_refused() -> None:
+    with pytest.raises(ValueError, match="zip"):
+        _ = meaning_of([0.9], ROUTES)

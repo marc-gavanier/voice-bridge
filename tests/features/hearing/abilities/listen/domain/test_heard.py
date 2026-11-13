@@ -113,6 +113,10 @@ def test_an_unfinished_turn_is_remembered() -> None:
     assert paused_after(voice_from_one_second(3), 1.75, judging(0.1))[0].unfinished_at == 1.25
 
 
+def test_a_finished_turn_leaves_nothing_unfinished() -> None:
+    assert paused_after(voice_from_one_second(3), 1.75, judging(0.9))[0].unfinished_at is None
+
+
 def test_the_turn_is_judged_on_the_audio_of_the_utterance() -> None:
     assert paused_after(voice_from_one_second(3), 1.75, Turn(judge=finished_only_on(b"vvv"), threshold=0.5))[1][
         0
