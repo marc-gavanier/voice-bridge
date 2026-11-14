@@ -339,7 +339,11 @@ async def test_the_turn_under_way_is_reported_when_the_conversation_ends() -> No
         FinishedTurn(
             start=0.0,
             end=0.0,
-            steps=(Span(name="transcription", start=0.0, end=0.0), Span(name="settle", start=0.0, end=0.0)),
+            steps=(
+                Span(name="end of turn", start=0.0, end=0.0),
+                Span(name="transcription", start=0.0, end=0.0),
+                Span(name="settle", start=0.0, end=0.0),
+            ),
             interrupted=False,
         )
     ]

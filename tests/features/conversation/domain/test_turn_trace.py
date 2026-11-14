@@ -56,8 +56,10 @@ def turn_starts(*moments: Moment) -> list[float]:
     return [report.start for report in reports_of(*moments) if isinstance(report, FinishedTurn)]
 
 
-def heard(at: float = 3.0, ended: float = 2.0, text: str = "Où en est-on ?") -> tuple[Moment, ...]:
-    return ((ended, SpeechEnded(at=ended)), (at, Transcribed(text=text)))
+def heard(
+    at: float = 3.0, ended: float = 2.0, closed: float | None = None, text: str = "Où en est-on ?"
+) -> tuple[Moment, ...]:
+    return ((ended if closed is None else closed, SpeechEnded(at=ended)), (at, Transcribed(text=text)))
 
 
 def answered(sentence: str = "Trois notes.", ready: float = 7.0, duration: float = 2.0) -> tuple[Moment, ...]:
@@ -73,17 +75,27 @@ def test_a_turn_starts_when_the_speakers_voice_ends() -> None:
     assert turn_of(*heard(ended=2.0), (4.0, FORWARD)).start == 2.0
 
 
-def test_the_transcription_lasts_from_the_end_of_the_voice_to_the_words() -> None:
-    assert steps_of(*heard(ended=2.0, at=3.0), (4.0, FORWARD))[0] == Span(name="transcription", start=2.0, end=3.0)
+def test_the_end_of_turn_lasts_from_the_end_of_the_voice_to_the_close_of_the_utterance() -> None:
+    assert steps_of(*heard(ended=2.0, closed=2.8, at=3.0), (4.0, FORWARD))[0] == Span(
+        name="end of turn", start=2.0, end=2.8
+    )
+
+
+def test_the_transcription_lasts_from_the_close_of_the_utterance_to_the_words() -> None:
+    assert steps_of(*heard(ended=2.0, closed=2.8, at=3.0), (4.0, FORWARD))[1] == Span(
+        name="transcription", start=2.8, end=3.0
+    )
 
 
 def test_the_settle_lasts_from_the_words_to_their_forward() -> None:
-    assert steps_of(*heard(at=3.0), (4.0, FORWARD))[1] == Span(name="settle", start=3.0, end=4.0)
+    assert steps_of(*heard(at=3.0), (4.0, FORWARD))[-1] == Span(name="settle", start=3.0, end=4.0)
 
 
 def test_words_said_in_pieces_each_have_their_transcription() -> None:
     assert step_names(*heard(ended=1.0, at=1.5), *heard(ended=2.0, at=3.0), (4.0, FORWARD)) == [
+        "end of turn",
         "transcription",
+        "end of turn",
         "transcription",
         "settle",
     ]
@@ -112,7 +124,7 @@ def test_the_wait_for_claude_lasts_from_the_forward_to_its_reply() -> None:
 def test_only_the_first_reply_ends_the_wait_for_claude() -> None:
     assert step_names(
         *heard(), (4.0, FORWARD), (6.0, Asked(sentences=("Je regarde.",))), (9.0, Asked(sentences=("Voilà.",)))
-    ) == ["transcription", "settle", "claude"]
+    ) == ["end of turn", "transcription", "settle", "claude"]
 
 
 def test_a_synthesis_lasts_from_its_order_to_its_voice() -> None:
@@ -127,6 +139,7 @@ def test_a_failed_synthesis_is_kept_as_such() -> None:
 
 def test_the_voice_of_a_dropped_synthesis_is_not_a_step() -> None:
     assert step_names(*heard(), (4.0, FORWARD), (7.0, SynthesisFailed(ticket=3))) == [
+        "end of turn",
         "transcription",
         "settle",
     ]
@@ -170,7 +183,7 @@ def test_an_interruption_drops_the_sentences_not_yet_playing() -> None:
         (8.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=8.0)),
         (8.0, Play(pcm=b"")),
         (8.5, StopPlaying(heard_at=8.5)),
-    ) == ["transcription", "settle", "claude", "synthesis", "synthesis", "playback"]
+    ) == ["end of turn", "transcription", "settle", "claude", "synthesis", "synthesis", "playback"]
 
 
 def test_an_interruption_drops_the_syntheses_under_way() -> None:
@@ -248,7 +261,7 @@ def test_words_after_a_noise_are_transcribed_from_their_own_arrival() -> None:
 
 
 def test_a_second_piece_without_its_end_of_voice_is_transcribed_from_its_arrival() -> None:
-    assert steps_of(*heard(ended=2.0, at=3.0), (5.0, Transcribed(text="Encore.")), (6.0, FORWARD))[1] == Span(
+    assert steps_of(*heard(ended=2.0, at=3.0), (5.0, Transcribed(text="Encore.")), (6.0, FORWARD))[2] == Span(
         name="transcription", start=5.0, end=5.0
     )
 
@@ -259,6 +272,7 @@ def second_turn_names(*moments: Moment) -> list[str]:
 
 def test_the_next_turn_holds_only_its_own_words() -> None:
     assert second_turn_names(*heard(), (4.0, FORWARD), *heard(ended=12.0, at=13.0), (14.0, FORWARD)) == [
+        "end of turn",
         "transcription",
         "settle",
     ]

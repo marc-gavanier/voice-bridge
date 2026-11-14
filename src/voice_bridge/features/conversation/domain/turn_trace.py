@@ -54,7 +54,7 @@ class Turn:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Trace:
-    voice_ended_at: float | None = None
+    ending: Span | None = None
     heard_from: float | None = None
     heard_at: float | None = None
     pieces: tuple[Span, ...] = ()
@@ -76,11 +76,17 @@ def close(trace: Trace) -> tuple[Report, ...]:
     return (_finished(trace.turn),)
 
 
+def _heard_pieces(ending: Span | None, at: float) -> tuple[Span, ...]:
+    if ending is None:
+        return (Span(name="transcription", start=at, end=at),)
+    return (ending, Span(name="transcription", start=ending.end, end=at))
+
+
 def _transcribed(trace: Trace, at: float, *, noise: bool) -> Trace:
     if noise:
-        return replace(trace, voice_ended_at=None, heard_from=trace.heard_from if trace.pieces else None)
-    piece = Span(name="transcription", start=at if trace.voice_ended_at is None else trace.voice_ended_at, end=at)
-    return replace(trace, voice_ended_at=None, heard_at=at, pieces=(*trace.pieces, piece))
+        return replace(trace, ending=None, heard_from=trace.heard_from if trace.pieces else None)
+    pieces = (*trace.pieces, *_heard_pieces(trace.ending, at))
+    return replace(trace, ending=None, heard_at=at, pieces=pieces)
 
 
 def _forwarded(trace: Trace, at: float) -> Observed:
@@ -157,7 +163,9 @@ def _on_speech(trace: Trace, at: float, item: Event | Command) -> Trace:
     match item:
         case SpeechEnded(at=ended):
             return replace(
-                trace, voice_ended_at=ended, heard_from=ended if trace.heard_from is None else trace.heard_from
+                trace,
+                ending=Span(name="end of turn", start=ended, end=at),
+                heard_from=ended if trace.heard_from is None else trace.heard_from,
             )
         case Transcribed(noise=noise):
             return _transcribed(trace, at, noise=noise)
