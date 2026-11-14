@@ -84,7 +84,7 @@ def _new(task: Task, at: datetime) -> Agent:
     return Agent(id=task.id, kind=task.kind, since=at, description=task.description, background=True)
 
 
-def reconcile(board: Board, running: tuple[Task, ...], *, at: datetime, leaving: str = "") -> Changed:
+def reconcile(board: Board, running: tuple[Task, ...], *, at: datetime, leaving: str) -> Changed:
     listed = {task.id: task for task in running}
     stays = tuple(agent for agent in board.at_work if not agent.background or agent.id in listed or agent.id == leaving)
     ended = tuple(Finished(agent=agent, ended=at, last_message="") for agent in board.at_work if agent not in stays)
