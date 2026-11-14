@@ -13,7 +13,7 @@ def test_arabic_is_spoken_with_a_arabic_voice() -> None:
 
 
 def test_arabic_greets_in_arabic() -> None:
-    assert language_pack("ar").greeting == "أنا أسمعك."
+    assert "أنا أسمعك." in language_pack("ar").greetings
 
 
 def test_arabic_knows_the_subtitle_credit_hallucination() -> None:

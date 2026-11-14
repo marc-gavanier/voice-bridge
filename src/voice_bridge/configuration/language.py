@@ -20,6 +20,7 @@ class AcknowledgementRoute(_Strict):
     sentences: tuple[str, ...]
     threshold: float | None = None
     stops: bool = False
+    greets: bool = False
 
 
 class AgentAnnouncements(_Strict):
@@ -30,7 +31,6 @@ class AgentAnnouncements(_Strict):
 class LanguagePack(_Strict):
     whisper_code: str
     voice: str
-    greeting: str
     acknowledgements: tuple[AcknowledgementRoute, ...]
     neutral_acknowledgements: tuple[str, ...]
     announcements: AgentAnnouncements
@@ -44,6 +44,10 @@ class LanguagePack(_Strict):
     hallucinations: frozenset[str]
     hallucination_prefixes: tuple[str, ...]
     instructions: str
+
+    @property
+    def greetings(self) -> tuple[str, ...]:
+        return tuple(sentence for route in self.acknowledgements if route.greets for sentence in route.sentences)
 
 
 def parse_language_pack(text: str, *, instructions: str) -> LanguagePack:

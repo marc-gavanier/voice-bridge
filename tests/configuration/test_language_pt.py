@@ -13,7 +13,7 @@ def test_portuguese_is_spoken_with_a_portuguese_voice() -> None:
 
 
 def test_portuguese_greets_in_portuguese() -> None:
-    assert language_pack("pt").greeting == "Estou ouvindo."
+    assert "Estou ouvindo." in language_pack("pt").greetings
 
 
 def test_portuguese_knows_the_subtitle_credit_hallucination() -> None:

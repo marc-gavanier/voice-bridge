@@ -13,7 +13,7 @@ def test_italian_is_spoken_with_a_italian_voice() -> None:
 
 
 def test_italian_greets_in_italian() -> None:
-    assert language_pack("it").greeting == "Ti ascolto."
+    assert "Ti ascolto." in language_pack("it").greetings
 
 
 def test_italian_knows_the_subtitle_credit_hallucination() -> None:

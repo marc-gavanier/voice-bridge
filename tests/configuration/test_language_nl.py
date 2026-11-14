@@ -13,7 +13,7 @@ def test_dutch_is_spoken_with_a_dutch_voice() -> None:
 
 
 def test_dutch_greets_in_dutch() -> None:
-    assert language_pack("nl").greeting == "Ik luister."
+    assert "Ik luister." in language_pack("nl").greetings
 
 
 def test_dutch_knows_the_subtitle_credit_hallucination() -> None:

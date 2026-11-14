@@ -13,7 +13,7 @@ def test_hindi_is_spoken_with_a_hindi_voice() -> None:
 
 
 def test_hindi_greets_in_hindi() -> None:
-    assert language_pack("hi").greeting == "मैं सुन रही हूँ।"
+    assert "मैं सुन रही हूँ।" in language_pack("hi").greetings
 
 
 @pytest.mark.parametrize(

@@ -25,7 +25,7 @@ def test_english_is_transcribed_as_english() -> None:
 
 
 def test_english_greets_in_english() -> None:
-    assert language_pack("en").greeting == "I'm listening."
+    assert "I'm listening." in language_pack("en").greetings
 
 
 def test_english_describes_the_board_tool_in_english() -> None:
@@ -103,6 +103,12 @@ def test_only_the_stop_route_stops(language: Language) -> None:
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
+def test_only_the_presence_route_greets(language: Language) -> None:
+    greeting = {route.name for route in language_pack(language).acknowledgements if route.greets}
+    assert greeting == {"presence"}
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
 def test_a_stop_needs_a_close_match(language: Language) -> None:
     stop = next(route for route in language_pack(language).acknowledgements if route.name == "stop")
     assert stop.threshold is not None
@@ -124,7 +130,6 @@ def test_no_acknowledgement_is_one_voxtral_derails_on(language: Language) -> Non
 MINIMAL_PACK = """
 whisper_code = "en"
 voice = "neutral_female"
-greeting = "Hello."
 stop_refusal = "Stopped."
 delegation_refusal = "Delegate."
 reply_tool_description = "Speak"
@@ -144,6 +149,12 @@ many_at_work = "Many at work."
 name = "yes"
 examples = ["Yes."]
 sentences = ["Good."]
+
+[[acknowledgements]]
+name = "presence"
+greets = true
+examples = ["Are you there?"]
+sentences = ["I'm here.", "I hear you."]
 """
 
 
@@ -151,9 +162,13 @@ def test_a_language_file_gives_its_pack_with_the_instructions() -> None:
     assert parse_language_pack(MINIMAL_PACK, instructions="Be brief.").instructions == "Be brief."
 
 
-def test_a_route_of_a_language_file_needs_no_threshold_and_does_not_stop() -> None:
+def test_a_route_of_a_language_file_needs_no_threshold_and_neither_stops_nor_greets() -> None:
     route = parse_language_pack(MINIMAL_PACK, instructions="").acknowledgements[0]
     assert route == AcknowledgementRoute(name="yes", examples=("Yes.",), sentences=("Good.",))
+
+
+def test_a_language_greets_with_the_sentences_of_the_route_that_greets() -> None:
+    assert parse_language_pack(MINIMAL_PACK, instructions="").greetings == ("I'm here.", "I hear you.")
 
 
 def test_the_hallucinations_of_a_language_file_are_a_set() -> None:
@@ -163,13 +178,14 @@ def test_the_hallucinations_of_a_language_file_are_a_set() -> None:
 def test_a_language_file_with_an_unknown_key_is_refused() -> None:
     with pytest.raises(ValidationError):
         _ = parse_language_pack(
-            MINIMAL_PACK.replace('greeting = "Hello."', 'greeting = "Hello."\ngreting = "Hi."'), instructions=""
+            MINIMAL_PACK.replace('voice = "neutral_female"', 'voice = "neutral_female"\nvoise = "en_female"'),
+            instructions="",
         )
 
 
 def test_a_language_file_missing_a_key_is_refused() -> None:
     with pytest.raises(ValidationError):
-        _ = parse_language_pack(MINIMAL_PACK.replace('greeting = "Hello."', ""), instructions="")
+        _ = parse_language_pack(MINIMAL_PACK.replace('voice = "neutral_female"', ""), instructions="")
 
 
 def test_a_route_with_an_unknown_key_is_refused() -> None:

@@ -13,7 +13,7 @@ def test_german_is_spoken_with_a_german_voice() -> None:
 
 
 def test_german_greets_in_german() -> None:
-    assert language_pack("de").greeting == "Ich höre zu."
+    assert "Ich höre zu." in language_pack("de").greetings
 
 
 def test_german_knows_the_subtitle_credit_hallucination() -> None:

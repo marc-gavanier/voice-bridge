@@ -13,7 +13,7 @@ def test_spanish_is_spoken_with_a_spanish_voice() -> None:
 
 
 def test_spanish_greets_in_spanish() -> None:
-    assert language_pack("es").greeting == "Te escucho."
+    assert "Te escucho." in language_pack("es").greetings
 
 
 def test_spanish_knows_the_subtitle_credit_hallucination() -> None:

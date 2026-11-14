@@ -14,7 +14,7 @@ def test_french_is_spoken_with_a_french_voice() -> None:
 
 
 def test_french_greets_in_french() -> None:
-    assert language_pack("fr").greeting == "Je t'écoute."
+    assert "Je t'écoute." in language_pack("fr").greetings
 
 
 def test_french_describes_the_end_of_session_tool_in_french() -> None:

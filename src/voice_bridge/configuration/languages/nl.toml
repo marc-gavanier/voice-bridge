@@ -1,6 +1,5 @@
 whisper_code = "nl"
 voice = "nl_female"
-greeting = "Ik luister."
 stop_refusal = "De spreker vroeg om te stoppen: er draait geen enkel hulpmiddel tot het volgende bericht. Probeer het niet opnieuw; zeg in één zin wat er gestopt is en wat al klaar was."
 delegation_refusal = "In een spraaksessie doe je het werk niet zelf: geef deze taak aan een agent op de achtergrond, beëindig je beurt meteen en blijf beschikbaar om te praten."
 reply_tool_description = "Een antwoord hardop uitspreken in de koptelefoon van de gebruiker"
@@ -133,6 +132,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "presence"
+greets = true
 examples = [
   "Hoor je me?",
   "Kun je me horen?",

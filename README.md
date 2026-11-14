@@ -293,7 +293,7 @@ Nothing said reaches Sentry: the bridge turns off breadcrumbs, which would carry
 
 The bridge speaks Arabic, Dutch, English, French, German, Hindi, Italian, Portuguese and Spanish, the nine languages Voxtral has voices for. Each one is two files in [`languages/`](src/voice_bridge/configuration/languages), named after its ISO 639-1 code:
 
-- `<code>.toml`: the Whisper language code, the default voice, the greeting, the tool descriptions, the Whisper hallucinations to drop, and the fourteen routes with their examples, acknowledgements and the stop threshold. A test asks for at least 15 examples per route, and for the same routes, in the same order, as French.
+- `<code>.toml`: the Whisper language code, the default voice, the tool descriptions, the Whisper hallucinations to drop, and the fourteen routes with their examples, acknowledgements and the stop threshold; the presence route, marked `greets`, also gives the greeting, one of its sentences drawn at each start. A test asks for at least 15 examples per route, and for the same routes, in the same order, as French.
 - `<code>.md`: the instructions Claude is given, when the user has no `instructions_file`.
 
 To add one:
@@ -334,7 +334,7 @@ From the folder you want Claude Code to work in:
 The launcher starts Voxtral when it is not running, which takes a few minutes the first time, then starts Claude Code with the `voice` channel and the hooks, which `voice-bridge-claude-settings` registers with the socket, stop flag, language and log file read from the config at launch: the hooks never read the config themselves, so that editing it under a running session cannot break them, and a change of these settings reaches them at the next launch. Arguments go to Claude Code, so `--resume <session>` works.
 
 1. **Accept the warning.** Claude Code shows a full-screen warning about development channels at every start: choose *I am using this for local development*. Below the banner, `Channels (experimental) messages from server:voice` confirms the channel is registered.
-2. **Connect from the phone.** Once Whisper is loaded and Voxtral answers, you hear the greeting and the bridge's user appears in the channel.
+2. **Connect from the phone.** Once Whisper is loaded and Voxtral answers, you hear the greeting, one of the presence acknowledgements such as « Je suis là. », and the bridge's user appears in the channel.
 3. **Optionally, turn on Remote Control** with `/remote-control`. The voice does not need it, but it lets you see the session and answer permission prompts from the Claude app; without it, Claude waits silently when it needs a permission.
 
 While it runs:

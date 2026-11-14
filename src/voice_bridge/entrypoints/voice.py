@@ -323,7 +323,8 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             rate=MUMBLE_RATE,
             health=speech_settings.health,
         )
-        clips = Clips(draw=secrets.choice, kind=lambda words: understanding(words).route)
+        greeting = secrets.choice(language.greetings)
+        clips = Clips(draw=secrets.choice, kind=lambda words: understanding(words).route, last=greeting)
         announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
             voice=partial(voice_of, engine),
@@ -350,7 +351,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
 
         async def greet() -> None:
             await wait_until_ready(engine)
-            await events_in.send(Asked(sentences=sentences_of(language.greeting)))
+            await events_in.send(Asked(sentences=sentences_of(greeting)))
             await record_acknowledgements(
                 clips,
                 cached("acknowledgements"),

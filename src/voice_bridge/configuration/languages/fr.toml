@@ -1,6 +1,5 @@
 whisper_code = "fr"
 voice = "fr_female"
-greeting = "Je t'écoute."
 stop_refusal = "L'utilisateur a demandé d'arrêter : aucun outil ne s'exécute avant son prochain message. Ne réessaie pas ; dis en une phrase ce qui a été arrêté et ce qui était déjà fait."
 delegation_refusal = "En session vocale, tu ne fais pas le travail toi-même : confie cette tâche à un agent en arrière-plan, termine ton tour tout de suite et reste disponible pour parler."
 reply_tool_description = "Dire une réponse à voix haute dans le casque de l'utilisateur"
@@ -152,6 +151,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "presence"
+greets = true
 examples = [
   "Est-ce que tu m'entends ?",
   "Tu m'entends ?",
