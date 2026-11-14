@@ -2,20 +2,26 @@ import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, assert_never
 
-from opentelemetry import metrics, trace
+from opentelemetry import _logs, metrics, trace
+from opentelemetry._logs import SeverityNumber
 from opentelemetry.exporter.otlp.json.file import FileMetricExporter, FileSpanExporter
+from opentelemetry.exporter.otlp.json.file._log_exporter import FileLogExporter
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from voice_bridge.features.conversation.domain.turn_trace import Counted, FinishedTurn
+from voice_bridge.features.conversation.domain.turn_trace import Acknowledged, Counted, FinishedTurn, Forwarded
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
     from typing import IO
 
+    from opentelemetry._logs import Logger
+    from opentelemetry._logs import LoggerProvider as AnyLoggerProvider
     from opentelemetry.metrics import Counter, Histogram, Meter
     from opentelemetry.metrics import MeterProvider as AnyMeterProvider
     from opentelemetry.trace import Tracer
@@ -38,20 +44,39 @@ def epoch_of(clock: Callable[[], float]) -> Callable[[float], int]:
 
 
 def writing_to(
-    traces: IO[str], measures: IO[str], attributes: Mapping[str, AttributeValue]
-) -> tuple[TracerProvider, MeterProvider]:
+    traces: IO[str], measures: IO[str], logs: IO[str], attributes: Mapping[str, AttributeValue]
+) -> tuple[TracerProvider, MeterProvider, LoggerProvider]:
     resource = Resource.create(dict(attributes))
     tracers = TracerProvider(resource=resource)
     tracers.add_span_processor(BatchSpanProcessor(FileSpanExporter(stream=traces)))
     meters = MeterProvider(
         resource=resource, metric_readers=[PeriodicExportingMetricReader(FileMetricExporter(stream=measures))]
     )
-    return tracers, meters
+    loggers = LoggerProvider(resource=resource)
+    loggers.add_log_record_processor(BatchLogRecordProcessor(FileLogExporter(stream=logs)))
+    return tracers, meters, loggers
+
+
+def _forwarded_attributes(report: Forwarded, to_epoch: Callable[[float], int]) -> dict[str, AttributeValue]:
+    understood = report.understood
+    route = {} if understood.route is None else {"voice_bridge.route.name": understood.route}
+    acknowledgement = (
+        {} if report.acknowledgement is None else {"voice_bridge.acknowledgement.sentence": report.acknowledgement}
+    )
+    return {
+        "voice_bridge.utterance.text": report.text,
+        "voice_bridge.utterance.interrupted": report.interrupted,
+        "voice_bridge.voice.end_time_unix_nano": to_epoch(report.voice_end),
+        **route,
+        "voice_bridge.route.ranking": [{"route": name, "score": score} for name, score in understood.ranking],
+        **acknowledgement,
+    }
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OpenTelemetry:
     tracer: Tracer
+    logger: Logger
     turns: Histogram
     steps: Histogram
     responses: Histogram
@@ -60,9 +85,10 @@ class OpenTelemetry:
     to_epoch: Callable[[float], int]
 
     @classmethod
-    def of(cls, tracer: Tracer, meter: Meter, to_epoch: Callable[[float], int]) -> OpenTelemetry:
+    def of(cls, tracer: Tracer, meter: Meter, logger: Logger, to_epoch: Callable[[float], int]) -> OpenTelemetry:
         return cls(
             tracer=tracer,
+            logger=logger,
             turns=meter.create_histogram(
                 f"{NAME}.turn.duration",
                 unit="s",
@@ -83,13 +109,26 @@ class OpenTelemetry:
 
     @classmethod
     def from_globals(cls, clock: Callable[[], float]) -> OpenTelemetry:
-        return cls.of(trace.get_tracer(NAME), metrics.get_meter(NAME), epoch_of(clock))
+        return cls.of(trace.get_tracer(NAME), metrics.get_meter(NAME), _logs.get_logger(NAME), epoch_of(clock))
 
     @classmethod
     def from_providers(
-        cls, tracers: AnyTracerProvider, meters: AnyMeterProvider, clock: Callable[[], float]
+        cls,
+        tracers: AnyTracerProvider,
+        meters: AnyMeterProvider,
+        loggers: AnyLoggerProvider,
+        clock: Callable[[], float],
     ) -> OpenTelemetry:
-        return cls.of(tracers.get_tracer(NAME), meters.get_meter(NAME), epoch_of(clock))
+        return cls.of(tracers.get_tracer(NAME), meters.get_meter(NAME), loggers.get_logger(NAME), epoch_of(clock))
+
+    def _event(self, name: str, at: float, attributes: Mapping[str, AttributeValue]) -> None:
+        self.logger.emit(
+            timestamp=self.to_epoch(at),
+            severity_number=SeverityNumber.INFO,
+            severity_text="INFO",
+            attributes=attributes,
+            event_name=name,
+        )
 
     def _trace(self, turn: FinishedTurn) -> None:
         response = {} if turn.response is None else {"response.latency": turn.response}
@@ -114,6 +153,14 @@ class OpenTelemetry:
                 self._trace(report)
             case Counted(name=name):
                 self.events.add(1, {"event": name})
+            case Forwarded(at=at):
+                self._event(f"{NAME}.utterance.forwarded", at, _forwarded_attributes(report, self.to_epoch))
+            case Acknowledged(sentence=sentence, words=words, at=at):
+                self._event(
+                    f"{NAME}.acknowledgement.played",
+                    at,
+                    {"voice_bridge.acknowledgement.sentence": sentence, "voice_bridge.utterance.text": words},
+                )
             case _:
                 assert_never(report)
 

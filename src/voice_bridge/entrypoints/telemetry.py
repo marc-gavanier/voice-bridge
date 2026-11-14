@@ -35,6 +35,7 @@ def chosen_telemetry(
     providers = writing_to(
         RotatingText(DailyFile(directory / "traces.jsonl", kept=kept)),
         RotatingText(DailyFile(directory / "metrics.jsonl", kept=kept)),
+        RotatingText(DailyFile(directory / "logs.jsonl", kept=kept)),
         {"service.name": APP_NAME, **attributes},
     )
     adapter = OpenTelemetry.from_providers(*providers, clock)

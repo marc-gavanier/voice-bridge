@@ -1,11 +1,15 @@
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from voice_bridge.features.conversation.domain.turn_trace import Report
+    from voice_bridge.features.conversation.domain.turn_trace import Report, Understood
 
 
 class Claude(Protocol):
     async def __call__(self, text: str, *, interrupted: bool, acknowledgement: str | None) -> None: ...
+
+
+class Interpreter(Protocol):
+    def __call__(self, words: str) -> Understood: ...
 
 
 class Acknowledgement(Protocol):

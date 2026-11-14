@@ -154,7 +154,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements and announcements of the tasks in progress are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at midnight into a compressed `voice-bridge.log.YYYY-MM-DD.gz` |
 | `log_retention` | `30` | How many days of the log are kept, the oldest compressed day being deleted at each rotation; `"forever"` deletes none. See [Keep the files](#keep-the-files) |
-| `telemetry_directory` | `~/.local/state/voice-bridge/telemetry` | Where the traces and metrics are kept when no OTLP endpoint is set, in `traces.jsonl` and `metrics.jsonl`, each rotated at midnight like the log; see [Read the traces and metrics](#read-the-traces-and-metrics) |
+| `telemetry_directory` | `~/.local/state/voice-bridge/telemetry` | Where the traces, metrics and events are kept when no OTLP endpoint is set, in `traces.jsonl`, `metrics.jsonl` and `logs.jsonl`, each rotated at midnight like the log; see [Read the traces and metrics](#read-the-traces-and-metrics) |
 | `telemetry_retention` | `30` | How many days of the files of `telemetry_directory` are kept, as `log_retention` does for the log |
 | `hang_after` | `30.0` | Seconds the bridge's event loop may stay frozen before the stack of every thread is written to the `.crash` file; logged as a warning if the bridge resumes, see [Diagnose](#diagnose) |
 | `logging` | none | Where the bridge's log goes, its levels and its format, in the standard library's [`dictConfig`](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema) schema; see below. Without it, the log goes to stderr and to `log_file`. The recorder and the rehearsal keep their own files |
@@ -166,8 +166,8 @@ Each signal goes to the tool you choose, several at once if you like, and nothin
 | Signal | Tool | Where to set it |
 |---|---|---|
 | The log | Any handler of Python's `logging`: file, journald, syslog | `[logging]` in `config.toml`, [below](#send-the-log-elsewhere) |
-| Traces and metrics, kept on the machine | OTLP JSON Lines files next to the log, read with `jq` or loaded by any tool that reads OTLP | Nothing: the default, [below](#read-the-traces-and-metrics); `OTEL_SDK_DISABLED=true` turns it off |
-| Traces, metrics, and the log again | An OpenTelemetry collector, which can route each signal to its own backend | `OTEL_*` variables in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
+| Traces, metrics and events, kept on the machine | OTLP JSON Lines files next to the log, read with `jq` or loaded by any tool that reads OTLP | Nothing: the default, [below](#read-the-traces-and-metrics); `OTEL_SDK_DISABLED=true` turns it off |
+| Traces, metrics, events, and the log again | An OpenTelemetry collector, which can route each signal to its own backend | `OTEL_*` variables in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
 | Metrics, read by Prometheus itself | [Prometheus](https://prometheus.io/), which scrapes `http://localhost:9464/metrics` | `OTEL_METRICS_EXPORTER=prometheus` in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
 | Errors | Sentry, or GlitchTip and Bugsink, free and self-hosted, which take the same SDK | `SENTRY_*` variables in the tools' environment file, [below](#report-errors-to-sentry) |
 
@@ -209,10 +209,11 @@ To an OpenTelemetry collector, see below: the log joins the traces and metrics t
 
 ### Read the traces and metrics
 
-By default, without a container or a collector to run, the bridge writes its traces and metrics to `~/.local/state/voice-bridge/telemetry/`, next to the log ([ADR-020](docs/decisions/ADR-020-traces-and-metrics-kept-in-local-files-by-default.md)):
+By default, without a container or a collector to run, the bridge writes its traces, metrics and events to `~/.local/state/voice-bridge/telemetry/`, next to the log ([ADR-020](docs/decisions/ADR-020-traces-and-metrics-kept-in-local-files-by-default.md), [ADR-024](docs/decisions/ADR-024-files-rotated-daily-and-kept-for-a-bounded-number-of-days.md)):
 
 - `traces.jsonl`, one trace per turn, as described [below](#export-traces-metrics-and-the-log), written in batches every few seconds and when the bridge stops;
-- `metrics.jsonl`, the bridge's metrics, cumulative since the start, written every minute and when the bridge stops; `OTEL_METRIC_EXPORT_INTERVAL`, in milliseconds, changes the pace.
+- `metrics.jsonl`, the bridge's metrics, cumulative since the start, written every minute and when the bridge stops; `OTEL_METRIC_EXPORT_INTERVAL`, in milliseconds, changes the pace;
+- `logs.jsonl`, the [events](#events) of each utterance forwarded to Claude and each acknowledgement played, as OpenTelemetry log records, written in batches every few seconds and when the bridge stops.
 
 Every line names the run's settings that shape a turn as resource attributes: `voice_bridge.language`, `voice_bridge.hearing.silence`, `voice_bridge.hearing.settle`, `voice_bridge.hearing.smart_turn`, `voice_bridge.hearing.turn_threshold`, `voice_bridge.whisper.model`, `voice_bridge.speech.model`, `voice_bridge.speech.voice` and `voice_bridge.speech.speed`, so that runs with different settings can be told apart. Exported over OTLP, the resource comes from `opentelemetry-instrument` instead, and `OTEL_RESOURCE_ATTRIBUTES` sets it.
 
@@ -230,7 +231,22 @@ The median response latency, the wait you hear:
 zcat -f ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s '[.[].resourceSpans[].scopeSpans[].spans[] | select(.name == "turn") | .attributes[] | select(.key == "response.latency") | .value.doubleValue] | sort | .[length / 2 | floor]'
 ```
 
+What was said, what the bridge understood and how it acknowledged it, one line each, oldest first:
+
+```bash
+zcat -f $(ls -tr ~/.local/state/voice-bridge/telemetry/logs.jsonl*) | jq -r '.resourceLogs[].scopeLogs[].logRecords[] | select(.eventName == "voice_bridge.utterance.forwarded") | (.attributes | map({(.key): .value}) | add) as $a | [$a["voice_bridge.utterance.text"].stringValue, ($a["voice_bridge.route.name"].stringValue // "-"), ($a["voice_bridge.acknowledgement.sentence"].stringValue // "-")] | @tsv'
+```
+
 `OTEL_SDK_DISABLED=true`, the SDK's standard switch, in the [tools' environment file](#one-tool-per-signal) turns the files off; the bridge still creates them, empty.
+
+#### Events
+
+Each utterance forwarded to Claude, and each acknowledgement played, is one [OpenTelemetry log record](https://opentelemetry.io/docs/specs/otel/logs/data-model/) named by its `eventName`, at `INFO`, timed by its `timeUnixNano`. The bridge only reports them; reading them, to build a corpus of what was said or to tune the routes, is left to tools outside it.
+
+- `voice_bridge.utterance.forwarded`, when the words reach Claude: `voice_bridge.utterance.text`, the transcription, pieces said with pauses joined; `voice_bridge.utterance.interrupted`, whether they cut Claude's voice; `voice_bridge.voice.end_time_unix_nano`, the end of the last voice; `voice_bridge.route.name`, the route taken, left out when none is; `voice_bridge.route.ranking`, the three closest routes, closest first, each a `route` and its cosine `score`; `voice_bridge.acknowledgement.sentence`, the acknowledgement played after the words, left out when none is.
+- `voice_bridge.acknowledgement.played`, when an acknowledgement is played: `voice_bridge.acknowledgement.sentence` and the `voice_bridge.utterance.text` it answers.
+
+These files hold what you said, word for word. They stay on the machine, in the XDG state directory, which backups usually leave out, unless you back it up yourself; `telemetry_retention` bounds how long they are kept. With an OTLP endpoint set, the events go to the collector with the traces, and with them your words.
 
 ### Keep the files
 
@@ -250,6 +266,7 @@ Nothing leaves the machine by default. With the `otel` extra installed and an OT
 - **one trace per turn**: a `turn` span from the end of your voice until your next words reach Claude, with a span for each step: `end of turn`, from the end of your voice until the bridge judges your sentence finished, then `transcription` by Whisper, for each piece of what you said, `settle` before your words are pushed, `claude` until its first reply, each `synthesis` or `failed synthesis`, with the sentence's `rank` in the turn, from 0 for the first, its length in `characters` and, once voiced, its `audio.duration` in seconds, and each `playback`, cut where you interrupted; the turn tells whether it was `interrupted` and, once Claude's voice played, its `response.latency`, in seconds from the end of your last voice to the first sound of the reply, acknowledgements aside;
 - **metrics**: `voice_bridge.turn.duration` and `voice_bridge.step.duration` by step, in seconds; `voice_bridge.response.latency`, the same response latency as the turns'; `voice_bridge.events`, the interruptions and the sounds dismissed as too short; `voice_bridge.audio.stall.duration`, the gaps in your audio reaching the bridge;
 - **the process and the machine**: memory, CPU, threads, open files, garbage collection, and the machine's CPU, memory, disks and network, from OpenTelemetry's [system metrics instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/system_metrics/system_metrics.html);
+- **the [events](#events)** of each utterance forwarded and each acknowledgement played, as OTLP logs, so `OTEL_LOGS_EXPORTER=none` drops them too;
 - **the log**, alongside the handlers of `[logging]` or the default log, which keep writing.
 
 The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, or when `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` names an exporter other than `none` ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)); it then writes no file. The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): with an endpoint in the [tools' environment file](#one-tool-per-signal), `scripts/claude-voice.sh` starts the bridge under `opentelemetry-instrument`, with `OTEL_SERVICE_NAME=voice-bridge` unless the file sets another.

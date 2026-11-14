@@ -59,7 +59,7 @@ What each gate holds:
 - `scripts/with-cuda.sh uv run voice-bridge-rehearsal` repeats everything said on the server, through hearing, transcription, synthesis and interruptions, without a Claude Code session.
 - `uv run voice-bridge-recorder` records the bridge's voice as the server sends it, to tell a loss on the bridge's side from a loss between the server and the phone.
 - The bridge logs to `~/.local/state/voice-bridge/log/voice-bridge.log`: what was heard, forwarded and spoken. The README's [Diagnose](README.md#diagnose) section maps symptoms to log lines.
-- Without an OTLP endpoint, the traces and metrics of each turn are written as OTLP JSON Lines to `~/.local/state/voice-bridge/telemetry/` ([ADR-020](docs/decisions/ADR-020-traces-and-metrics-kept-in-local-files-by-default.md)); the README's [Read the traces and metrics](README.md#read-the-traces-and-metrics) section gives the median of each step.
+- Without an OTLP endpoint, the traces and metrics of each turn, and an event for each utterance forwarded and each acknowledgement played, are written as OTLP JSON Lines to `~/.local/state/voice-bridge/telemetry/`, rotated daily ([ADR-020](docs/decisions/ADR-020-traces-and-metrics-kept-in-local-files-by-default.md), [ADR-024](docs/decisions/ADR-024-files-rotated-daily-and-kept-for-a-bounded-number-of-days.md)); the README's [Read the traces and metrics](README.md#read-the-traces-and-metrics) section gives the median of each step. The bridge only emits events: anything built from them, such as a corpus of what was said, belongs to a tool outside it.
 
 ## Commits and pull requests
 

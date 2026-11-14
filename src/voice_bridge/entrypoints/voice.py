@@ -34,6 +34,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     VoiceDetected,
 )
+from voice_bridge.features.conversation.domain.turn_trace import Understood
 from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Heard,
     Speaking,
@@ -87,7 +88,7 @@ if TYPE_CHECKING:
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
-    from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude, Interpreter
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 
@@ -224,6 +225,15 @@ def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
     return understanding
 
 
+def _interpreting(understanding: Understanding) -> Interpreter:
+    def interpret(words: str) -> Understood:
+        meaning = understanding(words)
+        route = None if meaning.route is None else understanding.routes[meaning.route].name
+        return Understood(route=route, ranking=meaning.ranking)
+
+    return interpret
+
+
 def _wording(language: LanguagePack) -> Wording:
     announcements = language.announcements
     return Wording(at_work=announcements.at_work, many_at_work=announcements.many_at_work)
@@ -322,6 +332,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             rate=MUMBLE_RATE,
             clock=anyio.current_time,
             acknowledgement=clips,
+            understood=_interpreting(understanding),
             announcement=announcements,
             settle=settings.hearing.settle,
             hold_music=hold_music,

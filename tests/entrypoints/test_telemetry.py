@@ -31,12 +31,16 @@ def test_without_an_endpoint_the_telemetry_is_written_to_files(monkeypatch: pyte
     assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})[0], OpenTelemetry)
 
 
-def test_without_an_endpoint_the_traces_and_metrics_have_their_own_files(
+def test_without_an_endpoint_the_traces_metrics_and_events_have_their_own_files(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     without_endpoint(monkeypatch)
     _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})
-    assert sorted(path.name for path in (tmp_path / "telemetry").iterdir()) == ["metrics.jsonl", "traces.jsonl"]
+    assert sorted(path.name for path in (tmp_path / "telemetry").iterdir()) == [
+        "logs.jsonl",
+        "metrics.jsonl",
+        "traces.jsonl",
+    ]
 
 
 def test_with_an_endpoint_no_file_is_written(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

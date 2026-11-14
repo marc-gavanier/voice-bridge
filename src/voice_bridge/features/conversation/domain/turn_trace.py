@@ -49,7 +49,30 @@ class Counted:
     name: str
 
 
-type Report = FinishedTurn | Counted
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Understood:
+    route: str | None
+    ranking: tuple[tuple[str, float], ...] = ()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Forwarded:
+    text: str
+    interrupted: bool
+    understood: Understood
+    acknowledgement: str | None
+    voice_end: float
+    at: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Acknowledged:
+    sentence: str
+    words: str
+    at: float
+
+
+type Report = FinishedTurn | Counted | Forwarded | Acknowledged
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -84,6 +107,19 @@ def _finished(turn: Turn) -> FinishedTurn:
     end = max(step.end for step in steps)
     response = turn.playing[0].start - turn.spoken_until if turn.playing else None
     return FinishedTurn(start=turn.start, end=end, steps=steps, interrupted=turn.interrupted, response=response)
+
+
+def forwarded(
+    trace: Trace, at: float, command: Forward, understood: Understood, acknowledgement: str | None
+) -> Forwarded:
+    return Forwarded(
+        text=command.text,
+        interrupted=command.interrupted,
+        understood=understood,
+        acknowledgement=acknowledgement,
+        voice_end=at if trace.turn is None else trace.turn.spoken_until,
+        at=at,
+    )
 
 
 def close(trace: Trace) -> tuple[Report, ...]:

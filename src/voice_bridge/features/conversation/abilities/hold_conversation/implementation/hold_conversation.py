@@ -25,7 +25,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Synthesized,
     step,
 )
-from voice_bridge.features.conversation.domain.turn_trace import Trace, close, observe
+from voice_bridge.features.conversation.domain.turn_trace import Acknowledged, Trace, close, forwarded, observe
 from voice_bridge.libraries.audio.pcm import duration
 
 if TYPE_CHECKING:
@@ -38,6 +38,7 @@ if TYPE_CHECKING:
         Announcement,
         Claude,
         HoldMusic,
+        Interpreter,
         Speaker,
         Telemetry,
     )
@@ -54,6 +55,7 @@ class Mouth:
     rate: int
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
+    understood: Interpreter
     announcement: Announcement
     settle: float
     hold_music: HoldMusic | None
@@ -63,9 +65,10 @@ class Mouth:
 
 
 @dataclass(slots=True)
-class _Playback:
+class _Shell:
     scopes: list[anyio.CancelScope] = field(default_factory=list)
     acknowledgement: tuple[str, bytes] | None = None
+    trace: Trace = field(default_factory=Trace)
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
@@ -79,20 +82,22 @@ async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthe
     await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=spoken, at=ready))
 
 
-async def _forward(mouth: Mouth, playback: _Playback, command: Forward) -> None:
+async def _forward(mouth: Mouth, shell: _Shell, command: Forward) -> None:
     if command.pieces > 1:
         logger.info("joined %d pieces said with pauses", command.pieces)
-    playback.acknowledgement = mouth.acknowledgement(command.text) if command.acknowledging else None
-    sentence = playback.acknowledgement[0] if playback.acknowledgement else None
+    shell.acknowledgement = mouth.acknowledgement(command.text) if command.acknowledging else None
+    sentence = shell.acknowledgement[0] if shell.acknowledgement else None
+    mouth.telemetry(forwarded(shell.trace, mouth.clock(), command, mouth.understood(command.text), sentence))
     await mouth.claude(command.text, interrupted=command.interrupted, acknowledgement=sentence)
 
 
-def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
-    clip, playback.acknowledgement = playback.acknowledgement, None
+def _acknowledge(mouth: Mouth, shell: _Shell, order: Acknowledge) -> None:
+    clip, shell.acknowledgement = shell.acknowledgement, None
     if clip is None:
         return
     sentence, pcm = clip
     mouth.speaker.play(pcm)
+    mouth.telemetry(Acknowledged(sentence=sentence, words=order.words, at=mouth.clock()))
     logger.info("acknowledged with %r", sentence)
 
 
@@ -123,24 +128,24 @@ async def _leave(mouth: Mouth, order: Leave) -> None:
     await mouth.leave()
 
 
-async def _play_music(hold_music: HoldMusic, playback: _Playback, *, task_status: TaskStatus[None]) -> None:
+async def _play_music(hold_music: HoldMusic, shell: _Shell, *, task_status: TaskStatus[None]) -> None:
     with anyio.CancelScope() as scope:
-        playback.scopes.append(scope)
+        shell.scopes.append(scope)
         task_status.started()
         await hold_music()
 
 
-async def _start_music(mouth: Mouth, playback: _Playback, tasks: TaskGroup) -> None:
+async def _start_music(mouth: Mouth, shell: _Shell, tasks: TaskGroup) -> None:
     if mouth.hold_music is not None:
-        await tasks.start(_play_music, mouth.hold_music, playback)
+        await tasks.start(_play_music, mouth.hold_music, shell)
 
 
-def _stop_music(mouth: Mouth, playback: _Playback) -> None:
-    if mouth.hold_music is None or not playback.scopes:
+def _stop_music(mouth: Mouth, shell: _Shell) -> None:
+    if mouth.hold_music is None or not shell.scopes:
         return
-    for scope in playback.scopes:
+    for scope in shell.scopes:
         scope.cancel()
-    playback.scopes.clear()
+    shell.scopes.clear()
     mouth.speaker.stop()
     mouth.hold_music.fade()
     logger.info("hold music stopped")
@@ -163,7 +168,7 @@ async def _later(
 
 
 async def _execute(
-    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, playback: _Playback, command: Command
+    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, shell: _Shell, command: Command
 ) -> None:
     match command:
         case Synthesize() | AwaitSilence() | AwaitHold() | Leave():
@@ -176,15 +181,15 @@ async def _execute(
                 "interrupted, playback stopped %.0f ms after the voice was heard", (mouth.clock() - heard_at) * 1000
             )
         case Acknowledge():
-            _acknowledge(mouth, playback)
+            _acknowledge(mouth, shell, command)
         case Announce():
             _announce(mouth, command)
         case StartHoldMusic():
-            await _start_music(mouth, playback, tasks)
+            await _start_music(mouth, shell, tasks)
         case StopHoldMusic():
-            _stop_music(mouth, playback)
+            _stop_music(mouth, shell)
         case Forward():
-            await _forward(mouth, playback, command)
+            await _forward(mouth, shell, command)
         case _:
             assert_never(command)
 
@@ -194,24 +199,22 @@ def _report(mouth: Mouth, reports: tuple[Report, ...]) -> None:
         mouth.telemetry(report)
 
 
-def _observe(mouth: Mouth, trace: Trace, item: Event | Command) -> Trace:
-    observed, reports = observe(trace, mouth.clock(), item)
+def _observe(mouth: Mouth, shell: _Shell, item: Event | Command) -> None:
+    shell.trace, reports = observe(shell.trace, mouth.clock(), item)
     _report(mouth, reports)
-    return observed
 
 
 async def hold_conversation(mouth: Mouth, events: AsyncIterable[Event], emit: ObjectSendStream[Event]) -> None:
     state = Conversation(settle=mouth.settle, hold_music_delay=mouth.hold_music_delay)
-    trace = Trace()
-    playback = _Playback()
+    shell = _Shell()
     try:
         async with anyio.create_task_group() as tasks:
             async for event in events:
-                trace = _observe(mouth, trace, event)
+                _observe(mouth, shell, event)
                 state, commands = step(state, event)
                 for command in commands:
-                    trace = _observe(mouth, trace, command)
-                    await _execute(mouth, emit, tasks, playback, command)
+                    _observe(mouth, shell, command)
+                    await _execute(mouth, emit, tasks, shell, command)
             tasks.cancel_scope.cancel()
     finally:
-        _report(mouth, close(trace))
+        _report(mouth, close(shell.trace))

@@ -3,9 +3,12 @@ from dataclasses import dataclass
 from io import StringIO
 
 import pytest
+from opentelemetry.proto_json.collector.logs.v1.logs_service import ExportLogsServiceRequest
 from opentelemetry.proto_json.collector.metrics.v1.metrics_service import ExportMetricsServiceRequest
 from opentelemetry.proto_json.collector.trace.v1.trace_service import ExportTraceServiceRequest
 from opentelemetry.proto_json.resource.v1.resource import Resource
+from opentelemetry.sdk._logs import LoggerProvider, ReadableLogRecord
+from opentelemetry.sdk._logs.export import InMemoryLogRecordExporter, SimpleLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import (
     ExponentialHistogramDataPoint,
@@ -23,7 +26,14 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
     epoch_of,
     writing_to,
 )
-from voice_bridge.features.conversation.domain.turn_trace import Counted, FinishedTurn, Span
+from voice_bridge.features.conversation.domain.turn_trace import (
+    Acknowledged,
+    Counted,
+    FinishedTurn,
+    Forwarded,
+    Span,
+    Understood,
+)
 
 TURN = FinishedTurn(
     start=1.0,
@@ -39,12 +49,31 @@ SPOKEN = FinishedTurn(
     response=2.5,
 )
 
+QUESTION = Forwarded(
+    text="Où en est-on ?",
+    interrupted=True,
+    understood=Understood(route="question", ranking=(("question", 0.8), ("idea", 0.3))),
+    acknowledgement="Voyons.",
+    voice_end=1.5,
+    at=2.0,
+)
+UNKNOWN = Forwarded(
+    text="Hmm.",
+    interrupted=False,
+    understood=Understood(route=None, ranking=(("idea", 0.2),)),
+    acknowledgement=None,
+    voice_end=1.5,
+    at=2.0,
+)
+ACKNOWLEDGED = Acknowledged(sentence="Voyons.", words="Où en est-on ?", at=2.5)
+
 
 @dataclass(frozen=True)
 class Exported:
     telemetry: OpenTelemetry
     spans: InMemorySpanExporter
     metrics: InMemoryMetricReader
+    logs: InMemoryLogRecordExporter
 
 
 @pytest.fixture
@@ -54,10 +83,30 @@ def exported() -> Exported:
     tracers.add_span_processor(SimpleSpanProcessor(spans))
     metrics = InMemoryMetricReader()
     meters = MeterProvider(metric_readers=[metrics])
+    logs = InMemoryLogRecordExporter()
+    loggers = LoggerProvider(shutdown_on_exit=False)
+    loggers.add_log_record_processor(SimpleLogRecordProcessor(logs))
     telemetry = OpenTelemetry.of(
-        tracers.get_tracer("test"), meters.get_meter("test"), lambda at: round(at * NANOSECONDS)
+        tracers.get_tracer("test"),
+        meters.get_meter("test"),
+        loggers.get_logger("test"),
+        lambda at: round(at * NANOSECONDS),
     )
-    return Exported(telemetry=telemetry, spans=spans, metrics=metrics)
+    return Exported(telemetry=telemetry, spans=spans, metrics=metrics, logs=logs)
+
+
+def logged(exported: Exported, *reports: Forwarded | Acknowledged) -> list[ReadableLogRecord]:
+    _ = [exported.telemetry(report) for report in reports]
+    return list(exported.logs.get_finished_logs())
+
+
+def event_of(exported: Exported, report: Forwarded | Acknowledged) -> tuple[str | None, int | None]:
+    record = logged(exported, report)[0].log_record
+    return record.event_name, record.timestamp
+
+
+def attributes_of(exported: Exported, report: Forwarded | Acknowledged) -> dict[str, object]:
+    return dict(logged(exported, report)[0].log_record.attributes or {})
 
 
 def finished_spans(exported: Exported, turn: FinishedTurn = TURN) -> dict[str, ReadableSpan]:
@@ -163,6 +212,45 @@ def test_a_stall_is_measured(exported: Exported) -> None:
     assert histogram_sums(exported, "voice_bridge.audio.stall.duration") == {"{}": 0.25}
 
 
+def test_a_forwarded_utterance_is_one_event_at_the_time_it_was_forwarded(exported: Exported) -> None:
+    assert event_of(exported, QUESTION) == ("voice_bridge.utterance.forwarded", 2 * NANOSECONDS)
+
+
+def test_a_forwarded_utterance_tells_what_was_said_understood_and_acknowledged(exported: Exported) -> None:
+    assert attributes_of(exported, QUESTION) == {
+        "voice_bridge.utterance.text": "Où en est-on ?",
+        "voice_bridge.utterance.interrupted": True,
+        "voice_bridge.voice.end_time_unix_nano": round(1.5 * NANOSECONDS),
+        "voice_bridge.route.name": "question",
+        "voice_bridge.route.ranking": ({"route": "question", "score": 0.8}, {"route": "idea", "score": 0.3}),
+        "voice_bridge.acknowledgement.sentence": "Voyons.",
+    }
+
+
+def test_an_utterance_without_route_nor_acknowledgement_leaves_them_out(exported: Exported) -> None:
+    assert attributes_of(exported, UNKNOWN) == {
+        "voice_bridge.utterance.text": "Hmm.",
+        "voice_bridge.utterance.interrupted": False,
+        "voice_bridge.voice.end_time_unix_nano": round(1.5 * NANOSECONDS),
+        "voice_bridge.route.ranking": ({"route": "idea", "score": 0.2},),
+    }
+
+
+def test_an_acknowledgement_played_is_one_event_at_the_time_it_played(exported: Exported) -> None:
+    assert event_of(exported, ACKNOWLEDGED) == ("voice_bridge.acknowledgement.played", round(2.5 * NANOSECONDS))
+
+
+def test_an_acknowledgement_played_tells_its_sentence_and_the_words_it_answers(exported: Exported) -> None:
+    assert attributes_of(exported, ACKNOWLEDGED) == {
+        "voice_bridge.acknowledgement.sentence": "Voyons.",
+        "voice_bridge.utterance.text": "Où en est-on ?",
+    }
+
+
+def test_the_events_are_logged_at_the_info_level(exported: Exported) -> None:
+    assert [each.log_record.severity_text for each in logged(exported, QUESTION, ACKNOWLEDGED)] == ["INFO", "INFO"]
+
+
 def test_the_clock_is_turned_into_the_time_since_the_epoch() -> None:
     to_epoch = epoch_of(lambda: 100.0)
     assert to_epoch(101.0) - to_epoch(100.0) == NANOSECONDS
@@ -177,23 +265,30 @@ class Written:
     telemetry: OpenTelemetry
     tracers: TracerProvider
     meters: MeterProvider
+    loggers: LoggerProvider
     traces: StringIO
     metrics: StringIO
+    logs: StringIO
 
 
 @pytest.fixture
 def written() -> Iterator[Written]:
-    traces, metrics = StringIO(), StringIO()
-    tracers, meters = writing_to(traces, metrics, {"service.name": "voice-bridge", "voice_bridge.hearing.settle": 1.5})
+    traces, metrics, logs = StringIO(), StringIO(), StringIO()
+    tracers, meters, loggers = writing_to(
+        traces, metrics, logs, {"service.name": "voice-bridge", "voice_bridge.hearing.settle": 1.5}
+    )
     yield Written(
-        telemetry=OpenTelemetry.from_providers(tracers, meters, lambda: 0.0),
+        telemetry=OpenTelemetry.from_providers(tracers, meters, loggers, lambda: 0.0),
         tracers=tracers,
         meters=meters,
+        loggers=loggers,
         traces=traces,
         metrics=metrics,
+        logs=logs,
     )
     tracers.shutdown()
     meters.shutdown()
+    loggers.shutdown()
 
 
 def traced_lines(written: Written) -> list[ExportTraceServiceRequest]:
@@ -206,6 +301,32 @@ def measured_lines(written: Written) -> list[ExportMetricsServiceRequest]:
     written.telemetry(TURN)
     _ = written.meters.force_flush()
     return [ExportMetricsServiceRequest.from_json(line) for line in written.metrics.getvalue().splitlines()]
+
+
+def logged_lines(written: Written) -> list[ExportLogsServiceRequest]:
+    written.telemetry(QUESTION)
+    _ = written.loggers.force_flush()
+    return [ExportLogsServiceRequest.from_json(line) for line in written.logs.getvalue().splitlines()]
+
+
+def event_names(line: ExportLogsServiceRequest) -> list[str | None]:
+    return [
+        record.event_name
+        for resource in line.resource_logs
+        for scope in resource.scope_logs
+        for record in scope.log_records
+    ]
+
+
+def ranked_routes(line: ExportLogsServiceRequest) -> list[object]:
+    return [
+        attribute.value.to_dict()
+        for resource in line.resource_logs
+        for scope in resource.scope_logs
+        for record in scope.log_records
+        for attribute in record.attributes
+        if attribute.key == "voice_bridge.route.ranking" and attribute.value is not None
+    ]
 
 
 def span_names(line: ExportTraceServiceRequest) -> list[str | None]:
@@ -261,6 +382,42 @@ def test_the_written_spans_carry_the_run_configuration(written: Written) -> None
     assert settle_of(resources) == [1.5]
 
 
+def test_an_event_is_written_as_one_line_of_otlp_json(written: Written) -> None:
+    assert [event_names(line) for line in logged_lines(written)] == [["voice_bridge.utterance.forwarded"]]
+
+
+def test_the_written_events_name_their_service(written: Written) -> None:
+    resources = [each.resource for each in logged_lines(written)[0].resource_logs]
+    assert service_of(resources) == ["voice-bridge"]
+
+
+def test_the_written_ranking_keeps_each_route_with_its_score(written: Written) -> None:
+    assert ranked_routes(logged_lines(written)[0]) == [
+        {
+            "arrayValue": {
+                "values": [
+                    {
+                        "kvlistValue": {
+                            "values": [
+                                {"key": "route", "value": {"stringValue": "question"}},
+                                {"key": "score", "value": {"doubleValue": 0.8}},
+                            ]
+                        }
+                    },
+                    {
+                        "kvlistValue": {
+                            "values": [
+                                {"key": "route", "value": {"stringValue": "idea"}},
+                                {"key": "score", "value": {"doubleValue": 0.3}},
+                            ]
+                        }
+                    },
+                ]
+            }
+        }
+    ]
+
+
 def test_the_metrics_are_written_as_otlp_json(written: Written) -> None:
     assert metric_names(measured_lines(written)[0]) == ["voice_bridge.step.duration", "voice_bridge.turn.duration"]
 
@@ -272,12 +429,15 @@ def test_the_written_metrics_name_their_service(written: Written) -> None:
 
 def traced_while_disabled(monkeypatch: pytest.MonkeyPatch) -> str:
     monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
-    traces = StringIO()
-    tracers, meters = writing_to(traces, StringIO(), {})
-    OpenTelemetry.from_providers(tracers, meters, lambda: 0.0)(TURN)
+    traces, logs = StringIO(), StringIO()
+    tracers, meters, loggers = writing_to(traces, StringIO(), logs, {})
+    telemetry = OpenTelemetry.from_providers(tracers, meters, loggers, lambda: 0.0)
+    telemetry(TURN)
+    telemetry(QUESTION)
     tracers.shutdown()
     meters.shutdown()
-    return traces.getvalue()
+    loggers.shutdown()
+    return traces.getvalue() + logs.getvalue()
 
 
 def test_the_standard_switch_of_the_sdk_writes_nothing(monkeypatch: pytest.MonkeyPatch) -> None:

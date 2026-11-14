@@ -24,7 +24,15 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     VoiceDetected,
 )
-from voice_bridge.features.conversation.domain.turn_trace import Counted, FinishedTurn, Report, Span
+from voice_bridge.features.conversation.domain.turn_trace import (
+    Acknowledged,
+    Counted,
+    FinishedTurn,
+    Forwarded,
+    Report,
+    Span,
+    Understood,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -70,6 +78,14 @@ class Clips:
 
 READY = Clips(question=("Voyons.", QUESTION_CLIP), statement=("D'accord.", STATEMENT_CLIP))
 NOT_READY = Clips(question=None, statement=None)
+
+
+QUESTION = Understood(route="question", ranking=(("question", 0.8), ("idea", 0.3)))
+NOTHING = Understood(route=None, ranking=(("idea", 0.2),))
+
+
+def understood(words: str) -> Understood:
+    return QUESTION if words.endswith("?") else NOTHING
 
 
 ANNOUNCED_SENTENCES = {2: "Two at work."}
@@ -123,6 +139,7 @@ async def talking(
         rate=48000,
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
+        understood=understood,
         announcement=announcement,
         settle=settle,
         hold_music=hold_music if music else None,
@@ -334,8 +351,45 @@ async def test_a_dismissed_sound_is_reported_at_once() -> None:
     assert await reported_after(SoundDismissed()) == [Counted(name="sound dismissed")]
 
 
+def forwarded_reports(reports: list[Report]) -> list[Report]:
+    return [report for report in reports if isinstance(report, Forwarded | Acknowledged)]
+
+
+def finished_reports(reports: list[Report]) -> list[Report]:
+    return [report for report in reports if isinstance(report, FinishedTurn)]
+
+
+async def test_a_forwarded_utterance_is_reported_with_what_was_understood_and_its_acknowledgement() -> None:
+    reports = await reported_after(SpeechEnded(at=0.0), Transcribed(text="Où en est-on ?"))
+    assert forwarded_reports(reports)[0] == Forwarded(
+        text="Où en est-on ?", interrupted=False, understood=QUESTION, acknowledgement="Voyons.", voice_end=0.0, at=0.0
+    )
+
+
+async def test_the_acknowledgement_played_is_reported_with_the_words_it_answers() -> None:
+    reports = await reported_after(SpeechEnded(at=0.0), Transcribed(text="Où en est-on ?"))
+    assert forwarded_reports(reports)[1:] == [Acknowledged(sentence="Voyons.", words="Où en est-on ?", at=0.0)]
+
+
+async def test_an_utterance_without_a_clip_ready_is_reported_without_acknowledgement() -> None:
+    async with talking(NOT_READY) as talk:
+        await talk.say.send(Transcribed(text="Le dépôt est propre."))
+        _ = await talk.forwarded.receive()
+    assert forwarded_reports(talk.reports) == [
+        Forwarded(
+            text="Le dépôt est propre.",
+            interrupted=False,
+            understood=NOTHING,
+            acknowledgement=None,
+            voice_end=0.0,
+            at=0.0,
+        )
+    ]
+
+
 async def test_the_turn_under_way_is_reported_when_the_conversation_ends() -> None:
-    assert await reported_after(SpeechEnded(at=0.0), Transcribed(text="Bonjour."), SilenceLasted(ticket=0, at=0.0)) == [
+    reports = await reported_after(SpeechEnded(at=0.0), Transcribed(text="Bonjour."), SilenceLasted(ticket=0, at=0.0))
+    assert finished_reports(reports) == [
         FinishedTurn(
             start=0.0,
             end=0.0,

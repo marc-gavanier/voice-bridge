@@ -17,10 +17,13 @@ from voice_bridge.features.conversation.domain.turn_taking import (
 from voice_bridge.features.conversation.domain.turn_trace import (
     Counted,
     FinishedTurn,
+    Forwarded,
     Report,
     Span,
     Trace,
+    Understood,
     close,
+    forwarded,
     observe,
 )
 
@@ -28,6 +31,7 @@ type Moment = tuple[float, Event | Command]
 type History = tuple[Trace, tuple[Report, ...]]
 
 FORWARD = Forward(text="Où en est-on ?", interrupted=False, acknowledging=True)
+QUESTION = Understood(route="question", ranking=(("question", 0.8), ("idea", 0.4)))
 
 
 def advance(history: History, moment: Moment) -> History:
@@ -392,3 +396,28 @@ def test_a_sentence_due_to_start_as_the_voice_is_cut_never_plays() -> None:
         (8.0, Play(pcm=b"")),
         (9.0, StopPlaying(heard_at=9.0)),
     ) == ["settle", "playback"]
+
+
+def traced(*moments: Moment) -> Trace:
+    return reduce(advance, moments, (Trace(), ()))[0]
+
+
+def test_a_forwarded_utterance_tells_what_was_said_and_understood() -> None:
+    trace = traced((2.0, SpeechEnded(at=1.5)), (3.0, Transcribed(text="Où en est-on ?")), (4.0, FORWARD))
+    assert forwarded(trace, 4.0, FORWARD, QUESTION, "Voyons.") == Forwarded(
+        text="Où en est-on ?",
+        interrupted=False,
+        understood=QUESTION,
+        acknowledgement="Voyons.",
+        voice_end=1.5,
+        at=4.0,
+    )
+
+
+def test_a_forwarded_utterance_tells_it_interrupted_claude() -> None:
+    interrupting = Forward(text="Stop.", interrupted=True, acknowledging=False)
+    assert forwarded(traced((4.0, interrupting)), 4.0, interrupting, QUESTION, None).interrupted
+
+
+def test_an_utterance_forwarded_without_a_turn_ends_its_voice_when_forwarded() -> None:
+    assert forwarded(Trace(), 4.0, FORWARD, QUESTION, None).voice_end == 4.0
