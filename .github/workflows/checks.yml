@@ -26,6 +26,13 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/prek
+            !~/.cache/prek/tools
+            !~/.cache/prek/cache
+          key: prek-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - run: uv run --frozen prek run --all-files --show-diff-on-failure check-merge-conflict check-added-large-files end-of-file-fixer trailing-whitespace check-toml check-yaml
       - run: uv run --frozen validate-pyproject pyproject.toml
       - run: uv run --frozen prek run --all-files actionlint
