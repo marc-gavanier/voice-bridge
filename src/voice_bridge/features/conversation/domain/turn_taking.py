@@ -1,5 +1,7 @@
 from dataclasses import dataclass, replace
-from typing import assert_never
+from typing import Final, assert_never
+
+ANNOUNCED_FROM: Final = 2
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -445,6 +447,8 @@ def _on_activity(state: Conversation, event: ClaudeBusy | ClaudeIdle) -> Step:
 
 
 def _on_agents(state: Conversation, event: AgentsChanged) -> Step:
+    if event.at_work < ANNOUNCED_FROM:
+        return replace(state, announcing=None), ()
     return _announce(replace(state, announcing=Announce(at_work=event.at_work, finished=event.finished)))
 
 

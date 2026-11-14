@@ -6,6 +6,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from voice_bridge.features.conversation.domain.turn_taking import (
+    ANNOUNCED_FROM,
     AgentsChanged,
     Announce,
     Asked,
@@ -123,6 +124,15 @@ def changes(events: list[Event]) -> int:
 @given(st.lists(EVENTS, max_size=50))
 def test_agents_are_never_announced_more_often_than_they_change(events: list[Event]) -> None:
     assert announced(commands_of(events)) <= changes(events)
+
+
+def announced_counts(commands: tuple[Command, ...]) -> list[int]:
+    return [command.at_work for command in commands if isinstance(command, Announce)]
+
+
+@given(st.lists(EVENTS, max_size=50))
+def test_fewer_than_two_agents_at_work_are_never_announced(events: list[Event]) -> None:
+    assert all(count >= ANNOUNCED_FROM for count in announced_counts(commands_of(events)))
 
 
 def announced_while_heard(events: list[Event]) -> list[Announce]:

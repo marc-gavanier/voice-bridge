@@ -192,6 +192,11 @@ def an_agent_starts(turn: Turn, count: str) -> Turn:
     return after(turn, AgentsChanged(at_work=int(count)))
 
 
+@given(parsers.re(r"an agent finished and (?P<count>\d+) (?:is|are) left at work"), target_fixture="turn")
+def an_agent_finished(turn: Turn, count: str) -> Turn:
+    return after(turn, AgentsChanged(at_work=int(count), finished=True))
+
+
 @when(parsers.re(r"an agent finishes and (?P<count>\d+) (?:is|are) left at work"), target_fixture="turn")
 def an_agent_finishes(turn: Turn, count: str) -> Turn:
     return after(turn, AgentsChanged(at_work=int(count), finished=True))
@@ -469,4 +474,4 @@ def the_announcement_follows_the_acknowledgement(turn: Turn) -> None:
 
 @then("the hold music stops before the announcement")
 def the_hold_music_stops_before_the_announcement(turn: Turn) -> None:
-    assert turn.commands[:2] == (StopHoldMusic(), Announce(at_work=1))
+    assert turn.commands[:2] == (StopHoldMusic(), Announce(at_work=2))
