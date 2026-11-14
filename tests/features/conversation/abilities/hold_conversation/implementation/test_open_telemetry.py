@@ -155,7 +155,7 @@ class Written:
 @pytest.fixture
 def written() -> Iterator[Written]:
     traces, metrics = StringIO(), StringIO()
-    tracers, meters = writing_to(traces, metrics, {"service.name": "voice-bridge"})
+    tracers, meters = writing_to(traces, metrics, {"service.name": "voice-bridge", "voice_bridge.hearing.settle": 1.5})
     yield Written(
         telemetry=OpenTelemetry.from_providers(tracers, meters, lambda: 0.0),
         tracers=tracers,
@@ -208,6 +208,16 @@ def service_of(resources: list[Resource | None]) -> list[str | None]:
     ]
 
 
+def settle_of(resources: list[Resource | None]) -> list[float | None]:
+    return [
+        attribute.value.double_value
+        for resource in resources
+        if resource is not None
+        for attribute in resource.attributes
+        if attribute.key == "voice_bridge.hearing.settle" and attribute.value is not None
+    ]
+
+
 def test_a_turn_is_written_as_one_line_of_otlp_json(written: Written) -> None:
     assert [span_names(line) for line in traced_lines(written)] == [["claude", "transcription", "turn"]]
 
@@ -215,6 +225,11 @@ def test_a_turn_is_written_as_one_line_of_otlp_json(written: Written) -> None:
 def test_the_written_spans_name_their_service(written: Written) -> None:
     resources = [each.resource for each in traced_lines(written)[0].resource_spans]
     assert service_of(resources) == ["voice-bridge"]
+
+
+def test_the_written_spans_carry_the_run_configuration(written: Written) -> None:
+    resources = [each.resource for each in traced_lines(written)[0].resource_spans]
+    assert settle_of(resources) == [1.5]
 
 
 def test_the_metrics_are_written_as_otlp_json(written: Written) -> None:

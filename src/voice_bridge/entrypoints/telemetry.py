@@ -9,7 +9,7 @@ from voice_bridge.configuration.telemetry import exports_telemetry, reports_erro
 from voice_bridge.libraries.rotation.text import RotatingText
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
     from sentry_sdk.transport import Transport
@@ -23,7 +23,9 @@ def _rotating(path: Path) -> RotatingText:
     return RotatingText(path, largest=LARGEST_LOG, kept=KEPT_LOGS)
 
 
-def chosen_telemetry(clock: Callable[[], float], directory: Path) -> tuple[Telemetry, Callable[[float], None]]:
+def chosen_telemetry(
+    clock: Callable[[], float], directory: Path, attributes: Mapping[str, str | float | bool]
+) -> tuple[Telemetry, Callable[[float], None]]:
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.open_telemetry import (
         OpenTelemetry,
         writing_to,
@@ -35,7 +37,9 @@ def chosen_telemetry(clock: Callable[[], float], directory: Path) -> tuple[Telem
         return adapter, adapter.stalled
     directory.mkdir(parents=True, exist_ok=True)
     providers = writing_to(
-        _rotating(directory / "traces.jsonl"), _rotating(directory / "metrics.jsonl"), {"service.name": APP_NAME}
+        _rotating(directory / "traces.jsonl"),
+        _rotating(directory / "metrics.jsonl"),
+        {"service.name": APP_NAME, **attributes},
     )
     adapter = OpenTelemetry.from_providers(*providers, clock)
     logger.info("telemetry written to %s", directory)

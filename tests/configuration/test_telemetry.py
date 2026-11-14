@@ -1,4 +1,5 @@
-from voice_bridge.configuration.telemetry import exports_telemetry, reports_errors
+from voice_bridge.configuration.settings import Settings
+from voice_bridge.configuration.telemetry import exports_telemetry, reports_errors, run_attributes
 
 
 def test_no_endpoint_exports_nothing() -> None:
@@ -49,3 +50,33 @@ def test_an_empty_sentry_dsn_reports_no_error() -> None:
 
 def test_a_sentry_dsn_reports_errors() -> None:
     assert reports_errors({"SENTRY_DSN": "https://key@sentry.example.org/1"})
+
+
+def settings() -> Settings:
+    return Settings.model_validate(
+        {
+            "language": "fr",
+            "mumble": {
+                "host": "voice.example.org",
+                "password": "secret",
+                "server_certificate": "/etc/voice-bridge/server.pem",
+                "speaker_certificate_hash": "6f0b58787b96ff978ba512c74a1c3ca4aabab441",
+            },
+            "whisper": {"model": "large-v3"},
+            "hearing": {"settle": 1.5, "silence": 0.7, "smart_turn": True, "turn_threshold": 0.6},
+            "speech": {"model": "mistralai/Voxtral-4B-TTS-2603"},
+        }
+    )
+
+
+def test_the_run_is_described_by_the_settings_that_shape_a_turn() -> None:
+    assert run_attributes(settings(), voice="fr_female") == {
+        "voice_bridge.language": "fr",
+        "voice_bridge.hearing.silence": 0.7,
+        "voice_bridge.hearing.settle": 1.5,
+        "voice_bridge.hearing.smart_turn": True,
+        "voice_bridge.hearing.turn_threshold": 0.6,
+        "voice_bridge.whisper.model": "large-v3",
+        "voice_bridge.speech.model": "mistralai/Voxtral-4B-TTS-2603",
+        "voice_bridge.speech.voice": "fr_female",
+    }

@@ -14,6 +14,7 @@ from faster_whisper import WhisperModel
 from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
+from voice_bridge.configuration.telemetry import run_attributes
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     News,
@@ -260,7 +261,11 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
     hold_music = await _hold_music(settings, speaker)
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     speech_settings = settings.speech
-    telemetry, stalled_for = chosen_telemetry(anyio.current_time, settings.telemetry_directory)
+    telemetry, stalled_for = chosen_telemetry(
+        anyio.current_time,
+        settings.telemetry_directory,
+        run_attributes(settings, voice=speech_settings.voice or language.voice),
+    )
 
     async def connected(client: MumbleClient) -> None:
         _ = client.play(buffer)
