@@ -40,6 +40,11 @@ neutral_acknowledgements = [
   "D'accord.",
   "Ah, OK.",
   "Je vois.",
+  "J'ai noté.",
+  "J'ai bien noté.",
+  "C'est pris en compte.",
+  "OK, noté.",
+  "OK, compris.",
 ]
 
 [announcements]
@@ -93,6 +98,16 @@ sentences = [
   "J'arrête tout de suite.",
   "J'arrête maintenant.",
   "J'arrête sur-le-champ.",
+  "J'arrête.",
+  "J'arrête là.",
+  "J'arrête tout.",
+  "J'arrête le travail en cours.",
+  "Je m'arrête.",
+  "Je m'arrête tout de suite.",
+  "Je coupe tout.",
+  "Je coupe le travail en cours.",
+  "J'interromps tout.",
+  "J'interromps le travail en cours.",
 ]
 
 [[acknowledgements]]
@@ -124,6 +139,14 @@ sentences = [
   "On s'arrête là.",
   "D'accord, on s'arrête.",
   "Entendu, on s'arrête là.",
+  "Au revoir.",
+  "À très vite.",
+  "À très bientôt.",
+  "À une prochaine fois.",
+  "On en reste là.",
+  "C'était un plaisir.",
+  "Merci pour cette session.",
+  "Je ferme la session.",
 ]
 
 [[acknowledgements]]
@@ -150,6 +173,10 @@ sentences = [
   "Je t'écoute.",
   "Vas-y.",
   "Prends ton temps.",
+  "Continue.",
+  "Dis-moi.",
+  "Tu disais ?",
+  "J'écoute.",
 ]
 
 [[acknowledgements]]
@@ -197,6 +224,13 @@ sentences = [
   "Présent.",
   "Je suis présent.",
   "Je t'écoute.",
+  "Je t'entends très bien.",
+  "Je t'entends parfaitement.",
+  "Je t'entends clairement.",
+  "Je te reçois bien.",
+  "Je te reçois cinq sur cinq.",
+  "Je suis en ligne.",
+  "Me voici.",
 ]
 
 [[acknowledgements]]
@@ -224,6 +258,13 @@ sentences = [
   "Je t'en prie.",
   "Tout le plaisir est pour moi.",
   "C'est un plaisir.",
+  "C'est avec plaisir.",
+  "Avec grand plaisir.",
+  "Avec joie.",
+  "Ça me fait plaisir.",
+  "Toujours un plaisir.",
+  "À ton service.",
+  "Mais je t'en prie.",
 ]
 
 [[acknowledgements]]
@@ -253,6 +294,13 @@ sentences = [
   "Merci, ça fait plaisir.",
   "Merci beaucoup.",
   "Merci, c'est gentil.",
+  "Merci.",
+  "Merci bien.",
+  "Ça fait plaisir.",
+  "Ça me fait plaisir.",
+  "C'est gentil.",
+  "Merci du compliment.",
+  "Merci, ça me touche.",
 ]
 
 [[acknowledgements]]
@@ -298,6 +346,18 @@ sentences = [
   "Un moment, je regarde.",
   "Un instant, je vérifie.",
   "Un moment, je vérifie.",
+  "Je regarde ça.",
+  "Je cherche.",
+  "Je cherche la cause.",
+  "Je cherche d'où ça vient.",
+  "Voyons d'où ça vient.",
+  "Voyons ce qui se passe.",
+  "Je vais voir ce qui ne va pas.",
+  "Je vais creuser ça.",
+  "Je vais vérifier ça.",
+  "Ah, zut.",
+  "Une seconde, je regarde ça.",
+  "Une seconde, je vérifie ça.",
 ]
 
 [[acknowledgements]]
@@ -336,6 +396,13 @@ sentences = [
   "Laisse-moi regarder.",
   "Je vois ça.",
   "Je lance.",
+  "Je fais ça.",
+  "Je m'en charge.",
+  "Je m'occupe de ça.",
+  "Je commence ça.",
+  "Je démarre ça.",
+  "Un instant, je m'en occupe.",
+  "Une seconde, je lance.",
 ]
 
 [[acknowledgements]]
@@ -372,6 +439,18 @@ sentences = [
   "Un moment, je regarde.",
   "Un instant, je vérifie.",
   "Un moment, je vérifie.",
+  "Laisse-moi réfléchir.",
+  "Je cherche ça.",
+  "Je vais chercher ça.",
+  "Je me renseigne là-dessus.",
+  "Voyons voir.",
+  "Je vais voir.",
+  "Attends, je vérifie.",
+  "Attends, je réfléchis.",
+  "Un instant, je réfléchis.",
+  "Une seconde, je réfléchis.",
+  "Une seconde, je regarde.",
+  "Une seconde, je vérifie.",
 ]
 
 [[acknowledgements]]
@@ -396,6 +475,14 @@ examples = [
 ]
 sentences = [
   "Je t'écoute.",
+  "Raconte.",
+  "Raconte-moi.",
+  "Dis-moi.",
+  "Dis-moi tout.",
+  "Explique-moi.",
+  "J'écoute.",
+  "J'ai hâte d'entendre ça.",
+  "Ah oui ?",
 ]
 
 [[acknowledgements]]
@@ -423,6 +510,14 @@ sentences = [
   "Ça se tient.",
   "Intéressant.",
   "Ah, d'accord.",
+  "Je vois ce que tu veux dire.",
+  "Je vois où tu veux en venir.",
+  "Je comprends l'idée.",
+  "Je saisis l'idée.",
+  "Je vois le principe.",
+  "Je saisis le principe.",
+  "Je comprends le principe.",
+  "Je note l'idée.",
 ]
 
 [[acknowledgements]]
@@ -455,6 +550,13 @@ sentences = [
   "Je corrige.",
   "Pas de problème.",
   "Je change de cap.",
+  "Aucun souci.",
+  "Aucun problème.",
+  "Ah, je vois.",
+  "Ah, entendu.",
+  "Je rectifie.",
+  "Je revois ça.",
+  "Je change d'approche.",
 ]
 
 [[acknowledgements]]
@@ -486,6 +588,16 @@ sentences = [
   "On démarre.",
   "Go !",
   "Ça marche.",
+  "En route.",
+  "On lance.",
+  "On attaque.",
+  "Au travail.",
+  "Je me lance.",
+  "En avant.",
+  "Ça roule.",
+  "Va pour ça.",
+  "C'est lancé.",
+  "Je fais ça.",
 ]
 
 [[acknowledgements]]
@@ -519,4 +631,9 @@ sentences = [
   "Entendu.",
   "Super.",
   "Bien.",
+  "Impeccable.",
+  "Excellent.",
+  "Ça me va.",
+  "C'est validé.",
+  "Validé.",
 ]
