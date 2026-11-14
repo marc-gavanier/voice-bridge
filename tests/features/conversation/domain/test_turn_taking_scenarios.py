@@ -202,6 +202,16 @@ def an_agent_finishes(turn: Turn, count: str) -> Turn:
     return after(turn, AgentsChanged(at_work=int(count)))
 
 
+@given(parsers.re(r"an agent was resumed and (?P<count>\d+) (?:is|are) at work"), target_fixture="turn")
+def an_agent_was_resumed(turn: Turn, count: str) -> Turn:
+    return after(turn, AgentsChanged(at_work=int(count)))
+
+
+@when(parsers.re(r"an agent is resumed and (?P<count>\d+) (?:is|are) at work"), target_fixture="turn")
+def an_agent_is_resumed(turn: Turn, count: str) -> Turn:
+    return after(turn, AgentsChanged(at_work=int(count)))
+
+
 @given("the speaker cut in", target_fixture="turn")
 def the_speaker_cut_in(turn: Turn) -> Turn:
     return after(turn, VoiceDetected(at=SILENT_AT))

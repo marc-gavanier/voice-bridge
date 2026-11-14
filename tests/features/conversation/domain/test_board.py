@@ -94,3 +94,55 @@ def test_the_finished_agents_keep_their_description() -> None:
     assert finish(described, agent_id="a1", last_message="Found.", at=LATER)[0].finished[0].agent.description == (
         "Search the notes"
     )
+
+
+RESUMED_AT = LATER + timedelta(minutes=1)
+
+
+def paused_once() -> Board:
+    return finish(started_once(), agent_id="a1", last_message="Paused.", at=LATER)[0]
+
+
+def resumed_once() -> Board:
+    return start(paused_once(), agent_id="a1", kind="general-purpose", at=RESUMED_AT)[0]
+
+
+def finished_after_a_resume() -> Board:
+    return finish(resumed_once(), agent_id="a1", last_message="Done.", at=RESUMED_AT + timedelta(minutes=1))[0]
+
+
+def test_a_resumed_agent_is_at_work_again_since_its_first_start() -> None:
+    assert resumed_once() == Board(
+        at_work=(Agent(id="a1", kind="general-purpose", since=MORNING, resumed=1, resumed_at=RESUMED_AT),)
+    )
+
+
+def test_a_resumed_agent_changes_the_count_at_work() -> None:
+    assert start(paused_once(), agent_id="a1", kind="general-purpose", at=RESUMED_AT)[1] == AgentsChanged(at_work=1)
+
+
+def test_an_agent_finished_after_a_resume_has_a_single_entry() -> None:
+    assert finished_after_a_resume().finished == (
+        Finished(
+            agent=Agent(id="a1", kind="general-purpose", since=MORNING, resumed=1, resumed_at=RESUMED_AT),
+            ended=RESUMED_AT + timedelta(minutes=1),
+            last_message="Done.",
+        ),
+    )
+
+
+def test_an_agent_resumed_twice_counts_both_resumes() -> None:
+    again = finish(resumed_once(), agent_id="a1", last_message="Paused.", at=RESUMED_AT)[0]
+    assert start(again, agent_id="a1", kind="general-purpose", at=LATER)[0].at_work[0].resumed == 2
+
+
+def test_a_resume_of_an_agent_at_work_changes_nothing() -> None:
+    assert start(resumed_once(), agent_id="a1", kind="general-purpose", at=LATER) == (resumed_once(), None)
+
+
+def test_a_resume_leaves_the_other_finished_agents() -> None:
+    board = Board(finished=(Finished(agent=WRITER, ended=LATER, last_message="Written."),))
+    paused = finish(
+        start(board, agent_id="a1", kind="general-purpose", at=MORNING)[0], agent_id="a1", last_message="", at=LATER
+    )[0]
+    assert start(paused, agent_id="a1", kind="general-purpose", at=RESUMED_AT)[0].finished == board.finished

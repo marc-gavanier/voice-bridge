@@ -28,16 +28,18 @@ def _changed(change: AgentsChanged | None) -> tuple[Event, ...]:
     return () if change is None else (change,)
 
 
-def _agent(agent: Agent) -> dict[str, str]:
+def _agent(agent: Agent) -> dict[str, str | int | None]:
     return {
         "id": agent.id,
         "type": agent.kind,
         "description": agent.description,
         "since": agent.since.isoformat(timespec="seconds"),
+        "resumed": agent.resumed,
+        "resumed_at": None if agent.resumed_at is None else agent.resumed_at.isoformat(timespec="seconds"),
     }
 
 
-def _finished(finished: Finished) -> dict[str, str]:
+def _finished(finished: Finished) -> dict[str, str | int | None]:
     return {
         **_agent(finished.agent),
         "ended": finished.ended.isoformat(timespec="seconds"),

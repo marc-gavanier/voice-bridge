@@ -15,6 +15,8 @@ class Agent:
     kind: str
     since: datetime
     description: str = ""
+    resumed: int = 0
+    resumed_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -39,10 +41,20 @@ class Board:
 type Changed = tuple[Board, AgentsChanged | None]
 
 
+def _resumed(paused: Finished, at: datetime) -> Agent:
+    return replace(paused.agent, resumed=paused.agent.resumed + 1, resumed_at=at)
+
+
 def start(board: Board, *, agent_id: str, kind: str, at: datetime) -> Changed:
     if not kind or any(agent.id == agent_id for agent in board.at_work):
         return board, None
-    started = replace(board, at_work=(*board.at_work, Agent(id=agent_id, kind=kind, since=at)))
+    paused = tuple(finished for finished in board.finished if finished.agent.id == agent_id)
+    agent = _resumed(paused[0], at) if paused else Agent(id=agent_id, kind=kind, since=at)
+    started = replace(
+        board,
+        at_work=(*board.at_work, agent),
+        finished=tuple(finished for finished in board.finished if finished.agent.id != agent_id),
+    )
     return started, AgentsChanged(at_work=len(started.at_work))
 
 
@@ -52,7 +64,7 @@ def finish(board: Board, *, agent_id: str, last_message: str, at: datetime) -> C
         return board, None
     left = tuple(agent for agent in board.at_work if agent.id != agent_id)
     finished = (*board.finished, Finished(agent=done[0], ended=at, last_message=last_message))
-    return Board(at_work=left, finished=finished[-KEPT_FINISHED:]), AgentsChanged(at_work=len(left))
+    return replace(board, at_work=left, finished=finished[-KEPT_FINISHED:]), AgentsChanged(at_work=len(left))
 
 
 def describe(board: Board, tasks: tuple[Task, ...]) -> Board:

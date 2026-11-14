@@ -474,6 +474,19 @@ Feature: Turn taking
       When an agent finishes and 0 are left at work
       Then the bridge announces nothing
 
+    Scenario: An agent resumed is announced with the agents at work
+      Given Claude is silent
+      When an agent is resumed and 2 are at work
+      Then the bridge announces 2 at work
+
+    Scenario: An agent paused and resumed while the speaker talks is announced once
+      Given the speaker is talking
+      And an agent finished and 2 are left at work
+      And an agent was resumed and 3 are at work
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the bridge announces 3 at work only
+
     Scenario: A count falling below two drops the announcement still waiting
       Given the speaker is talking
       And an agent started and 2 are at work

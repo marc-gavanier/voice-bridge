@@ -47,6 +47,19 @@ def test_an_agent_is_never_at_work_twice(moves: list[Move]) -> None:
     assert duplicated(history(moves)) == []
 
 
+def ids_on(board: Board) -> list[str]:
+    return [agent.id for agent in board.at_work] + [finished.agent.id for finished in board.finished]
+
+
+def listed_twice(changes: list[Changed]) -> list[Board]:
+    return [board for board, _ in changes if len(set(ids_on(board))) != len(ids_on(board))]
+
+
+@given(MOVES)
+def test_an_agent_appears_at_most_once_on_the_board(moves: list[Move]) -> None:
+    assert listed_twice(history(moves)) == []
+
+
 @given(MOVES)
 def test_the_finished_agents_kept_never_exceed_the_limit(moves: list[Move]) -> None:
     assert len(history(moves)[-1][0].finished) <= KEPT_FINISHED

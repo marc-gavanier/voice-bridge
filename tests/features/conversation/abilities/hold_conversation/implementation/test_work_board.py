@@ -63,6 +63,8 @@ def test_the_board_reports_the_agents_at_work_with_their_description() -> None:
                 "type": "general-purpose",
                 "description": "Search the notes",
                 "since": "2026-11-13T09:00:00+00:00",
+                "resumed": 0,
+                "resumed_at": None,
             }
         ],
         "finished": [],
@@ -76,6 +78,8 @@ def test_the_board_reports_the_finished_agents_with_their_last_message() -> None
             "type": "general-purpose",
             "description": "Search the notes",
             "since": "2026-11-13T09:00:00+00:00",
+            "resumed": 0,
+            "resumed_at": None,
             "ended": "2026-11-13T09:00:00+00:00",
             "last_message": "Found three.",
         }
@@ -91,3 +95,26 @@ def board_finished_with_its_task() -> WorkBoard:
 
 def test_a_finished_agent_takes_the_description_told_when_it_stops() -> None:
     assert board_finished_with_its_task().board.finished[0].agent.description == "Search"
+
+
+def board_with_one_resumed() -> WorkBoard:
+    work = board_with_one_finished()
+    _ = work.events_of(STARTED, 0.0)
+    return work
+
+
+def test_a_resumed_agent_is_told_as_a_change_of_the_agents_at_work() -> None:
+    assert board_with_one_finished().events_of(STARTED, 2.0) == (AgentsChanged(at_work=1),)
+
+
+def test_the_board_reports_how_often_an_agent_was_resumed_and_when_last() -> None:
+    assert json.loads(board_with_one_resumed().report())["at_work"] == [
+        {
+            "id": "a1",
+            "type": "general-purpose",
+            "description": "Search the notes",
+            "since": "2026-11-13T09:00:00+00:00",
+            "resumed": 1,
+            "resumed_at": "2026-11-13T09:00:00+00:00",
+        }
+    ]
