@@ -409,7 +409,7 @@ flowchart LR
     end
     claude["Claude Code"]
     voxtral["Voxtral"]
-    files["traces.jsonl, metrics.jsonl<br/>by default"]
+    files["traces.jsonl, metrics.jsonl, logs.jsonl<br/>by default"]
     collector["OTLP collector<br/>when an endpoint is set"]
 
     mumble -->|"speaker's audio"| connection --> ears
@@ -436,13 +436,14 @@ src/voice_bridge/
   features/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
     speaking/      sentences written for the ear, acknowledgements, counts of tasks in progress, synthesis (OpenAI speech API, Voxtral by default)
-    conversation/  turn taking, interruptions, turn traces, the board of agents, the Claude channel (MCP), delegation by the main agent
+    conversation/  turn taking, interruptions, turn traces and events, the board of agents, the Claude channel (MCP), delegation by the main agent
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
   libraries/
     audio/         PCM and WAV with numpy and soxr
     mumble/        pinned connection, speaker audio, loudspeaker (pymumble-rev)
     claude_code/   the input and the refusal of Claude Code's PreToolUse hook, and the settings that register the hooks
+    rotation/      files rotated daily into gzip copies, kept a number of days (logging's TimedRotatingFileHandler)
   configuration/   settings (pydantic-settings), languages, default instructions
   entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder, voice-bridge-tool-hook, voice-bridge-activity-hook, voice-bridge-claude-settings
 ```

@@ -1,7 +1,7 @@
 # ADR-020 — Traces and metrics kept in local files by default
 
 **Date**: 2026-11-14
-**Status**: accepted, partly supersedes [ADR-013](ADR-013-telemetry-behind-a-port-and-the-otel-extra.md) for the default adapter and the dependencies
+**Status**: accepted, partly supersedes [ADR-013](ADR-013-telemetry-behind-a-port-and-the-otel-extra.md) for the default adapter and the dependencies, and partly superseded by [ADR-024](ADR-024-files-rotated-daily-and-kept-for-a-bounded-number-of-days.md): the files are rotated daily and kept for a set number of days
 
 ## Context
 
