@@ -21,20 +21,28 @@ hallucination_prefixes = [
 ]
 neutral_acknowledgements = [
   "Got it.",
+  "Got that.",
+  "Gotcha.",
   "Received.",
   "Message received.",
+  "Loud and clear.",
   "Okay, got it.",
   "Understood.",
-  "Understood, yes.",
+  "Okay, understood.",
   "I hear you.",
   "Noted.",
-  "Duly noted.",
-  "I'm noting that.",
+  "Okay, noted.",
+  "Alright, noted.",
+  "Copy that.",
   "Alright.",
   "Okay.",
   "Ah, okay.",
   "I see.",
+  "Okay, I see.",
   "Right.",
+  "Right, got it.",
+  "I've noted that.",
+  "I've got that.",
 ]
 
 [announcements]
@@ -86,7 +94,16 @@ sentences = [
   "Stopping right away.",
   "Stopping immediately.",
   "Stopping now.",
-  "Stopping on the spot.",
+  "Stopping right now.",
+  "Stopping everything.",
+  "Stopping what I'm doing.",
+  "I'm stopping.",
+  "I'm stopping now.",
+  "I'm stopping right away.",
+  "I'm stopping everything.",
+  "I'll stop there.",
+  "I'll stop right there.",
+  "Stopping right here.",
 ]
 
 [[acknowledgements]]
@@ -109,14 +126,26 @@ examples = [
   "How do I hang up?",
   "Let's stop here.",
   "Okay, let's stop there.",
+  "Okay, let's stop there for today.",
+  "Let's call it a day.",
+  "That's it for today, bye.",
 ]
 sentences = [
   "See you later.",
   "See you soon.",
   "Until next time.",
   "Let's stop here.",
-  "Alright, we stop.",
-  "Understood, we stop here.",
+  "Alright, we'll stop here.",
+  "Let's call it a day.",
+  "Goodbye.",
+  "Bye for now.",
+  "Talk soon.",
+  "Take care.",
+  "Catch you later.",
+  "Let's leave it there.",
+  "It was a pleasure.",
+  "Thanks for the session.",
+  "Closing the session.",
 ]
 
 [[acknowledgements]]
@@ -143,6 +172,10 @@ sentences = [
   "I'm listening.",
   "Go on.",
   "Take your time.",
+  "Tell me.",
+  "You were saying?",
+  "I'm all ears.",
+  "Carry on.",
 ]
 
 [[acknowledgements]]
@@ -184,11 +217,16 @@ examples = [
 ]
 sentences = [
   "I'm here.",
+  "I'm right here.",
+  "Here I am.",
+  "I'm with you.",
   "I can hear you.",
   "I can hear you well.",
-  "Present.",
-  "Still here.",
+  "I can hear you clearly.",
+  "I can hear you perfectly.",
+  "I hear you loud and clear.",
   "I'm listening.",
+  "Right here.",
 ]
 
 [[acknowledgements]]
@@ -215,8 +253,16 @@ examples = [
 sentences = [
   "My pleasure.",
   "You're welcome.",
-  "The pleasure is mine.",
+  "You're very welcome.",
+  "The pleasure's all mine.",
   "Anytime.",
+  "Happy to help.",
+  "Glad to help.",
+  "Don't mention it.",
+  "No problem.",
+  "No worries.",
+  "Sure thing.",
+  "Of course.",
 ]
 
 [[acknowledgements]]
@@ -238,11 +284,24 @@ examples = [
   "You're brilliant.",
   "That's impressive.",
   "Bravo, that's exactly what I wanted.",
+  "Great job, thanks.",
+  "You rock.",
+  "Nice one.",
+  "Brilliant work.",
+  "Spot on, well done.",
 ]
 sentences = [
   "Thanks, that's nice to hear.",
   "Thank you very much.",
-  "Thanks, that's kind.",
+  "Thanks, that's kind of you.",
+  "That's kind of you.",
+  "Thank you.",
+  "Thanks.",
+  "Thanks a lot.",
+  "Thanks, I appreciate that.",
+  "I appreciate it.",
+  "Thanks, that means a lot.",
+  "Glad to hear it.",
 ]
 
 [[acknowledgements]]
@@ -274,13 +333,26 @@ sentences = [
   "Let me check.",
   "I'll look into it.",
   "I'll have a look.",
+  "Let me take a look.",
   "Let's see.",
   "Let's look at that.",
-  "Oh, bother.",
-  "Oh, let me look.",
-  "Noted, I'm looking.",
-  "One moment, I'm looking.",
-  "One moment, I'm checking.",
+  "Oh, dear.",
+  "Ah, let me look.",
+  "Noted, I'm looking into it.",
+  "One moment, let me look.",
+  "One moment, let me check.",
+  "Just a second, let me look.",
+  "Hang on, let me check.",
+  "I'm looking into it.",
+  "Let me look into it.",
+  "Let me see what's going on.",
+  "Let's see what's happening.",
+  "Let me find the cause.",
+  "Let me see where it's coming from.",
+  "Let me see what's wrong.",
+  "I'll check that.",
+  "I'll dig into it.",
+  "Checking now.",
 ]
 
 [[acknowledgements]]
@@ -314,11 +386,19 @@ examples = [
 sentences = [
   "On it.",
   "I'm on it.",
+  "Will do.",
   "Here we go.",
   "Let me look.",
   "Let me have a look.",
   "I'll see to it.",
-  "Starting now.",
+  "I'll take care of it.",
+  "Leave it with me.",
+  "I'll handle that.",
+  "I'll do that.",
+  "I'll get on it.",
+  "Right away.",
+  "One moment, I'm on it.",
+  "Just a second, I'll do it.",
 ]
 
 [[acknowledgements]]
@@ -345,13 +425,23 @@ examples = [
 ]
 sentences = [
   "Let me think.",
+  "Let me think about it.",
   "Let's see.",
-  "Good question.",
   "Let me see.",
+  "Good question.",
   "Let me check.",
-  "Hold on, I'll look.",
-  "One moment, I'm looking.",
-  "One moment, I'm checking.",
+  "Let me check that.",
+  "Let me look into it.",
+  "Let me find out.",
+  "Let me work that out.",
+  "Hold on, let me look.",
+  "Hold on, let me check.",
+  "Hang on, let me think.",
+  "One moment, let me look.",
+  "One moment, let me check.",
+  "One moment, let me think.",
+  "Just a second, let me think.",
+  "Give me a second.",
 ]
 
 [[acknowledgements]]
@@ -372,9 +462,19 @@ examples = [
   "I have a suggestion.",
   "I need to tell you something.",
   "Listen, I was thinking…",
+  "I've got something to suggest.",
+  "Hang on, I've got an idea.",
 ]
 sentences = [
   "I'm listening.",
+  "I'm all ears.",
+  "Tell me.",
+  "Go on, tell me.",
+  "Let's hear it.",
+  "Go ahead.",
+  "Fire away.",
+  "What is it?",
+  "I'd love to hear it.",
 ]
 
 [[acknowledgements]]
@@ -397,10 +497,18 @@ examples = [
   "Maybe we should do it in two passes.",
 ]
 sentences = [
-  "I see the idea.",
+  "I see what you mean.",
+  "I see where you're going.",
+  "I see where you're going with this.",
+  "I get the idea.",
+  "I get the point.",
+  "I get it.",
   "That makes sense.",
   "Interesting.",
   "Oh, I see.",
+  "Right, I see.",
+  "Idea noted.",
+  "Fair enough.",
 ]
 
 [[acknowledgements]]
@@ -426,13 +534,20 @@ examples = [
 sentences = [
   "Alright.",
   "Understood.",
-  "No worries.",
   "Got it.",
   "Ah, okay.",
-  "Fine, alright.",
-  "I'll correct that.",
+  "Oh, okay.",
+  "No worries.",
   "No problem.",
+  "Okay, no problem.",
+  "Ah, I see.",
+  "Ah, understood.",
+  "Fair enough.",
+  "I'll correct that.",
+  "I'll fix that.",
   "Changing course.",
+  "I'll change tack.",
+  "I'll try another way.",
 ]
 
 [[acknowledgements]]
@@ -453,15 +568,30 @@ examples = [
   "Yes, you can go ahead.",
   "Go ahead, start.",
   "Alright, let's go.",
+  "Here we go.",
+  "Okay, let's go.",
+  "Go on, launch it.",
+  "Just do it.",
+  "Let's do it.",
+  "Okay, let's begin with the stop feature.",
 ]
 sentences = [
   "Here we go.",
   "Let's go.",
   "Off we go.",
+  "Off I go.",
   "Let's do it.",
-  "Starting.",
+  "Let's do this.",
+  "Let's get started.",
+  "Let's get to it.",
+  "Getting started.",
+  "Starting now.",
+  "Here goes.",
   "Go!",
   "Sounds good.",
+  "Will do.",
+  "On it.",
+  "I'm on it.",
 ]
 
 [[acknowledgements]]
@@ -485,13 +615,22 @@ examples = [
   "Let's leave it like that.",
   "Keep it as it is, it's fine.",
   "Yes, fine, we leave it.",
+  "Works for me.",
+  "No, that's exactly it.",
+  "Keep it like that.",
+  "Sounds good.",
 ]
 sentences = [
   "Perfect.",
-  "Very well.",
+  "Great.",
+  "Excellent.",
+  "Very good.",
+  "Good.",
   "Alright.",
   "Okay.",
   "Understood.",
-  "Great.",
-  "Good.",
+  "Sounds good.",
+  "Works for me.",
+  "Fine by me.",
+  "Agreed.",
 ]

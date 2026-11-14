@@ -88,12 +88,45 @@ def test_instructions_fall_back_to_the_default_without_a_user_file(tmp_path: Pat
         ("Thank you so much for that.", "thanks"),
         ("I restarted the app.", "presence"),
         ("Let's stop here for today.", "end"),
+        ("Nice work, really.", "compliment"),
+        ("Great job, thanks.", "compliment"),
+        ("Thanks for the help.", "thanks"),
+        ("Go ahead, you can launch it.", "go_ahead"),
+        ("Off you go.", "go_ahead"),
+        ("Yes, that suits me.", "yes"),
+        ("Exactly.", "yes"),
+        ("Hang on, something just came to me.", "idea_coming"),
+        ("We could try another tool.", "idea"),
+        ("Okay, it's restarted.", "presence"),
+        ("Let's stop here for now.", "end"),
+        ("Let's stop here.", "end"),
+        ("Hey, can you stop there?", "stop"),
+        ("Okay, leave it, stop searching.", "stop"),
+        ("No.", "no"),
+        ("So, what's next?", "question"),
     ],
 )
 def test_english_words_take_the_route_of_their_meaning(
     words: str, expected: str, route_of: Callable[[Language, str], str]
 ) -> None:
     assert route_of("en", words) == expected
+
+
+@pytest.mark.parametrize(
+    "words",
+    [
+        "I didn't say stop, you went too fast.",
+        "Yes, it stopped properly.",
+        "Did you have time to read the article or did you stop before?",
+        "Okay, let's start with the stop.",
+        "Let's leave it like that.",
+        "Let's leave it.",
+        "Let's stop here.",
+        "No, let's leave it as it is.",
+    ],
+)
+def test_english_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:
+    assert route_of("en", words) != "stop"
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
