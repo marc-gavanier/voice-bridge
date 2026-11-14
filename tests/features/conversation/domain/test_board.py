@@ -2,13 +2,17 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from voice_bridge.features.conversation.domain.board import (
+    TOLERATED_SILENCE,
     Agent,
     Board,
     Finished,
     Task,
     finish,
+    forwarded,
+    heard,
     reconcile,
     start,
+    unreliable_since,
 )
 from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged
 
@@ -192,3 +196,45 @@ def test_a_resume_leaves_the_other_finished_agents() -> None:
         start(board, agent_id="a1", kind="general-purpose", at=MORNING)[0], agent_id="a1", last_message="", at=LATER
     )[0]
     assert start(paused, agent_id="a1", kind="general-purpose", at=RESUMED_AT)[0].finished == board.finished
+
+
+SILENT_TOO_LONG = MORNING + TOLERATED_SILENCE + timedelta(seconds=1)
+
+
+def forwarded_twice() -> Board:
+    return forwarded(forwarded(Board(), at=MORNING), at=LATER)
+
+
+def test_a_board_without_news_awaited_is_reliable() -> None:
+    assert unreliable_since(Board(), now=SILENT_TOO_LONG) is None
+
+
+def test_a_message_forwarded_without_news_for_a_short_while_leaves_the_board_reliable() -> None:
+    assert unreliable_since(forwarded(Board(), at=MORNING), now=MORNING + TOLERATED_SILENCE) is None
+
+
+def test_a_message_forwarded_without_news_for_too_long_makes_the_board_unreliable() -> None:
+    assert unreliable_since(forwarded(Board(), at=MORNING), now=SILENT_TOO_LONG) == MORNING
+
+
+def test_the_silence_counts_from_the_first_message_left_without_news() -> None:
+    assert unreliable_since(forwarded_twice(), now=SILENT_TOO_LONG) == MORNING
+
+
+def test_claude_busy_in_time_keeps_the_board_reliable() -> None:
+    in_time = heard(forwarded(Board(), at=MORNING), at=MORNING + TOLERATED_SILENCE)
+    assert unreliable_since(in_time, now=SILENT_TOO_LONG) is None
+
+
+def test_claude_busy_too_late_leaves_the_board_unreliable() -> None:
+    late = heard(forwarded(Board(), at=MORNING), at=SILENT_TOO_LONG)
+    assert unreliable_since(late, now=SILENT_TOO_LONG + timedelta(hours=1)) == MORNING
+
+
+def test_claude_busy_without_a_message_forwarded_changes_nothing() -> None:
+    assert heard(Board(), at=LATER) == Board()
+
+
+def test_a_reconciliation_makes_the_board_reliable_again() -> None:
+    late = heard(forwarded(Board(), at=MORNING), at=SILENT_TOO_LONG)
+    assert unreliable_since(reconcile(late, (), at=SILENT_TOO_LONG)[0], now=SILENT_TOO_LONG) is None

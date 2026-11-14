@@ -56,6 +56,7 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
                     " after an interruption" if interrupted else "",
                     acknowledgement,
                 )
+                board.forwarded()
                 await claude(text, interrupted=interrupted, acknowledgement=acknowledgement)
 
             side = ClaudeSide(claude=logged, replies=replies_out, board=board)

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, replace
+from datetime import timedelta
 from typing import TYPE_CHECKING, Final
 
 from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged
@@ -7,6 +8,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 KEPT_FINISHED: Final = 20
+TOLERATED_SILENCE: Final = timedelta(seconds=30)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -38,6 +40,8 @@ class Task:
 class Board:
     at_work: tuple[Agent, ...] = ()
     finished: tuple[Finished, ...] = ()
+    unheard_since: datetime | None = None
+    gap_since: datetime | None = None
 
 
 type Changed = tuple[Board, AgentsChanged | None]
@@ -90,7 +94,27 @@ def reconcile(board: Board, running: tuple[Task, ...], *, at: datetime, leaving:
         board,
         at_work=(*(_listed(agent, listed) for agent in stays), *added),
         finished=(*board.finished, *ended)[-KEPT_FINISHED:],
+        gap_since=None,
     )
     if len(reconciled.at_work) == len(board.at_work):
         return reconciled, None
     return reconciled, AgentsChanged(at_work=len(reconciled.at_work))
+
+
+def _too_long(since: datetime | None, now: datetime) -> bool:
+    return since is not None and now - since > TOLERATED_SILENCE
+
+
+def forwarded(board: Board, *, at: datetime) -> Board:
+    return replace(board, unheard_since=board.unheard_since or at)
+
+
+def heard(board: Board, *, at: datetime) -> Board:
+    gap = board.unheard_since if _too_long(board.unheard_since, at) else board.gap_since
+    return replace(board, unheard_since=None, gap_since=gap)
+
+
+def unreliable_since(board: Board, *, now: datetime) -> datetime | None:
+    if board.gap_since is not None:
+        return board.gap_since
+    return board.unheard_since if _too_long(board.unheard_since, now) else None

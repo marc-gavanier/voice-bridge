@@ -1,5 +1,8 @@
 import json
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+
+import pytest
 
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     AgentFinished,
@@ -69,6 +72,7 @@ def test_the_board_reports_the_agents_at_work_with_their_description() -> None:
             }
         ],
         "finished": [],
+        "reliable": True,
     }
 
 
@@ -148,3 +152,56 @@ def test_another_agent_no_longer_running_is_finished_with_the_agent_stopping() -
     work = board_with_one_at_work()
     _ = work.events_of(AgentStarted(agent_id="a2", agent_type="Explore"), 0.0)
     assert work.events_of(AgentFinished(agent_id="a2", tasks=()), 2.0) == (AgentsChanged(at_work=0),)
+
+
+@dataclass(slots=True)
+class Clock:
+    now: datetime = MORNING
+
+    def read(self) -> datetime:
+        return self.now
+
+
+def board_left_without_news(clock: Clock) -> WorkBoard:
+    work = WorkBoard(clock=clock.read)
+    work.forwarded()
+    clock.now = MORNING + timedelta(minutes=1)
+    return work
+
+
+def test_a_message_forwarded_without_news_from_the_hooks_makes_the_board_unreliable() -> None:
+    assert json.loads(board_left_without_news(Clock()).report())["reliable"] is False
+
+
+def test_an_unreliable_board_tells_since_when() -> None:
+    assert json.loads(board_left_without_news(Clock()).report())["unreliable_since"] == "2026-11-13T09:00:00+00:00"
+
+
+def test_an_unreliable_board_tells_why() -> None:
+    assert "Claude Code's hooks" in json.loads(board_left_without_news(Clock()).report())["reason"]
+
+
+def test_an_unreliable_board_read_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    _ = board_left_without_news(Clock()).report()
+    assert "board read while unreliable since 2026-11-13T09:00:00+00:00" in caplog.text
+
+
+def test_claude_busy_in_time_after_a_message_keeps_the_board_reliable() -> None:
+    clock = Clock()
+    work = WorkBoard(clock=clock.read)
+    work.forwarded()
+    _ = work.events_of(Busy(), 0.0)
+    clock.now = MORNING + timedelta(minutes=1)
+    assert json.loads(work.report())["reliable"] is True
+
+
+def test_claude_busy_too_late_is_logged_as_a_gap(caplog: pytest.LogCaptureFixture) -> None:
+    _ = board_left_without_news(Clock()).events_of(Busy(), 0.0)
+    assert "no news from Claude Code's hooks from 2026-11-13T09:00:00+00:00" in caplog.text
+
+
+def test_a_stop_listing_the_tasks_after_a_gap_makes_the_board_reliable_again() -> None:
+    work = board_left_without_news(Clock())
+    _ = work.events_of(Busy(), 0.0)
+    _ = work.events_of(Idle(tasks=()), 0.0)
+    assert json.loads(work.report())["reliable"] is True
