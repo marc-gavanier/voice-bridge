@@ -45,6 +45,15 @@ jobs:
       - run: uv run --frozen lint-imports
       - run: uv run --frozen alint check
       - run: uv run --frozen deptry src
+      - id: models
+        run: |
+          revisions=$(grep -h '^REVISION: Final = ' src/voice_bridge/features/understanding/abilities/understand/implementation/embeddings.py src/voice_bridge/features/hearing/abilities/listen/implementation/smart_turn.py | cut -d '"' -f 2 | paste -sd -)
+          [[ $revisions =~ ^[0-9a-f]{40}-[0-9a-f]{40}$ ]]
+          echo "revisions=$revisions" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/huggingface/hub
+          key: huggingface-${{ steps.models.outputs.revisions }}
       - run: uv run --frozen pytest
       - run: uv run --frozen shellcheck scripts/*.sh
       - run: uv run --frozen typos
