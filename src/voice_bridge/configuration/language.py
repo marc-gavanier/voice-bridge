@@ -25,9 +25,6 @@ class AcknowledgementRoute(_Strict):
 class AgentAnnouncements(_Strict):
     at_work: tuple[str, ...]
     many_at_work: str
-    finished: tuple[str, ...]
-    many_left: str
-    none_at_work: str
 
 
 class LanguagePack(_Strict):

@@ -72,11 +72,11 @@ READY = Clips(question=("Voyons.", QUESTION_CLIP), statement=("D'accord.", STATE
 NOT_READY = Clips(question=None, statement=None)
 
 
-ANNOUNCED_SENTENCES = {(2, False): "Two at work.", (2, True): "One finished, two left."}
+ANNOUNCED_SENTENCES = {2: "Two at work."}
 
 
-def announced(at_work: int, *, finished: bool) -> tuple[str, bytes] | None:
-    sentence = ANNOUNCED_SENTENCES.get((at_work, finished))
+def announced(at_work: int) -> tuple[str, bytes] | None:
+    sentence = ANNOUNCED_SENTENCES.get(at_work)
     return None if sentence is None else (sentence, ANNOUNCEMENT_CLIP)
 
 
@@ -271,9 +271,9 @@ async def test_a_second_agent_starting_is_announced() -> None:
 async def test_the_announcement_is_logged(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level("INFO")
     async with talking() as talk:
-        await talk.say.send(AgentsChanged(at_work=2, finished=True))
+        await talk.say.send(AgentsChanged(at_work=2))
         _ = await talk.played.receive()
-    assert "announced 'One finished, two left.'" in caplog.text
+    assert "announced 'Two at work.'" in caplog.text
 
 
 async def test_an_announcement_not_ready_is_not_played() -> None:

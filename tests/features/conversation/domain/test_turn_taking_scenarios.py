@@ -194,12 +194,12 @@ def an_agent_starts(turn: Turn, count: str) -> Turn:
 
 @given(parsers.re(r"an agent finished and (?P<count>\d+) (?:is|are) left at work"), target_fixture="turn")
 def an_agent_finished(turn: Turn, count: str) -> Turn:
-    return after(turn, AgentsChanged(at_work=int(count), finished=True))
+    return after(turn, AgentsChanged(at_work=int(count)))
 
 
 @when(parsers.re(r"an agent finishes and (?P<count>\d+) (?:is|are) left at work"), target_fixture="turn")
 def an_agent_finishes(turn: Turn, count: str) -> Turn:
-    return after(turn, AgentsChanged(at_work=int(count), finished=True))
+    return after(turn, AgentsChanged(at_work=int(count)))
 
 
 @given("the speaker cut in", target_fixture="turn")
@@ -450,11 +450,6 @@ def the_bridge_announces_only(turn: Turn, count: int) -> None:
 @then(parsers.parse("the bridge announces {count:d} at work"))
 def the_bridge_announces(turn: Turn, count: int) -> None:
     assert Announce(at_work=count) in turn.commands
-
-
-@then(parsers.parse("the bridge announces an agent finished with {count:d} left at work"))
-def the_bridge_announces_a_finished_agent(turn: Turn, count: int) -> None:
-    assert Announce(at_work=count, finished=True) in turn.commands
 
 
 @then("the bridge announces nothing")

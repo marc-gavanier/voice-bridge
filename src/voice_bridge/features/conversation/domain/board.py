@@ -52,7 +52,7 @@ def finish(board: Board, *, agent_id: str, last_message: str, at: datetime) -> C
         return board, None
     left = tuple(agent for agent in board.at_work if agent.id != agent_id)
     finished = (*board.finished, Finished(agent=done[0], ended=at, last_message=last_message))
-    return Board(at_work=left, finished=finished[-KEPT_FINISHED:]), AgentsChanged(at_work=len(left), finished=True)
+    return Board(at_work=left, finished=finished[-KEPT_FINISHED:]), AgentsChanged(at_work=len(left))
 
 
 def describe(board: Board, tasks: tuple[Task, ...]) -> Board:

@@ -13,7 +13,7 @@ class Acknowledgement(Protocol):
 
 
 class Announcement(Protocol):
-    def __call__(self, at_work: int, *, finished: bool) -> tuple[str, bytes] | None: ...
+    def __call__(self, at_work: int) -> tuple[str, bytes] | None: ...
 
 
 class Speaker(Protocol):

@@ -74,7 +74,6 @@ class ClaudeIdle:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class AgentsChanged:
     at_work: int
-    finished: bool = False
 
 
 type Event = (
@@ -154,7 +153,6 @@ class Leave:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Announce:
     at_work: int
-    finished: bool = False
 
 
 type Command = (
@@ -449,7 +447,7 @@ def _on_activity(state: Conversation, event: ClaudeBusy | ClaudeIdle) -> Step:
 def _on_agents(state: Conversation, event: AgentsChanged) -> Step:
     if event.at_work < ANNOUNCED_FROM:
         return replace(state, announcing=None), ()
-    return _announce(replace(state, announcing=Announce(at_work=event.at_work, finished=event.finished)))
+    return _announce(replace(state, announcing=Announce(at_work=event.at_work)))
 
 
 def step(state: Conversation, event: Event) -> Step:

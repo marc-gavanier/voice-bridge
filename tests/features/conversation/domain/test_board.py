@@ -60,7 +60,7 @@ def test_an_agent_finished_keeps_its_last_message() -> None:
 
 
 def test_an_agent_finished_is_counted_with_the_agents_left() -> None:
-    assert finish(AT_WORK, agent_id="a2", last_message="Done.", at=LATER)[1] == AgentsChanged(at_work=1, finished=True)
+    assert finish(AT_WORK, agent_id="a2", last_message="Done.", at=LATER)[1] == AgentsChanged(at_work=1)
 
 
 def test_an_agent_never_seen_starting_changes_nothing_when_it_stops() -> None:

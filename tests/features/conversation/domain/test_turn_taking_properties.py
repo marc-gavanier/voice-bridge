@@ -48,7 +48,7 @@ EVENTS: st.SearchStrategy[Event] = st.one_of(
     st.builds(SpeechEnded, at=MOMENTS),
     st.builds(SilenceLasted, ticket=TICKETS, at=MOMENTS),
     st.builds(HoldLasted, ticket=TICKETS),
-    st.builds(AgentsChanged, at_work=st.integers(min_value=0, max_value=8), finished=st.booleans()),
+    st.builds(AgentsChanged, at_work=st.integers(min_value=0, max_value=8)),
 )
 FLAGS = [field.name for field in fields(Conversation) if field.default is False]
 

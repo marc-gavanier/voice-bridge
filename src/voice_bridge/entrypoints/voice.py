@@ -224,13 +224,7 @@ def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
 
 def _wording(language: LanguagePack) -> Wording:
     announcements = language.announcements
-    return Wording(
-        at_work=announcements.at_work,
-        many_at_work=announcements.many_at_work,
-        finished=announcements.finished,
-        many_left=announcements.many_left,
-        none_at_work=announcements.none_at_work,
-    )
+    return Wording(at_work=announcements.at_work, many_at_work=announcements.many_at_work)
 
 
 async def _end_claude_code(pid: int | None) -> None:

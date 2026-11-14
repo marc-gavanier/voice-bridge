@@ -47,7 +47,7 @@ def test_an_agent_started_is_told_as_a_change_of_the_agents_at_work() -> None:
 
 
 def test_an_agent_finished_is_told_as_a_change_of_the_agents_at_work() -> None:
-    assert board_with_one_at_work().events_of(FINISHED, 2.0) == (AgentsChanged(at_work=0, finished=True),)
+    assert board_with_one_at_work().events_of(FINISHED, 2.0) == (AgentsChanged(at_work=0),)
 
 
 def test_an_internal_agent_changes_nothing() -> None:

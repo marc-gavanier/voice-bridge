@@ -457,7 +457,7 @@ Feature: Turn taking
     Scenario: An agent finishing is announced with the agents left at work
       Given Claude is silent
       When an agent finishes and 2 are left at work
-      Then the bridge announces an agent finished with 2 left at work
+      Then the bridge announces 2 at work
 
     Scenario: A single agent at work is not announced
       Given Claude is silent

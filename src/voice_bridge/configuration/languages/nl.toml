@@ -26,22 +26,12 @@ neutral_acknowledgements = [
 
 [announcements]
 at_work = [
-  "Eén agent aan het werk.",
-  "Twee agenten aan het werk.",
-  "Drie agenten aan het werk.",
-  "Vier agenten aan het werk.",
-  "Vijf agenten aan het werk.",
+  "Twee taken lopen.",
+  "Drie taken lopen.",
+  "Vier taken lopen.",
+  "Vijf taken lopen.",
 ]
-many_at_work = "Meer dan vijf agenten aan het werk."
-finished = [
-  "Eén agent is klaar, er is er nog één.",
-  "Eén agent is klaar, er zijn er nog twee.",
-  "Eén agent is klaar, er zijn er nog drie.",
-  "Eén agent is klaar, er zijn er nog vier.",
-  "Eén agent is klaar, er zijn er nog vijf.",
-]
-many_left = "Eén agent is klaar, er zijn er nog meer dan vijf."
-none_at_work = "Geen agenten meer aan het werk."
+many_at_work = "Meer dan vijf taken lopen."
 
 [[acknowledgements]]
 name = "stop"

@@ -97,7 +97,7 @@ def _acknowledge(mouth: Mouth, playback: _Playback) -> None:
 
 
 def _announce(mouth: Mouth, order: Announce) -> None:
-    clip = mouth.announcement(order.at_work, finished=order.finished)
+    clip = mouth.announcement(order.at_work)
     if clip is None:
         logger.info("no announcement ready for %d agents at work", order.at_work)
         return

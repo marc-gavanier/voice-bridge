@@ -15,8 +15,10 @@ class Announcements:
     wording: Wording
     clips: dict[str, bytes] = field(default_factory=dict)
 
-    def __call__(self, at_work: int, *, finished: bool) -> tuple[str, bytes] | None:
-        sentence = sentence_for(self.wording, at_work, finished=finished)
+    def __call__(self, at_work: int) -> tuple[str, bytes] | None:
+        sentence = sentence_for(self.wording, at_work)
+        if sentence is None:
+            return None
         pcm = self.clips.get(sentence)
         return None if pcm is None else (sentence, pcm)
 
