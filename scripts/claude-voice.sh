@@ -39,4 +39,4 @@ jq --null-input --arg project "$project" --arg pid "$$" --argjson environment "$
     }' >"$config"
 settings="${XDG_RUNTIME_DIR:-/tmp}/voice-bridge-settings.json"
 uv run --project "$project" --frozen --quiet voice-bridge-claude-settings --project "$project" >"$settings"
-exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply mcp__voice__end_session mcp__voice__board --dangerously-load-development-channels server:voice "$@"
+exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply mcp__voice__end_session mcp__voice__board mcp__voice__play --dangerously-load-development-channels server:voice "$@"
