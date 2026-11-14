@@ -24,16 +24,19 @@ class _Message(BaseModel):
 
 class Task(_Message):
     id: str = ""
+    type: str = ""
     description: str = ""
+    agent_type: str = ""
 
 
 class Busy(_Message):
     kind: Literal["busy"] = "busy"
-    tasks: tuple[Task, ...] = ()
+    tasks: tuple[Task, ...] | None = None
 
 
 class Idle(_Message):
     kind: Literal["idle"] = "idle"
+    tasks: tuple[Task, ...] | None = None
 
 
 class AgentStarted(_Message):
@@ -47,7 +50,7 @@ class AgentFinished(_Message):
     agent_id: str
     agent_type: str = ""
     last_message: str = ""
-    tasks: tuple[Task, ...] = ()
+    tasks: tuple[Task, ...] | None = None
 
 
 type News = Annotated[Busy | Idle | AgentStarted | AgentFinished, Field(discriminator="kind")]
@@ -57,7 +60,7 @@ NEWS: Final = TypeAdapter[News](News)
 
 class _HookEvent(BaseModel):
     hook_event_name: str = ""
-    background_tasks: tuple[Task, ...] = ()
+    background_tasks: tuple[Task, ...] | None = None
     agent_id: str = ""
     agent_type: str = ""
     last_assistant_message: str | None = None
@@ -83,7 +86,7 @@ def news_of(event: str) -> News | None:
         case "UserPromptSubmit":
             return Busy()
         case "Stop":
-            return Busy(tasks=hook.background_tasks) if hook.background_tasks else Idle()
+            return Busy(tasks=hook.background_tasks) if hook.background_tasks else Idle(tasks=hook.background_tasks)
         case "StopFailure" | "SessionEnd":
             return Idle()
         case "SubagentStart" | "SubagentStop":

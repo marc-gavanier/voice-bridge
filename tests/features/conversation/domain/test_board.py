@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from voice_bridge.features.conversation.domain.board import (
@@ -5,8 +6,8 @@ from voice_bridge.features.conversation.domain.board import (
     Board,
     Finished,
     Task,
-    describe,
     finish,
+    reconcile,
     start,
 )
 from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged
@@ -76,24 +77,69 @@ def test_only_the_latest_finished_agents_are_kept() -> None:
     )
 
 
+SEARCH = Task(id="a1", description="Search the notes", kind="general-purpose")
+BACKGROUND = replace(SEARCHER, description="Search the notes", background=True)
+IN_BACKGROUND = Board(at_work=(BACKGROUND, WRITER))
+
+
 def test_an_agent_at_work_takes_the_description_of_its_task() -> None:
-    board = describe(AT_WORK, (Task(id="a1", description="Search the notes"),))
-    assert board.at_work == (
-        Agent(id="a1", kind="general-purpose", since=MORNING, description="Search the notes"),
-        WRITER,
-    )
+    assert reconcile(AT_WORK, (SEARCH,), at=LATER)[0].at_work == (BACKGROUND, WRITER)
 
 
 def test_a_task_without_description_keeps_the_one_known() -> None:
-    described = describe(AT_WORK, (Task(id="a1", description="Search the notes"),))
-    assert describe(described, (Task(id="a1", description=""),)) == described
+    assert reconcile(IN_BACKGROUND, (replace(SEARCH, description=""),), at=LATER)[0] == IN_BACKGROUND
 
 
 def test_the_finished_agents_keep_their_description() -> None:
-    described = describe(AT_WORK, (Task(id="a1", description="Search the notes"),))
+    described = reconcile(AT_WORK, (SEARCH,), at=LATER)[0]
     assert finish(described, agent_id="a1", last_message="Found.", at=LATER)[0].finished[0].agent.description == (
         "Search the notes"
     )
+
+
+def test_a_background_agent_no_longer_running_is_finished() -> None:
+    assert reconcile(IN_BACKGROUND, (), at=LATER)[0] == Board(
+        at_work=(WRITER,), finished=(Finished(agent=BACKGROUND, ended=LATER, last_message=""),)
+    )
+
+
+def test_a_background_agent_no_longer_running_changes_the_count_at_work() -> None:
+    assert reconcile(IN_BACKGROUND, (), at=LATER)[1] == AgentsChanged(at_work=1)
+
+
+def test_an_agent_never_seen_in_the_background_stays_at_work() -> None:
+    assert reconcile(AT_WORK, (), at=LATER) == (AT_WORK, None)
+
+
+def test_the_agent_stopping_is_left_to_its_own_stop() -> None:
+    assert reconcile(IN_BACKGROUND, (), at=LATER, leaving="a1") == (IN_BACKGROUND, None)
+
+
+def test_a_running_task_missing_from_the_board_is_added_with_its_description() -> None:
+    assert reconcile(Board(at_work=(WRITER,)), (SEARCH,), at=LATER)[0] == Board(
+        at_work=(WRITER, replace(BACKGROUND, since=LATER))
+    )
+
+
+def test_a_running_task_added_changes_the_count_at_work() -> None:
+    assert reconcile(Board(at_work=(WRITER,)), (SEARCH,), at=LATER)[1] == AgentsChanged(at_work=2)
+
+
+def test_a_running_task_already_finished_is_not_added_again() -> None:
+    board = Board(finished=(Finished(agent=SEARCHER, ended=LATER, last_message="Found."),))
+    assert reconcile(board, (SEARCH,), at=LATER) == (board, None)
+
+
+def test_the_agent_stopping_is_not_added_when_still_listed() -> None:
+    assert reconcile(Board(), (SEARCH,), at=LATER, leaving="a1") == (Board(), None)
+
+
+def test_a_running_task_without_an_agent_type_is_not_added() -> None:
+    assert reconcile(Board(), (replace(SEARCH, kind=""),), at=LATER) == (Board(), None)
+
+
+def test_a_task_listed_twice_is_added_once() -> None:
+    assert len(reconcile(Board(), (SEARCH, SEARCH), at=LATER)[0].at_work) == 1
 
 
 RESUMED_AT = LATER + timedelta(minutes=1)

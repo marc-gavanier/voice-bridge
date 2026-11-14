@@ -15,6 +15,7 @@ class Agent:
     kind: str
     since: datetime
     description: str = ""
+    background: bool = False
     resumed: int = 0
     resumed_at: datetime | None = None
 
@@ -30,6 +31,7 @@ class Finished:
 class Task:
     id: str
     description: str
+    kind: str = ""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -67,11 +69,28 @@ def finish(board: Board, *, agent_id: str, last_message: str, at: datetime) -> C
     return replace(board, at_work=left, finished=finished[-KEPT_FINISHED:]), AgentsChanged(at_work=len(left))
 
 
-def describe(board: Board, tasks: tuple[Task, ...]) -> Board:
-    descriptions = {task.id: task.description for task in tasks if task.description}
-    return replace(
+def _listed(agent: Agent, running: dict[str, Task]) -> Agent:
+    task = running.get(agent.id)
+    if task is None:
+        return agent
+    return replace(agent, background=True, description=task.description or agent.description)
+
+
+def _new(task: Task, at: datetime) -> Agent:
+    return Agent(id=task.id, kind=task.kind, since=at, description=task.description, background=True)
+
+
+def reconcile(board: Board, running: tuple[Task, ...], *, at: datetime, leaving: str = "") -> Changed:
+    listed = {task.id: task for task in running}
+    stays = tuple(agent for agent in board.at_work if not agent.background or agent.id in listed or agent.id == leaving)
+    ended = tuple(Finished(agent=agent, ended=at, last_message="") for agent in board.at_work if agent not in stays)
+    known = {leaving, *(agent.id for agent in board.at_work), *(done.agent.id for done in board.finished)}
+    added = tuple(_new(task, at) for task in listed.values() if task.kind and task.id not in known)
+    reconciled = replace(
         board,
-        at_work=tuple(
-            replace(agent, description=descriptions.get(agent.id, agent.description)) for agent in board.at_work
-        ),
+        at_work=(*(_listed(agent, listed) for agent in stays), *added),
+        finished=(*board.finished, *ended)[-KEPT_FINISHED:],
     )
+    if len(reconciled.at_work) == len(board.at_work):
+        return reconciled, None
+    return reconciled, AgentsChanged(at_work=len(reconciled.at_work))

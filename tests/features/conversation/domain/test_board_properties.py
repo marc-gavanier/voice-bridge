@@ -4,20 +4,32 @@ from functools import reduce
 from hypothesis import given
 from hypothesis import strategies as st
 
-from voice_bridge.features.conversation.domain.board import KEPT_FINISHED, Board, Changed, finish, start
+from voice_bridge.features.conversation.domain.board import (
+    KEPT_FINISHED,
+    Board,
+    Changed,
+    Task,
+    finish,
+    reconcile,
+    start,
+)
 from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged
 
 MORNING = datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
 IDS = st.sampled_from(["a1", "a2", "a3", "a4"])
-type Move = tuple[bool, str, str]
-MOVES = st.lists(st.tuples(st.booleans(), IDS, st.sampled_from(["", "general-purpose"])), max_size=40)
+KINDS = st.sampled_from(["", "general-purpose"])
+type Move = tuple[str, str, str, tuple[Task, ...]]
+TASKS = st.lists(st.builds(Task, id=IDS, description=st.just("Search"), kind=KINDS), max_size=4).map(tuple)
+MOVES = st.lists(st.tuples(st.sampled_from(["start", "finish", "reconcile"]), IDS, KINDS, TASKS), max_size=40)
 
 
 def moved(board: Board, move: Move) -> Changed:
-    starting, agent_id, kind = move
-    if starting:
+    name, agent_id, kind, running = move
+    if name == "start":
         return start(board, agent_id=agent_id, kind=kind, at=MORNING)
-    return finish(board, agent_id=agent_id, last_message=kind, at=MORNING)
+    if name == "finish":
+        return finish(board, agent_id=agent_id, last_message=kind, at=MORNING)
+    return reconcile(board, running, at=MORNING, leaving=agent_id if kind else "")
 
 
 def history(moves: list[Move]) -> list[Changed]:

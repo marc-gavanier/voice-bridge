@@ -21,6 +21,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 
 SEARCH = {"id": "a1", "type": "subagent", "status": "running", "description": "Search the notes", "agent_type": "x"}
+SEARCH_TASK = Task(id="a1", type="subagent", description="Search the notes", agent_type="x")
 
 
 def hook(name: str, **fields: object) -> str:
@@ -32,22 +33,20 @@ def test_a_prompt_submitted_makes_claude_busy() -> None:
 
 
 def test_a_stop_with_nothing_in_the_background_makes_claude_idle() -> None:
-    assert news_of(hook("Stop", background_tasks=[], session_crons=[])) == Idle()
+    assert news_of(hook("Stop", background_tasks=[], session_crons=[])) == Idle(tasks=())
 
 
 def test_a_stop_with_background_tasks_keeps_claude_busy_and_tells_the_tasks() -> None:
-    assert news_of(hook("Stop", background_tasks=[SEARCH])) == Busy(
-        tasks=(Task(id="a1", description="Search the notes"),)
-    )
+    assert news_of(hook("Stop", background_tasks=[SEARCH])) == Busy(tasks=(SEARCH_TASK,))
 
 
 def test_a_stop_with_only_scheduled_wakeups_makes_claude_idle() -> None:
     cron = {"id": "cron-001", "schedule": "0 9 * * 1-5", "recurring": True, "prompt": "check"}
-    assert news_of(hook("Stop", background_tasks=[], session_crons=[cron])) == Idle()
+    assert news_of(hook("Stop", background_tasks=[], session_crons=[cron])) == Idle(tasks=())
 
 
-def test_a_stop_without_the_task_registry_makes_claude_idle() -> None:
-    assert news_of(hook("Stop")) == Idle()
+def test_a_stop_without_the_task_registry_makes_claude_idle_with_no_task_list() -> None:
+    assert news_of(hook("Stop")) == Idle(tasks=None)
 
 
 def test_an_api_error_makes_claude_idle() -> None:
@@ -76,13 +75,19 @@ def test_a_subagent_stopping_tells_its_last_message_and_the_tasks() -> None:
         agent_id="a1",
         agent_type="general-purpose",
         last_message="Found it.",
-        tasks=(Task(id="a1", description="Search the notes"),),
+        tasks=(SEARCH_TASK,),
     )
 
 
 def test_a_subagent_stopping_without_a_message_tells_an_empty_one() -> None:
     assert news_of(hook("SubagentStop", agent_id="a1", agent_type="", last_assistant_message=None)) == AgentFinished(
         agent_id="a1"
+    )
+
+
+def test_a_subagent_stopping_without_the_task_registry_tells_no_task_list() -> None:
+    assert news_of(hook("SubagentStop", agent_id="a1", agent_type="Explore")) == AgentFinished(
+        agent_id="a1", agent_type="Explore", tasks=None
     )
 
 

@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, assert_never
+from typing import TYPE_CHECKING, Final, assert_never
 
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     AgentFinished,
@@ -12,7 +12,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     Task as TaskMessage,
 )
-from voice_bridge.features.conversation.domain.board import Agent, Board, Finished, Task, describe, finish, start
+from voice_bridge.features.conversation.domain.board import Agent, Board, Finished, Task, finish, reconcile, start
 from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged, ClaudeBusy, ClaudeIdle, Event
 
 if TYPE_CHECKING:
@@ -20,12 +20,15 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-def _tasks(tasks: tuple[TaskMessage, ...]) -> tuple[Task, ...]:
-    return tuple(Task(id=task.id, description=task.description) for task in tasks)
+AGENT_TASK: Final = "subagent"
 
 
-def _changed(change: AgentsChanged | None) -> tuple[Event, ...]:
-    return () if change is None else (change,)
+def _running(tasks: tuple[TaskMessage, ...]) -> tuple[Task, ...]:
+    return tuple(
+        Task(id=task.id, description=task.description, kind=task.agent_type)
+        for task in tasks
+        if task.type == AGENT_TASK
+    )
 
 
 def _agent(agent: Agent) -> dict[str, str | int | None]:
@@ -52,20 +55,29 @@ class WorkBoard:
     clock: Callable[[], datetime]
     board: Board = field(default_factory=Board)
 
+    def _counted(self, board: Board) -> tuple[Event, ...]:
+        before = len(self.board.at_work)
+        self.board = board
+        return () if len(board.at_work) == before else (AgentsChanged(at_work=len(board.at_work)),)
+
+    def _reconciled(self, tasks: tuple[TaskMessage, ...] | None, leaving: str = "") -> Board:
+        if tasks is None:
+            return self.board
+        return reconcile(self.board, _running(tasks), at=self.clock(), leaving=leaving)[0]
+
     def events_of(self, news: News, at: float) -> tuple[Event, ...]:
         match news:
             case Busy(tasks=tasks):
-                self.board = describe(self.board, _tasks(tasks))
-                return (ClaudeBusy(at=at),)
-            case Idle():
-                return (ClaudeIdle(),)
+                return (ClaudeBusy(at=at), *self._counted(self._reconciled(tasks)))
+            case Idle(tasks=tasks):
+                return (ClaudeIdle(), *self._counted(self._reconciled(tasks)))
             case AgentStarted(agent_id=agent_id, agent_type=kind):
-                self.board, change = start(self.board, agent_id=agent_id, kind=kind, at=self.clock())
-                return _changed(change)
+                return self._counted(start(self.board, agent_id=agent_id, kind=kind, at=self.clock())[0])
             case AgentFinished(agent_id=agent_id, last_message=last_message, tasks=tasks):
-                described = describe(self.board, _tasks(tasks))
-                self.board, change = finish(described, agent_id=agent_id, last_message=last_message, at=self.clock())
-                return _changed(change)
+                reconciled = self._reconciled(tasks, leaving=agent_id)
+                return self._counted(
+                    finish(reconciled, agent_id=agent_id, last_message=last_message, at=self.clock())[0]
+                )
             case _:
                 assert_never(news)
 
