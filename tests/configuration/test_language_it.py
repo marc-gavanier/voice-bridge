@@ -28,7 +28,14 @@ def test_italian_knows_the_subtitle_credit_hallucination() -> None:
         ("Grazie mille, è venuto benissimo.", "thanks"),
         ("A domani, buonanotte.", "end"),
         ("Puoi lanciare i test?", "request"),
-        ("Sì, facciamo così.", "yes"),
+        ("Sì, facciamo così.", "go_ahead"),
+        ("Hai fatto un ottimo lavoro.", "compliment"),
+        ("Sì, va bene così.", "yes"),
+        ("Sì, fallo.", "go_ahead"),
+        ("Mi è appena venuta un'idea…", "idea_coming"),
+        ("Grazie mille per questo.", "thanks"),
+        ("Ho riavviato l'app.", "presence"),
+        ("Ci fermiamo qui per oggi.", "end"),
     ],
 )
 def test_italian_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -40,6 +47,7 @@ def test_italian_words_take_the_route_of_their_meaning(words: str, expected: str
     [
         "Hai visto se si è fermato bene?",
         "Dai, cominciamo.",
+        "Lasciamo così.",
     ],
 )
 def test_italian_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

@@ -17,11 +17,21 @@ hallucination_prefixes = [
   "untertitelung",
 ]
 neutral_acknowledgements = [
-  "Okay.",
+  "Angekommen.",
+  "Nachricht erhalten.",
+  "Okay, angekommen.",
   "Verstanden.",
+  "Gut verstanden.",
   "Alles klar.",
   "Notiert.",
+  "Ist notiert.",
+  "Ich notiere.",
+  "Ich nehme das auf.",
+  "In Ordnung.",
+  "Okay.",
+  "Ah, okay.",
   "Ich verstehe.",
+  "Ich sehe.",
 ]
 
 [announcements]
@@ -58,10 +68,11 @@ examples = [
   "Lass es, such nicht weiter.",
 ]
 sentences = [
-  "Ich höre auf.",
-  "Gut, ich breche ab.",
-  "Verstanden, ich stoppe alles.",
-  "Ich halte an.",
+  "Ich breche alle laufende Arbeit ab.",
+  "Ich höre sofort auf.",
+  "Ich stoppe sofort.",
+  "Ich höre jetzt auf.",
+  "Ich halte auf der Stelle an.",
 ]
 
 [[acknowledgements]]
@@ -82,12 +93,16 @@ examples = [
   "Beenden wir die Sitzung.",
   "Wir sind fertig.",
   "Wie lege ich auf?",
+  "Wir hören hier auf.",
+  "Gut, hier hören wir auf.",
 ]
 sentences = [
-  "Gut, wir hören auf.",
-  "Klingt gut.",
   "Bis später.",
-  "Schön, dann machen wir Schluss.",
+  "Bis bald.",
+  "Bis zum nächsten Mal.",
+  "Wir hören hier auf.",
+  "Gut, wir hören auf.",
+  "Verstanden, wir machen hier Schluss.",
 ]
 
 [[acknowledgements]]
@@ -111,10 +126,9 @@ examples = [
 ]
 sentences = [
   "Ja?",
-  "Ich höre.",
+  "Ich höre zu.",
   "Sprich weiter.",
-  "Erzähl weiter.",
-  "Und dann?",
+  "Lass dir Zeit.",
 ]
 
 [[acknowledgements]]
@@ -135,12 +149,29 @@ examples = [
   "Ich rede, kommt das an?",
   "Ich bin jetzt im Mobilnetz, hörst du mich noch?",
   "Bist du noch bei mir?",
+  "Ich habe neu gestartet.",
+  "Ich habe die Brücke neu gestartet.",
+  "Ich starte die Sitzung neu.",
+  "So, ich habe das Gespräch neu gestartet.",
+  "Es ist neu gestartet.",
+  "Ich habe Claude neu gestartet.",
+  "So, es läuft wieder, wir können weitermachen.",
+  "Ich habe alles neu gestartet.",
+  "Ich habe gerade den Server neu gestartet.",
+  "Die Brücke läuft wieder.",
+  "Okay, ich habe das Headset wieder angeschlossen.",
+  "Gut, ich bin wieder verbunden.",
+  "Ich habe die App auf dem Handy neu gestartet.",
+  "Ich starte jetzt neu.",
+  "Ich bin wieder online.",
 ]
 sentences = [
-  "Ja, ich bin da.",
+  "Ich bin da.",
   "Ich höre dich.",
-  "Immer noch da.",
-  "Laut und deutlich.",
+  "Ich höre dich gut.",
+  "Hier.",
+  "Ich bin hier.",
+  "Ich höre zu.",
 ]
 
 [[acknowledgements]]
@@ -151,22 +182,48 @@ examples = [
   "Vielen Dank.",
   "Super, danke.",
   "Danke, das ist perfekt.",
-  "Gut gemacht.",
-  "Tolle Arbeit.",
-  "Schöne Arbeit.",
   "Super, danke für deine Hilfe.",
-  "Klasse, das funktioniert richtig gut.",
   "Danke, genau das brauchte ich.",
-  "Ehrlich, gut gemacht.",
   "Danke für alles.",
-  "Ausgezeichnete Arbeit.",
   "Perfekt, vielen herzlichen Dank.",
+  "Danke dir.",
+  "Ich danke dir.",
+  "Danke für deine Hilfe.",
+  "Tausend Dank.",
+  "Danke dafür.",
+  "Okay, danke.",
+  "Herzlichen Dank.",
 ]
 sentences = [
   "Gern geschehen.",
   "Sehr gern.",
-  "Freut mich.",
-  "Jederzeit.",
+  "Das mache ich gern.",
+  "Immer gern.",
+]
+
+[[acknowledgements]]
+name = "compliment"
+examples = [
+  "Gut gemacht.",
+  "Tolle Arbeit.",
+  "Schöne Arbeit.",
+  "Klasse, das funktioniert richtig gut.",
+  "Ehrlich, gut gemacht.",
+  "Ausgezeichnete Arbeit.",
+  "Bravo, du hast gut gearbeitet.",
+  "Super Arbeit.",
+  "Starke Arbeit.",
+  "Das ist richtig gute Arbeit.",
+  "Das hast du super hingekriegt.",
+  "Hut ab.",
+  "Du bist echt gut.",
+  "Das ist beeindruckend.",
+  "Bravo, genau das wollte ich.",
+]
+sentences = [
+  "Danke, das freut mich.",
+  "Vielen Dank.",
+  "Danke, das ist nett.",
 ]
 
 [[acknowledgements]]
@@ -190,36 +247,16 @@ examples = [
   "Die Verbindung war weg. Fang noch mal an.",
 ]
 sentences = [
-  "Ich schaue mir das an.",
   "Ich prüfe das.",
-  "Notiert, ich schaue nach.",
-  "Moment, ich sehe nach.",
-]
-
-[[acknowledgements]]
-name = "restarted"
-examples = [
-  "Ich habe neu gestartet.",
-  "Ich habe die Brücke neu gestartet.",
-  "Ich starte die Sitzung neu.",
-  "So, ich habe das Gespräch neu gestartet.",
-  "Es ist neu gestartet.",
-  "Ich habe Claude neu gestartet.",
-  "So, es läuft wieder, wir können weitermachen.",
-  "Ich habe alles neu gestartet.",
-  "Ich habe gerade den Server neu gestartet.",
-  "Die Brücke läuft wieder.",
-  "Okay, ich habe das Headset wieder angeschlossen.",
-  "Gut, ich bin wieder verbunden.",
-  "Ich habe die App auf dem Handy neu gestartet.",
-  "Ich starte jetzt neu.",
-  "Ich bin wieder online.",
-]
-sentences = [
-  "Verstanden.",
-  "Gut, notiert.",
-  "Alles klar, weiter geht's.",
-  "Gut.",
+  "Ich schaue mir das an.",
+  "Ich werfe einen Blick darauf.",
+  "Mal sehen.",
+  "Schauen wir mal.",
+  "Oh, Mist.",
+  "Oh, ich schaue nach.",
+  "Notiert, ich suche.",
+  "Einen Moment, ich schaue nach.",
+  "Einen Moment, ich prüfe das.",
 ]
 
 [[acknowledgements]]
@@ -244,11 +281,13 @@ examples = [
   "Kannst du mir mehr über dieses kleine Modell erzählen?",
 ]
 sentences = [
-  "Ich mache das.",
-  "Ich schaue nach.",
+  "Ich kümmere mich darum.",
   "Bin dran.",
   "Los geht's.",
-  "Ich kümmere mich darum.",
+  "Ich schaue nach.",
+  "Lass mich nachsehen.",
+  "Ich sehe mir das an.",
+  "Ich starte.",
 ]
 
 [[acknowledgements]]
@@ -271,23 +310,47 @@ examples = [
   "Gibt es noch etwas zu tun?",
 ]
 sentences = [
+  "Ich denke nach.",
   "Mal sehen.",
   "Gute Frage.",
   "Lass mich nachdenken.",
-  "Ich schaue mal.",
+  "Ich prüfe das.",
+  "Warte, ich schaue nach.",
+  "Einen Moment, ich schaue nach.",
+  "Einen Moment, ich prüfe das.",
+]
+
+[[acknowledgements]]
+name = "idea_coming"
+examples = [
+  "Ich habe eine Idee.",
+  "Warte, ich habe vielleicht eine Idee.",
+  "Das erinnert mich an etwas.",
+  "Ich habe eine Idee…",
+  "Ich habe an etwas gedacht.",
+  "Ich habe an etwas gedacht…",
+  "Mir geht da etwas durch den Kopf.",
+  "Ich habe eine Idee, hör zu.",
+  "Warte, mir kommt gerade eine Idee.",
+  "Ich habe über etwas nachgedacht.",
+  "Du, mir ist etwas eingefallen.",
+  "Ich habe einen Vorschlag.",
+  "Ich hätte eine Anregung.",
+  "Ich muss dir etwas sagen.",
+  "Hör mal, ich dachte gerade…",
+]
+sentences = [
+  "Ich höre zu.",
 ]
 
 [[acknowledgements]]
 name = "idea"
 examples = [
   "Ich frage mich, ob man das anders machen könnte.",
-  "Ich habe eine Idee.",
-  "Warte, ich habe vielleicht eine Idee.",
   "Wir könnten ein anderes Werkzeug nehmen.",
   "Ich glaube, es wäre besser, die beiden zu trennen.",
   "Ich finde das zu kompliziert.",
   "Es wäre schön, Wartemusik zu haben.",
-  "Das erinnert mich an etwas.",
   "Immer erst prüfen, ob es dafür schon etwas gibt.",
   "Ich hätte das gern automatisiert.",
   "Ich glaube, wir können das jetzt machen.",
@@ -295,12 +358,15 @@ examples = [
   "Ich möchte, dass es auch auf dem Handy funktioniert.",
   "Man könnte eine Regel daraus machen.",
   "Ich glaube, wir hatten nur kleine Netzprobleme.",
+  "Wir könnten das in zwei Schritte aufteilen.",
+  "Es wäre einfacher, alles in eine Datei zu packen.",
+  "Vielleicht sollten wir es in zwei Durchgängen machen.",
 ]
 sentences = [
-  "Interessant.",
   "Ich verstehe die Idee.",
-  "Ah, ich sehe.",
   "Das ergibt Sinn.",
+  "Interessant.",
+  "Ah, verstehe.",
 ]
 
 [[acknowledgements]]
@@ -321,38 +387,75 @@ examples = [
   "Nein, ich meinte etwas anderes.",
   "Nein, nicht das.",
   "Auf keinen Fall.",
+  "Nein, wir lassen es so.",
 ]
 sentences = [
   "In Ordnung.",
   "Verstanden.",
-  "Gut, lassen wir das.",
   "Kein Problem.",
+  "Alles klar.",
+  "Ah, okay.",
+  "Na gut.",
+  "Ich korrigiere das.",
+  "Geht klar.",
+  "Ich ändere den Kurs.",
+]
+
+[[acknowledgements]]
+name = "go_ahead"
+examples = [
+  "Ja, mach.",
+  "Ja, los.",
+  "Gut, machen wir das.",
+  "Ja, versuchen wir es.",
+  "Ja, lies es bitte.",
+  "Los geht's.",
+  "Auf geht's.",
+  "Ja, mach es.",
+  "Mach es.",
+  "Ja, starte.",
+  "Leg los.",
+  "Ja, du kannst loslegen.",
+  "Fang an.",
+  "Na los, mach.",
+  "Ja, starte es.",
+]
+sentences = [
+  "Los geht's.",
+  "Auf geht's.",
+  "Dann los.",
+  "Machen wir das.",
+  "Ich lege los.",
+  "Los!",
+  "Geht klar.",
 ]
 
 [[acknowledgements]]
 name = "yes"
 examples = [
   "Ja.",
-  "Ja, mach.",
-  "Ja, los.",
   "Okay.",
   "Okay, passt mir.",
-  "Gut, machen wir das.",
   "Perfekt, einverstanden.",
   "Passt für mich.",
   "Genau so.",
   "Ja, sehr gut.",
-  "Ja, versuchen wir es.",
-  "Ja, lies es bitte.",
   "Ja, ich höre dich, alles gut.",
   "Klar.",
-  "Los geht's.",
-  "Auf geht's.",
   "Mach das so.",
+  "Ja, das ist gut.",
+  "Das behalte ich.",
+  "Lassen wir es so.",
+  "Wir lassen es so, das ist gut.",
+  "Ja, passt, so bleibt es.",
+  "Das passt mir.",
 ]
 sentences = [
   "Perfekt.",
-  "Super.",
-  "In Ordnung.",
   "Sehr gut.",
+  "In Ordnung.",
+  "Okay.",
+  "Verstanden.",
+  "Super.",
+  "Gut.",
 ]

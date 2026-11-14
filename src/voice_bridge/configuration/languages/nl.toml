@@ -17,11 +17,21 @@ hallucination_prefixes = [
   "ondertiteling",
 ]
 neutral_acknowledgements = [
-  "Oké.",
+  "Ontvangen.",
+  "Goed ontvangen.",
+  "Bericht ontvangen.",
+  "Oké, ontvangen.",
   "Begrepen.",
-  "Ik snap het.",
+  "Goed begrepen.",
+  "Duidelijk.",
+  "Ik heb je goed gehoord.",
   "Genoteerd.",
-  "Goed.",
+  "Staat genoteerd.",
+  "Ik noteer het.",
+  "Akkoord.",
+  "Oké.",
+  "Ah, oké.",
+  "Ik snap het.",
 ]
 
 [announcements]
@@ -58,10 +68,11 @@ examples = [
   "Hou op met zoeken.",
 ]
 sentences = [
-  "Ik stop.",
-  "Goed, ik stop.",
-  "Begrepen, ik stop alles.",
-  "Ik hou op.",
+  "Ik stop al het lopende werk.",
+  "Ik stop onmiddellijk.",
+  "Ik stop meteen.",
+  "Ik stop nu.",
+  "Ik stop op staande voet.",
 ]
 
 [[acknowledgements]]
@@ -82,12 +93,16 @@ examples = [
   "Laten we de sessie beëindigen.",
   "We zijn klaar.",
   "Hoe hang ik op?",
+  "We stoppen hier.",
+  "Goed, hier stoppen we.",
 ]
 sentences = [
-  "Goed, we stoppen.",
-  "Klinkt goed.",
   "Tot later.",
-  "Prima, we stoppen hier.",
+  "Tot snel.",
+  "Tot de volgende keer.",
+  "We stoppen hier.",
+  "Goed, we stoppen.",
+  "Begrepen, we stoppen hier.",
 ]
 
 [[acknowledgements]]
@@ -112,9 +127,8 @@ examples = [
 sentences = [
   "Ja?",
   "Ik luister.",
-  "Ga door.",
-  "Vertel verder.",
-  "En dan?",
+  "Ga je gang.",
+  "Neem je tijd.",
 ]
 
 [[acknowledgements]]
@@ -135,12 +149,29 @@ examples = [
   "Ik praat, komt het aan?",
   "Ik zit nu op mobiel internet, hoor je me nog?",
   "Ben je nog bij me?",
+  "Ik heb opnieuw gestart.",
+  "Ik heb de brug herstart.",
+  "Ik start de sessie opnieuw.",
+  "Zo, ik heb het gesprek herstart.",
+  "Het is herstart.",
+  "Ik heb Claude herstart.",
+  "Zo, het werkt weer, we kunnen verder.",
+  "Ik heb alles herstart.",
+  "Ik heb net de server herstart.",
+  "De brug draait weer.",
+  "Oké, ik heb de koptelefoon weer aangesloten.",
+  "Goed, ik ben weer verbonden.",
+  "Ik heb de app op de telefoon herstart.",
+  "Ik herstart nu.",
+  "Ik ben weer online.",
 ]
 sentences = [
-  "Ja, ik ben er.",
+  "Ik ben er.",
   "Ik hoor je.",
-  "Nog steeds hier.",
-  "Luid en duidelijk.",
+  "Ik hoor je goed.",
+  "Present.",
+  "Ik ben hier.",
+  "Ik luister.",
 ]
 
 [[acknowledgements]]
@@ -151,22 +182,48 @@ examples = [
   "Heel erg bedankt.",
   "Super, bedankt.",
   "Bedankt, het is perfect.",
-  "Goed gedaan.",
-  "Mooi werk.",
-  "Prima werk.",
   "Geweldig, bedankt voor je hulp.",
-  "Top werk, het werkt heel goed.",
   "Bedankt, dat is precies wat ik nodig had.",
-  "Echt, goed gedaan.",
   "Bedankt voor alles.",
-  "Uitstekend werk.",
   "Perfect, hartelijk dank.",
+  "Bedankt.",
+  "Dank je voor je hulp.",
+  "Duizendmaal dank.",
+  "Bedankt daarvoor.",
+  "Oké, bedankt.",
+  "Ik waardeer het, dank je.",
+  "Hartstikke bedankt.",
 ]
 sentences = [
   "Graag gedaan.",
   "Met plezier.",
-  "Fijn dat het helpt.",
-  "Altijd.",
+  "Het genoegen is aan mijn kant.",
+  "Altijd graag.",
+]
+
+[[acknowledgements]]
+name = "compliment"
+examples = [
+  "Goed gedaan.",
+  "Mooi werk.",
+  "Prima werk.",
+  "Top werk, het werkt heel goed.",
+  "Echt, goed gedaan.",
+  "Uitstekend werk.",
+  "Bravo, je hebt goed gewerkt.",
+  "Knap werk.",
+  "Sterk werk.",
+  "Dat is echt goed werk.",
+  "Dat heb je mooi geflikt.",
+  "Petje af.",
+  "Je bent geweldig.",
+  "Indrukwekkend.",
+  "Bravo, precies wat ik wilde.",
+]
+sentences = [
+  "Dank je, dat doet me plezier.",
+  "Dank je wel.",
+  "Dank je, dat is lief.",
 ]
 
 [[acknowledgements]]
@@ -190,36 +247,16 @@ examples = [
   "De verbinding viel weg. Begin opnieuw.",
 ]
 sentences = [
-  "Ik kijk ernaar.",
   "Ik controleer het.",
-  "Genoteerd, ik kijk.",
-  "Even kijken.",
-]
-
-[[acknowledgements]]
-name = "restarted"
-examples = [
-  "Ik heb opnieuw gestart.",
-  "Ik heb de brug herstart.",
-  "Ik start de sessie opnieuw.",
-  "Zo, ik heb het gesprek herstart.",
-  "Het is herstart.",
-  "Ik heb Claude herstart.",
-  "Zo, het werkt weer, we kunnen verder.",
-  "Ik heb alles herstart.",
-  "Ik heb net de server herstart.",
-  "De brug draait weer.",
-  "Oké, ik heb de koptelefoon weer aangesloten.",
-  "Goed, ik ben weer verbonden.",
-  "Ik heb de app op de telefoon herstart.",
-  "Ik herstart nu.",
-  "Ik ben weer online.",
-]
-sentences = [
-  "Begrepen.",
-  "Mooi, genoteerd.",
-  "Goed, daar gaan we.",
-  "Goed.",
+  "Ik ga het bekijken.",
+  "Ik kijk er even naar.",
+  "Eens kijken.",
+  "Laten we kijken.",
+  "Ah, jammer.",
+  "Ah, ik kijk ernaar.",
+  "Genoteerd, ik zoek het.",
+  "Momentje, ik kijk.",
+  "Momentje, ik controleer het.",
 ]
 
 [[acknowledgements]]
@@ -244,11 +281,13 @@ examples = [
   "Kun je me meer vertellen over dat kleine model?",
 ]
 sentences = [
-  "Ik ga ermee aan de slag.",
-  "Ik kijk even.",
-  "Ben ermee bezig.",
-  "Daar gaan we.",
   "Ik regel het.",
+  "Ik ga ermee aan de slag.",
+  "Daar gaan we.",
+  "Ik kijk even.",
+  "Laat me kijken.",
+  "Ik zie het.",
+  "Ik start.",
 ]
 
 [[acknowledgements]]
@@ -271,23 +310,47 @@ examples = [
   "Is er nog iets te doen?",
 ]
 sentences = [
+  "Ik denk na.",
   "Eens kijken.",
   "Goede vraag.",
-  "Laat me nadenken.",
-  "Ik zoek het uit.",
+  "Laat me zien.",
+  "Ik controleer het.",
+  "Wacht, ik kijk.",
+  "Momentje, ik kijk.",
+  "Momentje, ik controleer het.",
+]
+
+[[acknowledgements]]
+name = "idea_coming"
+examples = [
+  "Ik heb een idee.",
+  "Wacht, misschien heb ik een idee.",
+  "Dat doet me ergens aan denken.",
+  "Ik heb een idee…",
+  "Ik zat aan iets te denken.",
+  "Ik zat aan iets te denken…",
+  "Er is iets waar ik aan denk.",
+  "Ik heb een idee, luister.",
+  "Wacht, ik krijg een idee.",
+  "Ik liep ergens over na te denken.",
+  "Hé, ik bedacht iets.",
+  "Ik heb een voorstel.",
+  "Ik heb een suggestie.",
+  "Ik moet je iets vertellen.",
+  "Luister, ik zat te denken…",
+]
+sentences = [
+  "Ik luister.",
 ]
 
 [[acknowledgements]]
 name = "idea"
 examples = [
   "Ik vraag me af of we het anders kunnen doen.",
-  "Ik heb een idee.",
-  "Wacht, misschien heb ik een idee.",
   "We zouden een ander hulpmiddel kunnen gebruiken.",
   "Ik denk dat het beter is om de twee te scheiden.",
   "Ik vind het te ingewikkeld.",
   "Het zou fijn zijn om wachtmuziek te hebben.",
-  "Dat doet me ergens aan denken.",
   "Altijd eerst kijken of er al iets voor bestaat.",
   "Ik zou het graag automatiseren.",
   "Ik denk dat we het nu kunnen doen.",
@@ -295,12 +358,15 @@ examples = [
   "Ik wil dat het ook op de telefoon werkt.",
   "We zouden er een regel van kunnen maken.",
   "Ik denk dat we alleen kleine netwerkstoringen hadden.",
+  "We zouden het in twee stappen kunnen splitsen.",
+  "Het zou eenvoudiger zijn om alles in één bestand te zetten.",
+  "Misschien moeten we het in twee keer doen.",
 ]
 sentences = [
-  "Interessant.",
   "Ik snap het idee.",
-  "Ah, ik zie het.",
   "Dat is logisch.",
+  "Interessant.",
+  "Ah, ik zie het.",
 ]
 
 [[acknowledgements]]
@@ -321,38 +387,75 @@ examples = [
   "Nee, ik bedoelde iets anders.",
   "Nee, die niet.",
   "Absoluut niet.",
+  "Nee, we laten het zo.",
 ]
 sentences = [
   "Prima.",
   "Begrepen.",
-  "Goed, we laten het.",
   "Geen probleem.",
+  "Akkoord.",
+  "Ah, oké.",
+  "Goed dan.",
+  "Ik corrigeer het.",
+  "Geen enkel probleem.",
+  "Ik gooi het roer om.",
+]
+
+[[acknowledgements]]
+name = "go_ahead"
+examples = [
+  "Ja, ga je gang.",
+  "Ja, doe maar.",
+  "Goed, laten we dat doen.",
+  "Ja, laten we het proberen.",
+  "Ja, lees het maar.",
+  "Daar gaan we.",
+  "Kom op, we gaan.",
+  "Ja, doe het.",
+  "Doe het maar.",
+  "Ja, start maar.",
+  "Start het maar.",
+  "Ga ervoor.",
+  "Ja, je kunt beginnen.",
+  "Begin maar.",
+  "Vooruit, we gaan.",
+]
+sentences = [
+  "Daar gaan we.",
+  "Kom op.",
+  "We gaan.",
+  "Laten we het doen.",
+  "Ik begin.",
+  "Hup!",
+  "Komt goed.",
 ]
 
 [[acknowledgements]]
 name = "yes"
 examples = [
   "Ja.",
-  "Ja, ga je gang.",
-  "Ja, doe maar.",
   "Oké.",
   "Oké, prima voor mij.",
-  "Goed, laten we dat doen.",
   "Perfect, akkoord.",
   "Voor mij is het goed.",
   "Precies.",
   "Ja, heel goed.",
-  "Ja, laten we het proberen.",
-  "Ja, lees het maar.",
   "Ja, ik hoor je, alles goed.",
   "Zeker.",
-  "Daar gaan we.",
-  "Kom op, we gaan.",
   "Doe het zo.",
+  "Ja, dat is goed.",
+  "Ik houd het.",
+  "We laten het zo.",
+  "Laat het maar zo, het is goed.",
+  "Ja, prima, we laten het.",
+  "Dat vind ik goed.",
 ]
 sentences = [
   "Perfect.",
-  "Super.",
-  "Prima.",
   "Heel goed.",
+  "Prima.",
+  "Oké.",
+  "Begrepen.",
+  "Super.",
+  "Goed.",
 ]

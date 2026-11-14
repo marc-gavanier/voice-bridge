@@ -28,7 +28,14 @@ def test_arabic_knows_the_subtitle_credit_hallucination() -> None:
         ("شكرًا جزيلًا، النتيجة رائعة.", "thanks"),
         ("إلى الغد، تصبح على خير.", "end"),
         ("هل يمكنك تشغيل الاختبارات؟", "request"),
-        ("نعم، لنفعلها هكذا.", "yes"),
+        ("نعم، لنفعلها هكذا.", "go_ahead"),
+        ("لقد قمت بعمل جيد جدًا.", "compliment"),
+        ("نعم، هذا جيد هكذا.", "yes"),
+        ("نعم، افعلها.", "go_ahead"),
+        ("خطرت لي فكرة للتو…", "idea_coming"),
+        ("شكرًا جزيلًا على ذلك.", "thanks"),
+        ("أعدت تشغيل التطبيق.", "presence"),
+        ("نتوقف هنا لليوم.", "end"),
     ],
 )
 def test_arabic_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -40,6 +47,7 @@ def test_arabic_words_take_the_route_of_their_meaning(words: str, expected: str,
     [
         "هل رأيت إن كان قد توقف جيدًا؟",
         "هيا، لنبدأ.",
+        "نتركه هكذا.",
     ],
 )
 def test_arabic_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

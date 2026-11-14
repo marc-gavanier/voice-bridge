@@ -28,7 +28,14 @@ def test_german_knows_the_subtitle_credit_hallucination() -> None:
         ("Vielen Dank, das war super.", "thanks"),
         ("Bis morgen, gute Nacht.", "end"),
         ("Kannst du die Tests laufen lassen?", "request"),
-        ("Ja, genau so machen wir das.", "yes"),
+        ("Ja, genau so machen wir das.", "go_ahead"),
+        ("Du hast richtig gute Arbeit geleistet.", "compliment"),
+        ("Ja, das passt so.", "yes"),
+        ("Ja, mach das.", "go_ahead"),
+        ("Mir ist gerade eine Idee gekommen…", "idea_coming"),
+        ("Vielen Dank dafür.", "thanks"),
+        ("Ich habe die App neu gestartet.", "presence"),
+        ("Wir hören für heute hier auf.", "end"),
     ],
 )
 def test_german_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -40,6 +47,7 @@ def test_german_words_take_the_route_of_their_meaning(words: str, expected: str,
     [
         "Hast du gesehen, ob es richtig gestoppt hat?",
         "Los, wir fangen an.",
+        "Lassen wir das so.",
     ],
 )
 def test_german_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

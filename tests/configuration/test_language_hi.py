@@ -24,7 +24,14 @@ def test_hindi_greets_in_hindi() -> None:
         ("बहुत बहुत धन्यवाद, बढ़िया बना है।", "thanks"),
         ("कल मिलते हैं, शुभ रात्रि।", "end"),
         ("क्या तुम टेस्ट चला सकते हो?", "request"),
-        ("हाँ, ऐसे ही करते हैं।", "yes"),
+        ("हाँ, ऐसे ही करते हैं।", "go_ahead"),
+        ("तुमने बहुत अच्छा काम किया।", "compliment"),
+        ("हाँ, ऐसे ही ठीक है।", "yes"),
+        ("हाँ, कर दो।", "go_ahead"),
+        ("मुझे अभी एक आइडिया आया…", "idea_coming"),
+        ("इसके लिए बहुत धन्यवाद।", "thanks"),
+        ("मैंने ऐप फिर से चालू किया।", "presence"),
+        ("आज के लिए यहीं रुकते हैं।", "end"),
     ],
 )
 def test_hindi_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -36,6 +43,7 @@ def test_hindi_words_take_the_route_of_their_meaning(words: str, expected: str, 
     [
         "क्या तुमने देखा कि यह ठीक से रुका या नहीं?",
         "चलो, शुरू करते हैं।",
+        "इसे ऐसे ही रहने दो।",
     ],
 )
 def test_hindi_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

@@ -18,11 +18,20 @@ hallucination_prefixes = [
   "subtitles by",
 ]
 neutral_acknowledgements = [
-  "Okay.",
   "Got it.",
-  "I see.",
-  "Noted.",
+  "Received.",
+  "Message received.",
+  "Okay, got it.",
   "Understood.",
+  "Understood, yes.",
+  "I hear you.",
+  "Noted.",
+  "Duly noted.",
+  "I'm noting that.",
+  "Alright.",
+  "Okay.",
+  "Ah, okay.",
+  "I see.",
   "Right.",
 ]
 
@@ -71,10 +80,11 @@ examples = [
   "That's enough, stop.",
 ]
 sentences = [
-  "Stopping.",
-  "I'll stop.",
-  "Alright, stopping.",
-  "Understood, stopping everything.",
+  "Stopping all work in progress.",
+  "Stopping right away.",
+  "Stopping immediately.",
+  "Stopping now.",
+  "Stopping on the spot.",
 ]
 
 [[acknowledgements]]
@@ -95,12 +105,16 @@ examples = [
   "Let's end the session.",
   "We're done.",
   "How do I hang up?",
+  "Let's stop here.",
+  "Okay, let's stop there.",
 ]
 sentences = [
-  "Alright, let's stop.",
-  "Sounds good.",
   "See you later.",
-  "Fine, we stop here.",
+  "See you soon.",
+  "Until next time.",
+  "Let's stop here.",
+  "Alright, we stop.",
+  "Understood, we stop here.",
 ]
 
 [[acknowledgements]]
@@ -126,8 +140,7 @@ sentences = [
   "Yes?",
   "I'm listening.",
   "Go on.",
-  "Carry on.",
-  "And then?",
+  "Take your time.",
 ]
 
 [[acknowledgements]]
@@ -149,13 +162,29 @@ examples = [
   "I'm talking, are you getting this?",
   "Okay, I'm on 4G now, can you still hear me?",
   "Are you still with me?",
+  "I restarted.",
+  "I relaunched the bridge.",
+  "I restarted the bridge.",
+  "I'm restarting the session.",
+  "There, I restarted the conversation.",
+  "It's relaunched.",
+  "I relaunched Claude.",
+  "There, it's restarted, we can carry on.",
+  "I restarted everything.",
+  "I just restarted the server.",
+  "The bridge is back up.",
+  "Okay, I plugged the headset back in.",
+  "Fine, I'm reconnected.",
+  "I relaunched the app on the phone.",
+  "Restarting now.",
 ]
 sentences = [
-  "Yes, I'm here.",
+  "I'm here.",
   "I can hear you.",
+  "I can hear you well.",
+  "Present.",
   "Still here.",
-  "I'm here, yes.",
-  "Loud and clear.",
+  "I'm listening.",
 ]
 
 [[acknowledgements]]
@@ -166,22 +195,48 @@ examples = [
   "Thanks a lot.",
   "Great, thanks.",
   "Thanks, that's perfect.",
+  "That's great, thanks for your help.",
+  "Thanks, that's exactly what I needed.",
+  "Thanks for everything.",
+  "Perfect, thank you very much.",
+  "Thanks so much.",
+  "Thank you for your help.",
+  "Many thanks.",
+  "Thanks for that.",
+  "Okay, thanks.",
+  "I appreciate it, thanks.",
+  "Thanks a million.",
+]
+sentences = [
+  "My pleasure.",
+  "You're welcome.",
+  "The pleasure is mine.",
+  "Anytime.",
+]
+
+[[acknowledgements]]
+name = "compliment"
+examples = [
   "Well done.",
   "Great job.",
   "Nice work.",
-  "That's great, thanks for your help.",
   "Awesome, it works really well.",
-  "Thanks, that's exactly what I needed.",
   "Honestly, well done.",
-  "Thanks for everything.",
   "Excellent work.",
-  "Perfect, thank you very much.",
+  "Well done, you did a great job.",
+  "Great work.",
+  "Beautiful work.",
+  "That's some fine work.",
+  "You nailed it.",
+  "Hats off.",
+  "You're brilliant.",
+  "That's impressive.",
+  "Bravo, that's exactly what I wanted.",
 ]
 sentences = [
-  "Thanks!",
-  "My pleasure.",
-  "Glad it helps.",
-  "Anytime.",
+  "Thanks, that's nice to hear.",
+  "Thank you very much.",
+  "Thanks, that's kind.",
 ]
 
 [[acknowledgements]]
@@ -210,37 +265,16 @@ examples = [
   "We got cut off. Start again.",
 ]
 sentences = [
-  "Let me look into that.",
-  "I'll check.",
-  "Noted, I'm looking.",
+  "Let me check.",
+  "I'll look into it.",
   "I'll have a look.",
-  "Oh, let me see.",
-]
-
-[[acknowledgements]]
-name = "restarted"
-examples = [
-  "I restarted.",
-  "I relaunched the bridge.",
-  "I restarted the bridge.",
-  "I'm restarting the session.",
-  "There, I restarted the conversation.",
-  "It's relaunched.",
-  "I relaunched Claude.",
-  "There, it's restarted, we can carry on.",
-  "I restarted everything.",
-  "I just restarted the server.",
-  "The bridge is back up.",
-  "Okay, I plugged the headset back in.",
-  "Fine, I'm reconnected.",
-  "I relaunched the app on the phone.",
-  "Restarting now.",
-]
-sentences = [
-  "Got it.",
-  "Great, noted.",
-  "Alright, here we go.",
-  "Good.",
+  "Let's see.",
+  "Let's look at that.",
+  "Oh, bother.",
+  "Oh, let me look.",
+  "Noted, I'm looking.",
+  "One moment, I'm looking.",
+  "One moment, I'm checking.",
 ]
 
 [[acknowledgements]]
@@ -273,11 +307,12 @@ examples = [
 ]
 sentences = [
   "On it.",
-  "Let me look.",
   "I'm on it.",
   "Here we go.",
-  "Sure, looking now.",
-  "Let me see to that.",
+  "Let me look.",
+  "Let me have a look.",
+  "I'll see to it.",
+  "Starting now.",
 ]
 
 [[acknowledgements]]
@@ -303,11 +338,37 @@ examples = [
   "Okay, what can we talk about? Any idea?",
 ]
 sentences = [
+  "Let me think.",
   "Let's see.",
   "Good question.",
-  "Let me think.",
+  "Let me see.",
   "Let me check.",
   "Hold on, I'll look.",
+  "One moment, I'm looking.",
+  "One moment, I'm checking.",
+]
+
+[[acknowledgements]]
+name = "idea_coming"
+examples = [
+  "I have an idea.",
+  "Wait, I may have an idea.",
+  "That reminds me of something.",
+  "I have an idea…",
+  "I was thinking about something.",
+  "I was thinking about something…",
+  "There's something I've been thinking about.",
+  "I have an idea, listen.",
+  "Wait, an idea just came to me.",
+  "I was mulling something over.",
+  "Hey, I thought of something.",
+  "I have a proposal.",
+  "I have a suggestion.",
+  "I need to tell you something.",
+  "Listen, I was thinking…",
+]
+sentences = [
+  "I'm listening.",
 ]
 
 [[acknowledgements]]
@@ -315,26 +376,25 @@ name = "idea"
 examples = [
   "I wonder if we could do it differently.",
   "I wonder if we could make a rule.",
-  "I have an idea.",
-  "Wait, I may have an idea.",
   "We could use another tool.",
   "I think it would be better to split the two.",
   "I feel it's too complicated.",
   "It would be nice to have hold music.",
-  "That reminds me of something.",
   "Always check whether something already exists for that.",
   "I'd like this automated, but I don't know how.",
   "I think we can do it now.",
   "I think we just had small network hiccups.",
   "That sounds like a good idea.",
   "I want it to work on the phone too.",
+  "We could split this into two steps.",
+  "It would be simpler to put everything in one file.",
+  "Maybe we should do it in two passes.",
 ]
 sentences = [
-  "Interesting.",
   "I see the idea.",
-  "Oh, I see.",
-  "I'm listening.",
   "That makes sense.",
+  "Interesting.",
+  "Oh, I see.",
 ]
 
 [[acknowledgements]]
@@ -355,41 +415,77 @@ examples = [
   "No, I have no idea.",
   "No, I meant something else.",
   "No, not that one.",
+  "No, let's leave it as it is.",
 ]
 sentences = [
   "Alright.",
   "Understood.",
-  "Fine, we leave it.",
-  "No problem.",
+  "No worries.",
   "Got it.",
+  "Ah, okay.",
+  "Fine, alright.",
+  "I'll correct that.",
+  "No problem.",
+  "Changing course.",
+]
+
+[[acknowledgements]]
+name = "go_ahead"
+examples = [
+  "Yes, go ahead.",
+  "Yeah, go ahead.",
+  "Okay, we'll do that.",
+  "Yes, let's try.",
+  "Yes, please read it.",
+  "Go for it.",
+  "Yes, do it.",
+  "Go ahead, do it.",
+  "Yes, start it.",
+  "Go ahead, launch it.",
+  "Let's go.",
+  "Off you go.",
+  "Yes, you can go ahead.",
+  "Go ahead, start.",
+  "Alright, let's go.",
+]
+sentences = [
+  "Here we go.",
+  "Let's go.",
+  "Off we go.",
+  "Let's do it.",
+  "Starting.",
+  "Go!",
+  "Sounds good.",
 ]
 
 [[acknowledgements]]
 name = "yes"
 examples = [
   "Yes.",
-  "Yes, go ahead.",
-  "Yeah, go ahead.",
   "Okay.",
   "Okay, fine by me.",
   "Alright, let's do that.",
-  "Okay, we'll do that.",
   "Perfect, I approve.",
   "Fine with me.",
   "Yeah, that's exactly it.",
   "That's exactly it.",
   "Yes, very good.",
-  "Yes, let's try.",
-  "Yes, please read it.",
   "Yes, it stopped properly.",
   "Yes, I can hear you, it's fine.",
   "Yes, that's clearer.",
   "Sure.",
+  "Yes, that's good.",
+  "I'll keep it.",
+  "Let's leave it like that.",
+  "Keep it as it is, it's fine.",
+  "Yes, fine, we leave it.",
 ]
 sentences = [
   "Perfect.",
-  "Great.",
-  "Alright.",
   "Very well.",
-  "Here we go.",
+  "Alright.",
+  "Okay.",
+  "Understood.",
+  "Great.",
+  "Good.",
 ]

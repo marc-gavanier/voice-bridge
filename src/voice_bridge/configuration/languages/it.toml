@@ -17,11 +17,21 @@ hallucination_prefixes = [
   "sottotitoli a cura di",
 ]
 neutral_acknowledgements = [
-  "Va bene.",
+  "Ricevuto.",
+  "Ben ricevuto.",
+  "Messaggio ricevuto.",
+  "Va bene, ricevuto.",
+  "Inteso.",
   "Capito.",
-  "Vedo.",
+  "Ho capito.",
+  "Ti ho sentito bene.",
   "Annotato.",
+  "Preso nota.",
+  "Ne prendo nota.",
   "D'accordo.",
+  "Va bene.",
+  "Ah, ok.",
+  "Vedo.",
 ]
 
 [announcements]
@@ -58,10 +68,11 @@ examples = [
   "Smetti di cercare.",
 ]
 sentences = [
-  "Mi fermo.",
-  "Va bene, mi fermo.",
-  "Capito, fermo tutto.",
-  "Mi interrompo.",
+  "Fermo tutto il lavoro in corso.",
+  "Mi fermo subito.",
+  "Mi fermo immediatamente.",
+  "Mi fermo adesso.",
+  "Mi fermo all'istante.",
 ]
 
 [[acknowledgements]]
@@ -82,12 +93,16 @@ examples = [
   "Chiudiamo la sessione.",
   "Abbiamo finito.",
   "Come riaggancio?",
+  "Ci fermiamo qui.",
+  "Bene, ci fermiamo qui.",
 ]
 sentences = [
-  "Va bene, ci fermiamo.",
-  "Mi sembra giusto.",
   "A dopo.",
-  "Bene, chiudiamo qui.",
+  "A presto.",
+  "Alla prossima.",
+  "Ci fermiamo qui.",
+  "D'accordo, ci fermiamo.",
+  "Inteso, ci fermiamo qui.",
 ]
 
 [[acknowledgements]]
@@ -112,9 +127,8 @@ examples = [
 sentences = [
   "Sì?",
   "Ti ascolto.",
-  "Vai avanti.",
-  "Continua.",
-  "E poi?",
+  "Vai.",
+  "Prenditi il tuo tempo.",
 ]
 
 [[acknowledgements]]
@@ -135,12 +149,29 @@ examples = [
   "Sto parlando, ti arriva?",
   "Adesso sono sulla rete mobile, mi senti ancora?",
   "Sei ancora con me?",
+  "Ho riavviato.",
+  "Ho riavviato il ponte.",
+  "Sto riavviando la sessione.",
+  "Ecco, ho riavviato la conversazione.",
+  "È ripartito.",
+  "Ho riavviato Claude.",
+  "Ecco, funziona di nuovo, possiamo continuare.",
+  "Ho riavviato tutto.",
+  "Ho appena riavviato il server.",
+  "Il ponte è di nuovo attivo.",
+  "Va bene, ho ricollegato le cuffie.",
+  "Bene, sono di nuovo connesso.",
+  "Ho riavviato l'app sul telefono.",
+  "Riavvio adesso.",
+  "Sono di nuovo in linea.",
 ]
 sentences = [
-  "Sì, ci sono.",
+  "Ci sono.",
   "Ti sento.",
-  "Sono ancora qui.",
-  "Forte e chiaro.",
+  "Ti sento bene.",
+  "Presente.",
+  "Sono qui.",
+  "Ti ascolto.",
 ]
 
 [[acknowledgements]]
@@ -151,22 +182,48 @@ examples = [
   "Grazie tante.",
   "Ottimo, grazie.",
   "Grazie, è perfetto.",
+  "Fantastico, grazie per l'aiuto.",
+  "Grazie, è proprio quello che mi serviva.",
+  "Grazie di tutto.",
+  "Perfetto, grazie infinite.",
+  "Ti ringrazio.",
+  "Grazie per l'aiuto.",
+  "Grazie davvero.",
+  "Grazie infinite.",
+  "Grazie per questo.",
+  "Va bene, grazie.",
+  "Mille grazie.",
+]
+sentences = [
+  "Con piacere.",
+  "Prego.",
+  "Il piacere è mio.",
+  "È un piacere.",
+]
+
+[[acknowledgements]]
+name = "compliment"
+examples = [
   "Ben fatto.",
   "Ottimo lavoro.",
   "Bel lavoro.",
-  "Fantastico, grazie per l'aiuto.",
   "Splendido, funziona benissimo.",
-  "Grazie, è proprio quello che mi serviva.",
   "Davvero, ben fatto.",
-  "Grazie di tutto.",
   "Lavoro eccellente.",
-  "Perfetto, grazie infinite.",
+  "Bravo, hai lavorato bene.",
+  "Gran bel lavoro.",
+  "Lavoro fatto bene.",
+  "Che bel lavoro.",
+  "Sei stato bravissimo.",
+  "Chapeau.",
+  "Sei un fenomeno.",
+  "È impressionante.",
+  "Bravo, è proprio quello che volevo.",
 ]
 sentences = [
-  "Prego.",
-  "Con piacere.",
-  "Felice di aiutare.",
-  "Quando vuoi.",
+  "Grazie, mi fa piacere.",
+  "Grazie mille.",
+  "Grazie, sei gentile.",
 ]
 
 [[acknowledgements]]
@@ -190,36 +247,16 @@ examples = [
   "È caduta la linea. Ricomincia.",
 ]
 sentences = [
-  "Ci guardo.",
   "Controllo.",
-  "Annotato, verifico.",
-  "Vediamo un attimo.",
-]
-
-[[acknowledgements]]
-name = "restarted"
-examples = [
-  "Ho riavviato.",
-  "Ho riavviato il ponte.",
-  "Sto riavviando la sessione.",
-  "Ecco, ho riavviato la conversazione.",
-  "È ripartito.",
-  "Ho riavviato Claude.",
-  "Ecco, funziona di nuovo, possiamo continuare.",
-  "Ho riavviato tutto.",
-  "Ho appena riavviato il server.",
-  "Il ponte è di nuovo attivo.",
-  "Va bene, ho ricollegato le cuffie.",
-  "Bene, sono di nuovo connesso.",
-  "Ho riavviato l'app sul telefono.",
-  "Riavvio adesso.",
-  "Sono di nuovo in linea.",
-]
-sentences = [
-  "Capito.",
-  "Ottimo, annotato.",
-  "Bene, si riparte.",
-  "Bene.",
+  "Vado a vedere.",
+  "Ci do un'occhiata.",
+  "Vediamo.",
+  "Diamo un'occhiata.",
+  "Ah, accidenti.",
+  "Ah, ci guardo.",
+  "Annotato, cerco.",
+  "Un attimo, guardo.",
+  "Un attimo, controllo.",
 ]
 
 [[acknowledgements]]
@@ -245,10 +282,12 @@ examples = [
 ]
 sentences = [
   "Me ne occupo.",
-  "Guardo subito.",
-  "Ci sono.",
+  "Mi ci metto.",
   "Si parte.",
+  "Guardo.",
+  "Fammi guardare.",
   "Ci penso io.",
+  "Lancio.",
 ]
 
 [[acknowledgements]]
@@ -271,23 +310,47 @@ examples = [
   "C'è ancora qualcosa da fare?",
 ]
 sentences = [
+  "Ci penso.",
   "Vediamo.",
   "Bella domanda.",
-  "Fammi pensare.",
+  "Fammi vedere.",
   "Controllo.",
+  "Aspetta, guardo.",
+  "Un attimo, guardo.",
+  "Un attimo, controllo.",
+]
+
+[[acknowledgements]]
+name = "idea_coming"
+examples = [
+  "Ho un'idea.",
+  "Aspetta, forse ho un'idea.",
+  "Mi ricorda qualcosa.",
+  "Ho un'idea…",
+  "Pensavo a una cosa.",
+  "Pensavo a una cosa…",
+  "C'è una cosa a cui sto pensando.",
+  "Ho un'idea, ascolta.",
+  "Aspetta, mi è venuta un'idea.",
+  "Stavo riflettendo su una cosa.",
+  "Senti, ho pensato a una cosa.",
+  "Ho una proposta.",
+  "Ho un suggerimento.",
+  "Devo dirti una cosa.",
+  "Ascolta, pensavo…",
+]
+sentences = [
+  "Ti ascolto.",
 ]
 
 [[acknowledgements]]
 name = "idea"
 examples = [
   "Mi chiedo se potremmo farlo diversamente.",
-  "Ho un'idea.",
-  "Aspetta, forse ho un'idea.",
   "Potremmo usare un altro strumento.",
   "Credo che sarebbe meglio separare le due cose.",
   "Mi sembra troppo complicato.",
   "Sarebbe bello avere una musica d'attesa.",
-  "Mi ricorda qualcosa.",
   "Controllare sempre se esiste già qualcosa per questo.",
   "Vorrei automatizzarlo.",
   "Credo che possiamo farlo adesso.",
@@ -295,12 +358,15 @@ examples = [
   "Voglio che funzioni anche sul telefono.",
   "Potremmo farne una regola.",
   "Credo che abbiamo avuto solo piccoli problemi di rete.",
+  "Potremmo dividerlo in due passaggi.",
+  "Sarebbe più semplice mettere tutto in un solo file.",
+  "Forse bisognerebbe farlo in due volte.",
 ]
 sentences = [
-  "Interessante.",
   "Capisco l'idea.",
-  "Ah, vedo.",
   "Ha senso.",
+  "Interessante.",
+  "Ah, ho capito.",
 ]
 
 [[acknowledgements]]
@@ -321,38 +387,76 @@ examples = [
   "No, volevo dire un'altra cosa.",
   "No, non quello.",
   "Per niente.",
+  "No, lasciamo così.",
 ]
 sentences = [
   "D'accordo.",
   "Capito.",
-  "Bene, lasciamo stare.",
   "Nessun problema.",
+  "Inteso.",
+  "Ah, ok.",
+  "Va bene, d'accordo.",
+  "Correggo.",
+  "Non c'è problema.",
+  "Cambio rotta.",
+]
+
+[[acknowledgements]]
+name = "go_ahead"
+examples = [
+  "Sì, vai.",
+  "Sì, procedi.",
+  "Bene, facciamolo.",
+  "Sì, proviamo.",
+  "Sì, leggilo per favore.",
+  "Andiamo.",
+  "Partiamo.",
+  "Sì, fallo.",
+  "Vai, fallo.",
+  "Sì, lancia.",
+  "Vai, lancia.",
+  "Forza.",
+  "Sì, puoi procedere.",
+  "Vai, comincia.",
+  "Dai, partiamo.",
+]
+sentences = [
+  "Si parte.",
+  "Andiamo.",
+  "Ci siamo.",
+  "Facciamolo.",
+  "Comincio.",
+  "Via!",
+  "Va bene.",
 ]
 
 [[acknowledgements]]
 name = "yes"
 examples = [
   "Sì.",
-  "Sì, vai.",
-  "Sì, procedi.",
   "Va bene.",
   "Va bene, per me è ok.",
-  "Bene, facciamolo.",
   "Perfetto, approvo.",
   "Per me va bene.",
   "Esatto.",
   "Sì, molto bene.",
-  "Sì, proviamo.",
-  "Sì, leggilo per favore.",
   "Sì, ti sento, tutto bene.",
   "Certo.",
-  "Andiamo.",
-  "Partiamo.",
   "Fallo così.",
+  "Sì, va bene così.",
+  "Lo tengo.",
+  "Lasciamo così.",
+  "Teniamolo così, va bene.",
+  "Sì, ok, lasciamo così.",
+  "Mi va bene.",
 ]
 sentences = [
   "Perfetto.",
-  "Ottimo.",
-  "D'accordo.",
   "Molto bene.",
+  "D'accordo.",
+  "Va bene.",
+  "Capito.",
+  "Inteso.",
+  "Ottimo.",
+  "Bene.",
 ]

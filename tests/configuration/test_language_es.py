@@ -28,7 +28,14 @@ def test_spanish_knows_the_subtitle_credit_hallucination() -> None:
         ("Muchas gracias, ha quedado genial.", "thanks"),
         ("Hasta mañana, buenas noches.", "end"),
         ("¿Puedes ejecutar las pruebas?", "request"),
-        ("Sí, hagámoslo así.", "yes"),
+        ("Sí, hagámoslo así.", "go_ahead"),
+        ("Has hecho un trabajo muy bueno.", "compliment"),
+        ("Sí, así está bien.", "yes"),
+        ("Sí, hazlo.", "go_ahead"),
+        ("Se me acaba de ocurrir una idea…", "idea_coming"),
+        ("Muchas gracias por eso.", "thanks"),
+        ("He reiniciado la aplicación.", "presence"),
+        ("Lo dejamos aquí por hoy.", "end"),
     ],
 )
 def test_spanish_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -40,6 +47,7 @@ def test_spanish_words_take_the_route_of_their_meaning(words: str, expected: str
     [
         "¿Has visto si se ha parado bien?",
         "Venga, empezamos.",
+        "Lo dejamos así.",
     ],
 )
 def test_spanish_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

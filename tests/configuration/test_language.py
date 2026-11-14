@@ -67,6 +67,13 @@ def test_instructions_fall_back_to_the_default_without_a_user_file(tmp_path: Pat
         ("There is a glitch.", "problem"),
         ("Thanks.", "thanks"),
         ("Goodbye.", "end"),
+        ("You did a really good job.", "compliment"),
+        ("Yes, that's fine as it is.", "yes"),
+        ("Yes, go on, do it.", "go_ahead"),
+        ("I just had an idea…", "idea_coming"),
+        ("Thank you so much for that.", "thanks"),
+        ("I restarted the app.", "presence"),
+        ("Let's stop here for today.", "end"),
     ],
 )
 def test_english_words_take_the_route_of_their_meaning(
@@ -78,6 +85,15 @@ def test_english_words_take_the_route_of_their_meaning(
 @pytest.mark.parametrize("language", LANGUAGES)
 def test_every_route_has_enough_examples(language: Language) -> None:
     assert min(len(route.examples) for route in language_pack(language).acknowledgements) >= 15
+
+
+def route_names(language: Language) -> list[str]:
+    return [route.name for route in language_pack(language).acknowledgements]
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_language_has_the_routes_of_french(language: Language) -> None:
+    assert route_names(language) == route_names("fr")
 
 
 @pytest.mark.parametrize("language", LANGUAGES)

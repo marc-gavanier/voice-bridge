@@ -28,7 +28,14 @@ def test_dutch_knows_the_subtitle_credit_hallucination() -> None:
         ("Heel erg bedankt, het is mooi geworden.", "thanks"),
         ("Tot morgen, welterusten.", "end"),
         ("Kun je de tests draaien?", "request"),
-        ("Ja, zo doen we het.", "yes"),
+        ("Ja, zo doen we het.", "go_ahead"),
+        ("Je hebt echt goed werk geleverd.", "compliment"),
+        ("Ja, zo is het goed.", "yes"),
+        ("Ja, doe het.", "go_ahead"),
+        ("Ik kreeg net een idee…", "idea_coming"),
+        ("Heel erg bedankt daarvoor.", "thanks"),
+        ("Ik heb de app opnieuw gestart.", "presence"),
+        ("We stoppen hier voor vandaag.", "end"),
     ],
 )
 def test_dutch_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -40,6 +47,7 @@ def test_dutch_words_take_the_route_of_their_meaning(words: str, expected: str, 
     [
         "Heb je gezien of het goed gestopt is?",
         "Kom, we beginnen.",
+        "We laten het zo.",
     ],
 )
 def test_dutch_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

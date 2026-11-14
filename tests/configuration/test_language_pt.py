@@ -28,7 +28,14 @@ def test_portuguese_knows_the_subtitle_credit_hallucination() -> None:
         ("Muito obrigado, ficou ótimo.", "thanks"),
         ("Até amanhã, boa noite.", "end"),
         ("Você pode rodar os testes?", "request"),
-        ("Sim, vamos fazer assim.", "yes"),
+        ("Sim, vamos fazer assim.", "go_ahead"),
+        ("Você fez um trabalho muito bom.", "compliment"),
+        ("Sim, assim está bom.", "yes"),
+        ("Sim, faz isso.", "go_ahead"),
+        ("Acabei de ter uma ideia…", "idea_coming"),
+        ("Muito obrigado por isso.", "thanks"),
+        ("Reiniciei o aplicativo.", "presence"),
+        ("Paramos por aqui hoje.", "end"),
     ],
 )
 def test_portuguese_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -40,6 +47,7 @@ def test_portuguese_words_take_the_route_of_their_meaning(words: str, expected: 
     [
         "Você viu se parou direito?",
         "Vamos começar.",
+        "Deixa como está.",
     ],
 )
 def test_portuguese_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

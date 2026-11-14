@@ -17,11 +17,21 @@ hallucination_prefixes = [
   "subtítulos por la comunidad",
 ]
 neutral_acknowledgements = [
-  "Vale.",
+  "Recibido.",
+  "Bien recibido.",
+  "Mensaje recibido.",
+  "Vale, recibido.",
   "Entendido.",
-  "Ya veo.",
+  "Bien entendido.",
+  "Comprendido.",
+  "Te he oído bien.",
   "Anotado.",
+  "Tomo nota.",
+  "Apuntado.",
   "De acuerdo.",
+  "Vale.",
+  "Ah, vale.",
+  "Ya veo.",
 ]
 
 [announcements]
@@ -58,10 +68,11 @@ examples = [
   "Deja de buscar.",
 ]
 sentences = [
-  "Me detengo.",
-  "Paro.",
-  "Vale, me detengo.",
-  "Entendido, paro todo.",
+  "Detengo todo el trabajo en curso.",
+  "Paro inmediatamente.",
+  "Paro ahora mismo.",
+  "Paro ya.",
+  "Me detengo en el acto.",
 ]
 
 [[acknowledgements]]
@@ -82,12 +93,16 @@ examples = [
   "Terminemos la sesión.",
   "Hemos terminado.",
   "¿Cómo cuelgo?",
+  "Lo dejamos aquí.",
+  "Bueno, lo dejamos aquí.",
 ]
 sentences = [
-  "Vale, lo dejamos.",
-  "Me parece bien.",
   "Hasta luego.",
-  "Bien, terminamos aquí.",
+  "Hasta pronto.",
+  "Hasta la próxima.",
+  "Lo dejamos aquí.",
+  "Vale, paramos.",
+  "Entendido, lo dejamos aquí.",
 ]
 
 [[acknowledgements]]
@@ -112,9 +127,8 @@ examples = [
 sentences = [
   "¿Sí?",
   "Te escucho.",
-  "Sigue.",
-  "Continúa.",
-  "¿Y luego?",
+  "Adelante.",
+  "Tómate tu tiempo.",
 ]
 
 [[acknowledgements]]
@@ -135,12 +149,29 @@ examples = [
   "Estoy hablando, ¿te llega?",
   "Ahora estoy con datos móviles, ¿me sigues oyendo?",
   "¿Sigues conmigo?",
+  "He reiniciado.",
+  "He reiniciado el puente.",
+  "Estoy reiniciando la sesión.",
+  "Listo, he reiniciado la conversación.",
+  "Ya está reiniciado.",
+  "He reiniciado Claude.",
+  "Listo, ya funciona otra vez, podemos seguir.",
+  "He reiniciado todo.",
+  "Acabo de reiniciar el servidor.",
+  "El puente vuelve a funcionar.",
+  "Vale, he vuelto a conectar los auriculares.",
+  "Bien, estoy conectado otra vez.",
+  "He reiniciado la aplicación del móvil.",
+  "Reinicio ahora.",
+  "Ya estoy de vuelta en línea.",
 ]
 sentences = [
-  "Sí, aquí estoy.",
+  "Aquí estoy.",
   "Te oigo.",
-  "Sigo aquí.",
-  "Alto y claro.",
+  "Te oigo bien.",
+  "Presente.",
+  "Estoy aquí.",
+  "Te escucho.",
 ]
 
 [[acknowledgements]]
@@ -151,22 +182,48 @@ examples = [
   "Mil gracias.",
   "Genial, gracias.",
   "Gracias, es perfecto.",
+  "Genial, gracias por tu ayuda.",
+  "Gracias, es justo lo que necesitaba.",
+  "Gracias por todo.",
+  "Perfecto, muchísimas gracias.",
+  "Gracias de verdad.",
+  "Te lo agradezco.",
+  "Gracias por tu ayuda.",
+  "Muchísimas gracias.",
+  "Gracias por eso.",
+  "Vale, gracias.",
+  "Un millón de gracias.",
+]
+sentences = [
+  "Con mucho gusto.",
+  "De nada.",
+  "El placer es mío.",
+  "Es un placer.",
+]
+
+[[acknowledgements]]
+name = "compliment"
+examples = [
   "Bien hecho.",
   "Buen trabajo.",
   "Gran trabajo.",
-  "Genial, gracias por tu ayuda.",
   "Estupendo, funciona muy bien.",
-  "Gracias, es justo lo que necesitaba.",
   "De verdad, bien hecho.",
-  "Gracias por todo.",
   "Excelente trabajo.",
-  "Perfecto, muchísimas gracias.",
+  "Bravo, has trabajado bien.",
+  "Buen curro.",
+  "Precioso trabajo.",
+  "Qué buen trabajo.",
+  "Lo has bordado.",
+  "Chapó.",
+  "Eres un crack.",
+  "Es impresionante.",
+  "Bravo, es justo lo que quería.",
 ]
 sentences = [
-  "De nada.",
-  "Con gusto.",
-  "Me alegra ayudar.",
-  "Cuando quieras.",
+  "Gracias, me alegra oírlo.",
+  "Muchas gracias.",
+  "Gracias, eres muy amable.",
 ]
 
 [[acknowledgements]]
@@ -190,36 +247,16 @@ examples = [
   "Se cortó la llamada. Empieza otra vez.",
 ]
 sentences = [
-  "Lo reviso.",
-  "Voy a comprobarlo.",
-  "Anotado, lo miro.",
-  "A ver, déjame ver.",
-]
-
-[[acknowledgements]]
-name = "restarted"
-examples = [
-  "He reiniciado.",
-  "He reiniciado el puente.",
-  "Estoy reiniciando la sesión.",
-  "Listo, he reiniciado la conversación.",
-  "Ya está reiniciado.",
-  "He reiniciado Claude.",
-  "Listo, ya funciona otra vez, podemos seguir.",
-  "He reiniciado todo.",
-  "Acabo de reiniciar el servidor.",
-  "El puente vuelve a funcionar.",
-  "Vale, he vuelto a conectar los auriculares.",
-  "Bien, estoy conectado otra vez.",
-  "He reiniciado la aplicación del móvil.",
-  "Reinicio ahora.",
-  "Ya estoy de vuelta en línea.",
-]
-sentences = [
-  "Entendido.",
-  "Genial, anotado.",
-  "Vale, seguimos.",
-  "Bien.",
+  "Lo compruebo.",
+  "Voy a mirarlo.",
+  "Le echo un vistazo.",
+  "Veamos.",
+  "A ver qué pasa.",
+  "Vaya.",
+  "Ah, lo miro.",
+  "Anotado, lo busco.",
+  "Un momento, lo miro.",
+  "Un momento, lo compruebo.",
 ]
 
 [[acknowledgements]]
@@ -244,11 +281,13 @@ examples = [
   "¿Puedes contarme más sobre ese modelo pequeño?",
 ]
 sentences = [
-  "Me pongo con ello.",
-  "Lo miro.",
-  "Voy.",
-  "Allá vamos.",
   "Me encargo.",
+  "Me pongo con ello.",
+  "Allá vamos.",
+  "Lo miro.",
+  "Déjame mirar.",
+  "Lo veo.",
+  "Lo lanzo.",
 ]
 
 [[acknowledgements]]
@@ -271,23 +310,47 @@ examples = [
   "¿Queda algo por hacer?",
 ]
 sentences = [
+  "Lo pienso.",
   "A ver.",
   "Buena pregunta.",
-  "Déjame pensar.",
+  "Déjame ver.",
   "Lo compruebo.",
+  "Espera, lo miro.",
+  "Un momento, lo miro.",
+  "Un momento, lo compruebo.",
+]
+
+[[acknowledgements]]
+name = "idea_coming"
+examples = [
+  "Tengo una idea.",
+  "Espera, quizá tengo una idea.",
+  "Eso me recuerda algo.",
+  "Tengo una idea…",
+  "Estaba pensando en algo.",
+  "Estaba pensando en una cosa…",
+  "Hay algo en lo que estoy pensando.",
+  "Tengo una idea, escucha.",
+  "Espera, se me ocurre una idea.",
+  "Le estaba dando vueltas a algo.",
+  "Oye, se me ha ocurrido algo.",
+  "Tengo una propuesta.",
+  "Tengo una sugerencia.",
+  "Tengo que contarte una cosa.",
+  "Escucha, estaba pensando…",
+]
+sentences = [
+  "Te escucho.",
 ]
 
 [[acknowledgements]]
 name = "idea"
 examples = [
   "Me pregunto si podríamos hacerlo de otra manera.",
-  "Tengo una idea.",
-  "Espera, quizá tengo una idea.",
   "Podríamos usar otra herramienta.",
   "Creo que sería mejor separar las dos cosas.",
   "Me parece demasiado complicado.",
   "Estaría bien tener música de espera.",
-  "Eso me recuerda algo.",
   "Siempre mirar si ya existe algo para eso.",
   "Me gustaría automatizarlo.",
   "Creo que podemos hacerlo ahora.",
@@ -295,12 +358,15 @@ examples = [
   "Quiero que también funcione en el móvil.",
   "Podríamos hacer una regla.",
   "Creo que solo tuvimos pequeños fallos de red.",
+  "Podríamos dividirlo en dos pasos.",
+  "Sería más sencillo ponerlo todo en un solo archivo.",
+  "Quizá habría que hacerlo en dos veces.",
 ]
 sentences = [
-  "Interesante.",
   "Entiendo la idea.",
-  "Ah, ya veo.",
   "Tiene sentido.",
+  "Interesante.",
+  "Ah, ya veo.",
 ]
 
 [[acknowledgements]]
@@ -321,38 +387,75 @@ examples = [
   "No, quería decir otra cosa.",
   "No, eso no.",
   "Para nada.",
+  "No, lo dejamos así.",
 ]
 sentences = [
   "De acuerdo.",
   "Entendido.",
-  "Bien, lo dejamos.",
   "Sin problema.",
+  "Vale.",
+  "Ah, vale.",
+  "Bueno, de acuerdo.",
+  "Lo corrijo.",
+  "No pasa nada.",
+  "Cambio de rumbo.",
+]
+
+[[acknowledgements]]
+name = "go_ahead"
+examples = [
+  "Sí, adelante.",
+  "Sí, dale.",
+  "Bien, hagamos eso.",
+  "Sí, probemos.",
+  "Sí, léelo por favor.",
+  "Vamos allá.",
+  "En marcha.",
+  "Sí, hazlo.",
+  "Venga, hazlo.",
+  "Sí, lánzalo.",
+  "Dale, lanza.",
+  "Adelante.",
+  "Sí, puedes empezar.",
+  "Venga, empieza.",
+  "Vamos, ya.",
+]
+sentences = [
+  "Allá vamos.",
+  "Vamos.",
+  "En marcha.",
+  "Hagámoslo.",
+  "Empiezo.",
+  "¡Vamos allá!",
+  "Hecho.",
 ]
 
 [[acknowledgements]]
 name = "yes"
 examples = [
   "Sí.",
-  "Sí, adelante.",
-  "Sí, dale.",
   "Vale.",
   "Vale, me parece bien.",
-  "Bien, hagamos eso.",
   "Perfecto, de acuerdo.",
   "Por mí bien.",
   "Eso es.",
   "Sí, muy bien.",
-  "Sí, probemos.",
-  "Sí, léelo por favor.",
   "Sí, te oigo, todo bien.",
   "Claro.",
-  "Vamos allá.",
-  "En marcha.",
   "Hazlo así.",
+  "Sí, está bien.",
+  "Me lo quedo.",
+  "Lo dejamos así.",
+  "Déjalo así, está bien.",
+  "Sí, vale, lo dejamos.",
+  "Me vale.",
 ]
 sentences = [
   "Perfecto.",
-  "Genial.",
-  "De acuerdo.",
   "Muy bien.",
+  "De acuerdo.",
+  "Vale.",
+  "Entendido.",
+  "Genial.",
+  "Bien.",
 ]
