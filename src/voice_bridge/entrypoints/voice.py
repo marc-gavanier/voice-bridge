@@ -308,6 +308,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             model=speech_settings.model,
             voice=speech_settings.voice or language.voice,
             gain=speech_settings.gain,
+            speed=speech_settings.speed,
             rate=MUMBLE_RATE,
             health=speech_settings.health,
         )
@@ -332,7 +333,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             return CachedVoice(
                 voice=partial(voice_of, engine),
                 directory=settings.cache_directory / directory,
-                key=f"{engine.model} {engine.voice} {engine.gain} {MUMBLE_RATE}",
+                key=f"{engine.model} {engine.voice} {engine.gain} {engine.speed} {MUMBLE_RATE}",
             )
 
         async def greet() -> None:

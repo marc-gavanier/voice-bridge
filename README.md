@@ -135,6 +135,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `speech.model` | `mistralai/Voxtral-4B-TTS-2603` | The model the speech server is asked for |
 | `speech.voice` | the language's | A voice of the speech server, such as Voxtral's `neutral_female` or `fr_female` |
 | `speech.gain` | `1.0` | Loudness of the speech; values above 1 raise it without clipping |
+| `speech.speed` | `1.0` | Pace of the speech, from `0.25` to `4.0`: `1.2` speaks a fifth faster at the same pitch. The speech server stretches the audio, as the OpenAI speech API's `speed` asks; changing it voices the cached acknowledgements and announcements again |
 | `speech.health` | `/health` | The route the bridge polls at start until the speech server answers; empty for a server without one, which is then taken as ready |
 | `whisper.model`, `whisper.device`, `whisper.compute_type` | `large-v3-turbo`, `auto`, `default` | The faster-whisper model and how it runs |
 | `hearing.smart_turn` | `false` | Ends a sentence when [Smart Turn](https://github.com/pipecat-ai/smart-turn) judges, after a short pause, that you have finished; the 0.8 s silence stays as a fallback. The model, 9 MB, is downloaded from Hugging Face on first start |

@@ -1,11 +1,12 @@
 import tomllib
 from pathlib import Path
-from typing import ClassVar, Literal, Self, override
+from typing import Annotated, ClassVar, Literal, Self, override
 
 from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
     HttpUrl,
     JsonValue,
     NonNegativeFloat,
@@ -38,6 +39,7 @@ class SpeechSettings(Section):
     model: str = "mistralai/Voxtral-4B-TTS-2603"
     voice: str | None = None
     gain: float = 1.0
+    speed: Annotated[float, Field(ge=0.25, le=4.0)] = 1.0
     timeout: float = 120.0
     health: str = "/health"
 

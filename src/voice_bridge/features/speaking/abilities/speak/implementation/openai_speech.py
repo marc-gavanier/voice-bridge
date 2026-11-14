@@ -26,12 +26,19 @@ class SpeechEngine:
     model: str
     voice: str
     gain: float
+    speed: float
     rate: int
     health: str
 
 
 async def synthesize(engine: SpeechEngine, sentence: str) -> bytes:
-    payload = {"model": engine.model, "input": sentence, "voice": engine.voice, "response_format": "wav"}
+    payload = {
+        "model": engine.model,
+        "input": sentence,
+        "voice": engine.voice,
+        "response_format": "wav",
+        "speed": engine.speed,
+    }
     try:
         response = (await engine.client.post("/v1/audio/speech", json=payload)).raise_for_status()
         return boost(decode(response.content, rate=engine.rate), engine.gain)

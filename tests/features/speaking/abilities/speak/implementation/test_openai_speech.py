@@ -20,12 +20,15 @@ REFUSED = "connection refused"
 SAMPLES = np.array([1000, -1000], dtype=np.int16).tobytes()
 
 
-def engine(handler: httpx.MockTransport, gain: float = 1.0, health: str = "/health") -> SpeechEngine:
+def engine(
+    handler: httpx.MockTransport, gain: float = 1.0, health: str = "/health", speed: float = 1.0
+) -> SpeechEngine:
     return SpeechEngine(
         client=httpx.AsyncClient(transport=handler, base_url="http://speech"),
         model="mistralai/Voxtral-4B-TTS-2603",
         voice="fr_female",
         gain=gain,
+        speed=speed,
         rate=48000,
         health=health,
     )
@@ -40,12 +43,24 @@ SPEECH_REQUEST = {
     "input": "Bonjour.",
     "voice": "fr_female",
     "response_format": "wav",
+    "speed": 1.0,
 }
 
 
 def answering_only_the_speech_request(request: httpx.Request) -> httpx.Response:
     expected = request.url.path == "/v1/audio/speech" and json.loads(request.content) == SPEECH_REQUEST
     return answering_wav(request) if expected else httpx.Response(400, request=request)
+
+
+def answering_only_at_the_speed(speed: float) -> httpx.MockTransport:
+    def answer(request: httpx.Request) -> httpx.Response:
+        expected = request.url.path == "/v1/audio/speech" and json.loads(request.content) == {
+            **SPEECH_REQUEST,
+            "speed": speed,
+        }
+        return answering_wav(request) if expected else httpx.Response(400, request=request)
+
+    return httpx.MockTransport(answer)
 
 
 def failing(request: httpx.Request) -> httpx.Response:
@@ -70,6 +85,10 @@ async def test_synthesis_applies_the_gain() -> None:
 
 async def test_synthesis_asks_the_openai_compatible_speech_endpoint() -> None:
     assert await synthesize(engine(httpx.MockTransport(answering_only_the_speech_request)), "Bonjour.") == SAMPLES
+
+
+async def test_synthesis_asks_for_the_speed_of_the_engine() -> None:
+    assert await synthesize(engine(answering_only_at_the_speed(1.2), speed=1.2), "Bonjour.") == SAMPLES
 
 
 async def test_a_server_error_is_a_synthesis_error() -> None:

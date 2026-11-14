@@ -19,5 +19,7 @@ def failing(request: httpx.Request) -> httpx.Response:
 @pytest.mark.anyio
 async def test_a_sentence_without_voice_is_skipped() -> None:
     client = httpx.AsyncClient(transport=httpx.MockTransport(failing), base_url="http://speech")
-    engine = SpeechEngine(client=client, model="m", voice="fr_female", gain=1.0, rate=48000, health="/health")
+    engine = SpeechEngine(
+        client=client, model="m", voice="fr_female", gain=1.0, speed=1.0, rate=48000, health="/health"
+    )
     assert await voice_of(engine, "Hello.") is None

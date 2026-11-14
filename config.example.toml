@@ -10,6 +10,7 @@ speaker_certificate_hash = ""
 [speech]
 url = "http://127.0.0.1:8123"
 gain = 1.0
+speed = 1.0
 
 [whisper]
 model = "large-v3-turbo"

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from voice_bridge.configuration.settings import HearingSettings, default_config_file, load_settings
+from voice_bridge.configuration.settings import HearingSettings, SpeechSettings, default_config_file, load_settings
 
 MINIMAL = """
 [mumble]
@@ -90,6 +90,30 @@ def test_the_voice_defaults_to_the_one_of_the_language(config_file: Path) -> Non
 
 def test_the_gain_is_neutral_by_default(config_file: Path) -> None:
     assert load_settings(config_file).speech.gain == 1.0
+
+
+def test_the_speech_keeps_its_natural_speed_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).speech.speed == 1.0
+
+
+def test_the_speed_of_the_speech_comes_from_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + "[speech]\nspeed = 1.2\n", encoding="utf-8")
+    assert load_settings(path).speech.speed == 1.2
+
+
+def test_a_speed_below_a_quarter_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="speed"):
+        _ = SpeechSettings(speed=0.2)
+
+
+def test_a_speed_above_four_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="speed"):
+        _ = SpeechSettings(speed=4.1)
+
+
+def test_the_extreme_speeds_are_accepted() -> None:
+    assert (SpeechSettings(speed=0.25).speed, SpeechSettings(speed=4.0).speed) == (0.25, 4.0)
 
 
 def test_the_default_config_file_is_named_after_the_bridge() -> None:
