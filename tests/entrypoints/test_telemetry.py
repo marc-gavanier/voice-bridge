@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterator
+from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 import pytest
@@ -11,24 +12,42 @@ from voice_bridge.entrypoints.telemetry import chosen_telemetry, report_errors
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.open_telemetry import (
     OpenTelemetry,
 )
-from voice_bridge.features.conversation.abilities.hold_conversation.implementation.telemetry import no_telemetry
 
 if TYPE_CHECKING:
     from sentry_sdk._types import Event
 
 
-def test_without_an_endpoint_nothing_is_exported(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
-    monkeypatch.delenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", raising=False)
-    monkeypatch.delenv("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", raising=False)
-    assert chosen_telemetry(lambda: 0.0)[0] is no_telemetry
+def without_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
+    ):
+        monkeypatch.delenv(name, raising=False)
 
 
-def test_with_an_endpoint_and_open_telemetry_installed_the_telemetry_is_exported(
-    monkeypatch: pytest.MonkeyPatch,
+def test_without_an_endpoint_the_telemetry_is_written_to_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    without_endpoint(monkeypatch)
+    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry")[0], OpenTelemetry)
+
+
+def test_without_an_endpoint_the_traces_and_metrics_have_their_own_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    without_endpoint(monkeypatch)
+    _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry")
+    assert sorted(path.name for path in (tmp_path / "telemetry").iterdir()) == ["metrics.jsonl", "traces.jsonl"]
+
+
+def test_with_an_endpoint_no_file_is_written(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317")
-    assert isinstance(chosen_telemetry(lambda: 0.0)[0], OpenTelemetry)
+    _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry")
+    assert not (tmp_path / "telemetry").exists()
+
+
+def test_with_an_endpoint_the_telemetry_is_exported(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317")
+    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry")[0], OpenTelemetry)
 
 
 class CapturedTransport(Transport):

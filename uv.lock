@@ -1164,6 +1164,33 @@ wheels = [
 ]
 
 [[package]]
+name = "opentelemetry-exporter-otlp-json-common"
+version = "0.66b2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-proto-json" },
+    { name = "opentelemetry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/02/fe792132c3756bd9c61a8391ec934f359cf738b6c5d73c2231dab7fec7b5/opentelemetry_exporter_otlp_json_common-0.66b2.tar.gz", hash = "sha256:fa3e4e7d19d5bc63e0a6855b839651a0a20070f3ec9f72744449dce883c36933", size = 24517, upload-time = "2026-10-29T17:29:42.424Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/4a/816d8ba11950ef59f15f21fe618baf5f5ae3add303ee54b75a898f64f954/opentelemetry_exporter_otlp_json_common-0.66b2-py3-none-any.whl", hash = "sha256:6e83ba9312edb60fc1d4929b73457e8cca7579db4b4492b32cb71a1a8ddecdc7", size = 14824, upload-time = "2026-10-29T17:29:14.694Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-otlp-json-file"
+version = "0.66b2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-exporter-otlp-common" },
+    { name = "opentelemetry-exporter-otlp-json-common" },
+    { name = "opentelemetry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f5/b5/833a63780b8844f75f1703791e80ffa1b2c53a08acbfcc58d726cc8f35e6/opentelemetry_exporter_otlp_json_file-0.66b2.tar.gz", hash = "sha256:e0b64653b7bb37a67ce60051bf9e35bfa968a52081eb178a38b420f6fb73eaa6", size = 12428, upload-time = "2026-10-29T17:29:43.153Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/52/2e1de21d7b9d13c9f003616f5eb5f9d524e69008fb0f9f77b01abf644efb/opentelemetry_exporter_otlp_json_file-0.66b2-py3-none-any.whl", hash = "sha256:a500f13bcc7760a74b5db7ece7d72ec8a78e0b515539fec81705970cb2efd7ca", size = 11825, upload-time = "2026-10-29T17:29:15.956Z" },
+]
+
+[[package]]
 name = "opentelemetry-exporter-otlp-proto-common"
 version = "1.45.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1282,6 +1309,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/24/9c/1aa4ce60e9bc72af20dc49c92cc0566825092d92b3d6a277439fb5fb7c01/opentelemetry_proto-1.45.2.tar.gz", hash = "sha256:bd8d23cf770605b0af9b7be2071d26a464fea289d35429abfd2a66226114ad64", size = 46486, upload-time = "2026-10-29T17:29:53.007Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/0d/a0b8f2b9efe2ec1abdf639d3696db9b1563ebeb11d91aac08ba7341e9122/opentelemetry_proto-1.45.2-py3-none-any.whl", hash = "sha256:03a7ca1b43f89fd5b965d5975902bb2515c0c86e2428b456836e9a6149c6235a", size = 72484, upload-time = "2026-10-29T17:29:31.403Z" },
+]
+
+[[package]]
+name = "opentelemetry-proto-json"
+version = "0.66b2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/00/4374f9a55a91029bc1dc8506d92a634ba827b489c720f686bbc450fbe798/opentelemetry_proto_json-0.66b2.tar.gz", hash = "sha256:0d6e905393710d4fca041b22aea8685f825c2da177de0de2d9ebf4218f5a6654", size = 18708, upload-time = "2026-10-29T17:29:53.768Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/48/3fd4244932528926288da4928c08b785f826741a82db471832dfb87de8d8/opentelemetry_proto_json-0.66b2-py3-none-any.whl", hash = "sha256:4da45dc527e68bc00fd4d16773c58b6a9a229ebb7a8dce997403414eaa03b3bb", size = 32059, upload-time = "2026-10-29T17:29:32.609Z" },
 ]
 
 [[package]]
@@ -2203,6 +2239,9 @@ dependencies = [
     { name = "nvidia-cublas-cu12" },
     { name = "nvidia-cudnn-cu12" },
     { name = "onnxruntime" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-json-file" },
+    { name = "opentelemetry-sdk" },
     { name = "platformdirs" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -2214,7 +2253,6 @@ dependencies = [
 
 [package.optional-dependencies]
 otel = [
-    { name = "opentelemetry-api" },
     { name = "opentelemetry-distro" },
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-exporter-prometheus" },
@@ -2235,7 +2273,6 @@ dev = [
     { name = "hypothesis" },
     { name = "import-linter" },
     { name = "mutmut" },
-    { name = "opentelemetry-sdk" },
     { name = "pre-commit-hooks" },
     { name = "prek" },
     { name = "pydeps" },
@@ -2263,12 +2300,14 @@ requires-dist = [
     { name = "nvidia-cublas-cu12" },
     { name = "nvidia-cudnn-cu12" },
     { name = "onnxruntime", specifier = ">=1.26.0" },
-    { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.45.2" },
+    { name = "opentelemetry-api", specifier = ">=1.45.2" },
     { name = "opentelemetry-distro", marker = "extra == 'otel'", specifier = ">=0.66b2" },
     { name = "opentelemetry-exporter-otlp", marker = "extra == 'otel'", specifier = ">=1.45.2" },
+    { name = "opentelemetry-exporter-otlp-json-file", specifier = ">=0.66b2" },
     { name = "opentelemetry-exporter-prometheus", marker = "extra == 'otel'", specifier = ">=0.66b2" },
     { name = "opentelemetry-instrumentation-logging", marker = "extra == 'otel'", specifier = ">=0.66b2" },
     { name = "opentelemetry-instrumentation-system-metrics", marker = "extra == 'otel'", specifier = ">=0.66b2" },
+    { name = "opentelemetry-sdk", specifier = ">=1.45.2" },
     { name = "platformdirs", specifier = ">=4.14.0" },
     { name = "pydantic", specifier = ">=2.14.2" },
     { name = "pydantic-settings", specifier = ">=2.16.2" },
@@ -2290,7 +2329,6 @@ dev = [
     { name = "hypothesis", specifier = ">=6.170.14" },
     { name = "import-linter", specifier = ">=2.15" },
     { name = "mutmut", specifier = ">=3.8.1" },
-    { name = "opentelemetry-sdk", specifier = ">=1.45.2" },
     { name = "pre-commit-hooks", specifier = ">=6.0.0" },
     { name = "prek", specifier = ">=0.5.9" },
     { name = "pydeps", specifier = ">=3.0.9" },

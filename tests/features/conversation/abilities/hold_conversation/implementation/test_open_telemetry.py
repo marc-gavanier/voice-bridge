@@ -1,6 +1,11 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
+from io import StringIO
 
 import pytest
+from opentelemetry.proto_json.collector.metrics.v1.metrics_service import ExportMetricsServiceRequest
+from opentelemetry.proto_json.collector.trace.v1.trace_service import ExportTraceServiceRequest
+from opentelemetry.proto_json.resource.v1.resource import Resource
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import (
     ExponentialHistogramDataPoint,
@@ -16,6 +21,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
     NANOSECONDS,
     OpenTelemetry,
     epoch_of,
+    writing_to,
 )
 from voice_bridge.features.conversation.domain.turn_trace import Counted, FinishedTurn, Span
 
@@ -135,3 +141,100 @@ def test_the_clock_is_turned_into_the_time_since_the_epoch() -> None:
 
 def test_the_global_providers_give_a_telemetry() -> None:
     assert isinstance(OpenTelemetry.from_globals(lambda: 0.0), OpenTelemetry)
+
+
+@dataclass(frozen=True)
+class Written:
+    telemetry: OpenTelemetry
+    tracers: TracerProvider
+    meters: MeterProvider
+    traces: StringIO
+    metrics: StringIO
+
+
+@pytest.fixture
+def written() -> Iterator[Written]:
+    traces, metrics = StringIO(), StringIO()
+    tracers, meters = writing_to(traces, metrics, {"service.name": "voice-bridge"})
+    yield Written(
+        telemetry=OpenTelemetry.from_providers(tracers, meters, lambda: 0.0),
+        tracers=tracers,
+        meters=meters,
+        traces=traces,
+        metrics=metrics,
+    )
+    tracers.shutdown()
+    meters.shutdown()
+
+
+def traced_lines(written: Written) -> list[ExportTraceServiceRequest]:
+    written.telemetry(TURN)
+    _ = written.tracers.force_flush()
+    return [ExportTraceServiceRequest.from_json(line) for line in written.traces.getvalue().splitlines()]
+
+
+def measured_lines(written: Written) -> list[ExportMetricsServiceRequest]:
+    written.telemetry(TURN)
+    _ = written.meters.force_flush()
+    return [ExportMetricsServiceRequest.from_json(line) for line in written.metrics.getvalue().splitlines()]
+
+
+def span_names(line: ExportTraceServiceRequest) -> list[str | None]:
+    return sorted(
+        (span.name for resource in line.resource_spans for scope in resource.scope_spans for span in scope.spans),
+        key=str,
+    )
+
+
+def metric_names(line: ExportMetricsServiceRequest) -> list[str | None]:
+    return sorted(
+        (
+            metric.name
+            for resource in line.resource_metrics
+            for scope in resource.scope_metrics
+            for metric in scope.metrics
+        ),
+        key=str,
+    )
+
+
+def service_of(resources: list[Resource | None]) -> list[str | None]:
+    return [
+        attribute.value.string_value
+        for resource in resources
+        if resource is not None
+        for attribute in resource.attributes
+        if attribute.key == "service.name" and attribute.value is not None
+    ]
+
+
+def test_a_turn_is_written_as_one_line_of_otlp_json(written: Written) -> None:
+    assert [span_names(line) for line in traced_lines(written)] == [["claude", "transcription", "turn"]]
+
+
+def test_the_written_spans_name_their_service(written: Written) -> None:
+    resources = [each.resource for each in traced_lines(written)[0].resource_spans]
+    assert service_of(resources) == ["voice-bridge"]
+
+
+def test_the_metrics_are_written_as_otlp_json(written: Written) -> None:
+    assert metric_names(measured_lines(written)[0]) == ["voice_bridge.step.duration", "voice_bridge.turn.duration"]
+
+
+def test_the_written_metrics_name_their_service(written: Written) -> None:
+    resources = [each.resource for each in measured_lines(written)[0].resource_metrics]
+    assert service_of(resources) == ["voice-bridge"]
+
+
+def traced_while_disabled(monkeypatch: pytest.MonkeyPatch) -> str:
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "true")
+    traces = StringIO()
+    tracers, meters = writing_to(traces, StringIO(), {})
+    OpenTelemetry.from_providers(tracers, meters, lambda: 0.0)(TURN)
+    tracers.shutdown()
+    meters.shutdown()
+    return traces.getvalue()
+
+
+def test_the_standard_switch_of_the_sdk_writes_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert traced_while_disabled(monkeypatch) == ""

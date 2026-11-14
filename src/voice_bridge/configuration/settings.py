@@ -2,7 +2,7 @@ import tomllib
 from pathlib import Path
 from typing import Annotated, ClassVar, Literal, Self, override
 
-from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path
+from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path, user_state_path
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -121,6 +121,7 @@ class Settings(BaseSettings):
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = DEFAULT_LOG_FILE
     logging: dict[str, JsonValue] | None = None
+    telemetry_directory: Path = user_state_path(APP_NAME) / "telemetry"
     hang_after: PositiveFloat = 30.0
     activity_socket: Path = DEFAULT_ACTIVITY_SOCKET
     cache_directory: Path = user_cache_path(APP_NAME)

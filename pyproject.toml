@@ -15,6 +15,9 @@ dependencies = [
     "nvidia-cublas-cu12",
     "nvidia-cudnn-cu12",
     "onnxruntime>=1.26.0",
+    "opentelemetry-api>=1.45.2",
+    "opentelemetry-exporter-otlp-json-file>=0.66b2",
+    "opentelemetry-sdk>=1.45.2",
     "platformdirs>=4.14.0",
     "pydantic>=2.14.2",
     "pydantic-settings>=2.16.2",
@@ -34,7 +37,6 @@ voice-bridge-claude-settings = "voice_bridge.entrypoints.claude_settings:main"
 
 [project.optional-dependencies]
 otel = [
-    "opentelemetry-api>=1.45.2",
     "opentelemetry-distro>=0.66b2",
     "opentelemetry-exporter-otlp>=1.45.2",
     "opentelemetry-exporter-prometheus>=0.66b2",
@@ -55,7 +57,6 @@ dev = [
     "hypothesis>=6.170.14",
     "import-linter>=2.15",
     "mutmut>=3.8.1",
-    "opentelemetry-sdk>=1.45.2",
     "pre-commit-hooks>=6.0.0",
     "prek>=0.5.9",
     "pydeps>=3.0.9",

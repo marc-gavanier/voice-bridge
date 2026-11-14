@@ -111,7 +111,7 @@ sequenceDiagram
 uv sync
 ```
 
-`uv sync --extra otel` adds OpenTelemetry, to [export traces, metrics and the log](#export-traces-metrics-and-the-log) to a collector; `--extra sentry` adds Sentry, to [report errors](#report-errors-to-sentry). The launcher adds them itself when [their variables are set](#one-tool-per-signal).
+OpenTelemetry's SDK and its file exporter come with every install, to [keep traces and metrics on the machine](#read-the-traces-and-metrics). `uv sync --extra otel` adds zero-code instrumentation and the OTLP and Prometheus exporters, to [export traces, metrics and the log](#export-traces-metrics-and-the-log) to a collector instead; `--extra sentry` adds Sentry, to [report errors](#report-errors-to-sentry). The launcher adds them itself when [their variables are set](#one-tool-per-signal).
 
 ## Configure
 
@@ -153,6 +153,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`languages/`](src/voice_bridge/configuration/languages) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements and announcements of the tasks in progress are kept between starts; deleting it voices them again |
 | `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
+| `telemetry_directory` | `~/.local/state/voice-bridge/telemetry` | Where the traces and metrics are kept when no OTLP endpoint is set, in `traces.jsonl` and `metrics.jsonl`, each rotated at 5 MB like the log; see [Read the traces and metrics](#read-the-traces-and-metrics) |
 | `hang_after` | `30.0` | Seconds the bridge's event loop may stay frozen before the stack of every thread is written to the `.crash` file; logged as a warning if the bridge resumes, see [Diagnose](#diagnose) |
 | `logging` | none | Where the bridge's log goes, its levels and its format, in the standard library's [`dictConfig`](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema) schema; see below. Without it, the log goes to stderr and to `log_file`. The recorder and the rehearsal keep their own files |
 
@@ -163,6 +164,7 @@ Each signal goes to the tool you choose, several at once if you like, and nothin
 | Signal | Tool | Where to set it |
 |---|---|---|
 | The log | Any handler of Python's `logging`: file, journald, syslog | `[logging]` in `config.toml`, [below](#send-the-log-elsewhere) |
+| Traces and metrics, kept on the machine | OTLP JSON Lines files next to the log, read with `jq` or loaded by any tool that reads OTLP | Nothing: the default, [below](#read-the-traces-and-metrics); `OTEL_SDK_DISABLED=true` turns it off |
 | Traces, metrics, and the log again | An OpenTelemetry collector, which can route each signal to its own backend | `OTEL_*` variables in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
 | Metrics, read by Prometheus itself | [Prometheus](https://prometheus.io/), which scrapes `http://localhost:9464/metrics` | `OTEL_METRICS_EXPORTER=prometheus` in the tools' environment file, [below](#export-traces-metrics-and-the-log) |
 | Errors | Sentry, or GlitchTip and Bugsink, free and self-hosted, which take the same SDK | `SENTRY_*` variables in the tools' environment file, [below](#report-errors-to-sentry) |
@@ -203,16 +205,33 @@ To a syslog server on the network, a handler with `address = ["logs.example.org"
 
 To an OpenTelemetry collector, see below: the log joins the traces and metrics there, and the section's handlers keep writing it.
 
+### Read the traces and metrics
+
+By default, without a container or a collector to run, the bridge writes its traces and metrics to `~/.local/state/voice-bridge/telemetry/`, next to the log ([ADR-020](docs/decisions/ADR-020-traces-and-metrics-kept-in-local-files-by-default.md)):
+
+- `traces.jsonl`, one trace per turn, as described [below](#export-traces-metrics-and-the-log), written in batches every few seconds and when the bridge stops;
+- `metrics.jsonl`, the bridge's metrics, cumulative since the start, written every minute and when the bridge stops; `OTEL_METRIC_EXPORT_INTERVAL`, in milliseconds, changes the pace.
+
+Each line is one export request in the [OTLP JSON encoding](https://opentelemetry.io/docs/specs/otlp/#json-protobuf-encoding), the format of OpenTelemetry's [file exporter](https://opentelemetry.io/docs/specs/otel/protocol/file-exporter/), written by the official [`opentelemetry-exporter-otlp-json-file`](https://pypi.org/project/opentelemetry-exporter-otlp-json-file/). Each file is rotated at 5 MB, keeping three older files, `.1` being the most recent, like the log. The OpenTelemetry Collector's [`otlpjsonfile` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/otlpjsonfilereceiver) can replay them into any backend later.
+
+The count and the median of each step, in seconds, over every turn kept:
+
+```bash
+cat ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s -r '[.[].resourceSpans[].scopeSpans[].spans[] | {name, s: (((.endTimeUnixNano | tonumber) - (.startTimeUnixNano | tonumber)) / 1e9)}] | group_by(.name)[] | (map(.s) | sort) as $d | "\(.[0].name)\t\($d | length)\t\($d[($d | length) / 2 | floor])"'
+```
+
+`OTEL_SDK_DISABLED=true`, the SDK's standard switch, in the [tools' environment file](#one-tool-per-signal) turns the files off; the bridge still creates them, empty.
+
 ### Export traces, metrics and the log
 
-Nothing leaves the machine by default. With the `otel` extra installed and an OTLP endpoint set, the bridge exports, to the collector of your choice:
+Nothing leaves the machine by default. With the `otel` extra installed and an OTLP endpoint set, the bridge exports instead of writing the files, to the collector of your choice:
 
 - **one trace per turn**: a `turn` span from the end of your voice until your next words reach Claude, with a span for each step: `transcription`, `settle` before your words are pushed, `claude` until its first reply, each `synthesis` or `failed synthesis`, and each `playback`, cut where you interrupted; the turn tells whether it was `interrupted`;
 - **metrics**: `voice_bridge.turn.duration` and `voice_bridge.step.duration` by step, in seconds; `voice_bridge.events`, the interruptions and the sounds dismissed as too short; `voice_bridge.audio.stall.duration`, the gaps in your audio reaching the bridge;
 - **the process and the machine**: memory, CPU, threads, open files, garbage collection, and the machine's CPU, memory, disks and network, from OpenTelemetry's [system metrics instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/system_metrics/system_metrics.html);
 - **the log**, alongside the handlers of `[logging]` or the default log, which keep writing.
 
-The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, or when `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` names an exporter other than `none`, and imports OpenTelemetry only then ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)). The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): with an endpoint in the [tools' environment file](#one-tool-per-signal), `scripts/claude-voice.sh` starts the bridge under `opentelemetry-instrument`, with `OTEL_SERVICE_NAME=voice-bridge` unless the file sets another.
+The bridge exports only when `OTEL_EXPORTER_OTLP_ENDPOINT`, or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, is set, or when `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER` or `OTEL_LOGS_EXPORTER` names an exporter other than `none` ([ADR-013](docs/decisions/ADR-013-telemetry-behind-a-port-and-the-otel-extra.md)); it then writes no file. The SDK, the exporters and the log handler come from [zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/): with an endpoint in the [tools' environment file](#one-tool-per-signal), `scripts/claude-voice.sh` starts the bridge under `opentelemetry-instrument`, with `OTEL_SERVICE_NAME=voice-bridge` unless the file sets another.
 
 For Prometheus to scrape the metrics without a collector, choose its exporter and turn off the signals with nowhere to go, since `opentelemetry-instrument` otherwise sends them over OTLP to `localhost:4317`; `OTEL_EXPORTER_PROMETHEUS_HOST` and `OTEL_EXPORTER_PROMETHEUS_PORT` move the endpoint:
 
@@ -318,7 +337,7 @@ Two more commands help test the voice path without Claude:
 | The bridge hears you but Claude never answers | `/mcp` in the session, then the log for `forwarded` lines |
 | Nothing you say appears in the log | Look for `ignored a transmission`: the certificate hash differs from `speaker_certificate_hash` |
 | `certificate verify failed` | The server has a new certificate: export it again |
-| A slow turn, without knowing which step took the time | With [telemetry exported](#export-traces-metrics-and-the-log), the turn's trace shows each step; without it, the log's timing lines tell the same, one by one |
+| A slow turn, without knowing which step took the time | The turn's trace in `traces.jsonl` shows each step, and the [median of each step](#read-the-traces-and-metrics) over all turns; with [telemetry exported](#export-traces-metrics-and-the-log), the same trace in your backend. The log's timing lines tell the same, one by one |
 | Claude's voice or your audio stutters, with no stall in the log | Short freezes of the event loop: add `PYTHONASYNCIODEBUG=1` to `~/.config/voice-bridge/environment` for a session, and asyncio's [debug mode](https://docs.python.org/3/library/asyncio-dev.html#debug-mode) logs every step that held the loop more than 0.1 s, the length of five audio frames, as `Executing … took … seconds`; it slows everything a little, so remove it afterwards |
 | The bridge went silent but still runs | `the bridge was blocked for over … s` in the log, with the stack of every thread at the moment it froze |
 | The bridge stopped, and Claude Code lost the `voice` channel | `stopped on an unexpected error` in the log, with its traceback; with `SENTRY_DSN` set, the same error in Sentry. Nothing in the log: a crash outside Python, written to `voice-bridge.crash` and logged at the next start |
@@ -348,11 +367,12 @@ flowchart LR
         board["Work board<br/>agents at work and finished"]
         mouth["Voice<br/>sentences for the ear"]
         loudspeaker["Loudspeaker<br/>playback buffer"]
-        telemetry["Telemetry<br/>OpenTelemetry, optional"]
+        telemetry["Telemetry<br/>OpenTelemetry"]
     end
     claude["Claude Code"]
     voxtral["Voxtral"]
-    collector["OTLP collector"]
+    files["traces.jsonl, metrics.jsonl<br/>by default"]
+    collector["OTLP collector<br/>when an endpoint is set"]
 
     mumble -->|"speaker's audio"| connection --> ears
     ears -->|"utterance"| whisper
@@ -367,6 +387,7 @@ flowchart LR
     turns -->|"play, announce, stop"| loudspeaker -->|"bridge's audio"| mumble
     turns -.->|"turns, counts"| telemetry
     connection -.->|"stalls"| telemetry
+    telemetry -.->|"OTLP JSON Lines"| files
     telemetry -.->|"OTLP"| collector
 ```
 

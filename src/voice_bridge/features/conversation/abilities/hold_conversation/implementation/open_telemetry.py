@@ -3,14 +3,24 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, assert_never
 
 from opentelemetry import metrics, trace
+from opentelemetry.exporter.otlp.json.file import FileMetricExporter, FileSpanExporter
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from voice_bridge.features.conversation.domain.turn_trace import Counted, FinishedTurn
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
+    from typing import IO
 
     from opentelemetry.metrics import Counter, Histogram, Meter
+    from opentelemetry.metrics import MeterProvider as AnyMeterProvider
     from opentelemetry.trace import Tracer
+    from opentelemetry.trace import TracerProvider as AnyTracerProvider
+    from opentelemetry.util.types import AttributeValue
 
     from voice_bridge.features.conversation.domain.turn_trace import Report
 
@@ -25,6 +35,18 @@ def epoch_of(clock: Callable[[], float]) -> Callable[[float], int]:
         return round(at * NANOSECONDS) + offset
 
     return to_epoch
+
+
+def writing_to(
+    traces: IO[str], measures: IO[str], attributes: Mapping[str, AttributeValue]
+) -> tuple[TracerProvider, MeterProvider]:
+    resource = Resource.create(dict(attributes))
+    tracers = TracerProvider(resource=resource)
+    tracers.add_span_processor(BatchSpanProcessor(FileSpanExporter(stream=traces)))
+    meters = MeterProvider(
+        resource=resource, metric_readers=[PeriodicExportingMetricReader(FileMetricExporter(stream=measures))]
+    )
+    return tracers, meters
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -56,6 +78,12 @@ class OpenTelemetry:
     @classmethod
     def from_globals(cls, clock: Callable[[], float]) -> OpenTelemetry:
         return cls.of(trace.get_tracer(NAME), metrics.get_meter(NAME), epoch_of(clock))
+
+    @classmethod
+    def from_providers(
+        cls, tracers: AnyTracerProvider, meters: AnyMeterProvider, clock: Callable[[], float]
+    ) -> OpenTelemetry:
+        return cls.of(tracers.get_tracer(NAME), meters.get_meter(NAME), epoch_of(clock))
 
     def _trace(self, turn: FinishedTurn) -> None:
         root = self.tracer.start_span(

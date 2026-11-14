@@ -123,6 +123,11 @@ def test_the_extreme_speeds_are_accepted() -> None:
     assert (SpeechSettings(speed=0.25).speed, SpeechSettings(speed=4.0).speed) == (0.25, 4.0)
 
 
+def test_the_telemetry_is_written_beside_the_log_by_default(config_file: Path) -> None:
+    settings = load_settings(config_file)
+    assert settings.telemetry_directory == settings.log_file.parent.parent / "telemetry"
+
+
 def test_the_default_config_file_is_named_after_the_bridge() -> None:
     assert default_config_file().parts[-2:] == ("voice-bridge", "config.toml")
 

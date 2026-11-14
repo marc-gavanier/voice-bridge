@@ -260,7 +260,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
     hold_music = await _hold_music(settings, speaker)
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     speech_settings = settings.speech
-    telemetry, stalled_for = chosen_telemetry(anyio.current_time)
+    telemetry, stalled_for = chosen_telemetry(anyio.current_time, settings.telemetry_directory)
 
     async def connected(client: MumbleClient) -> None:
         _ = client.play(buffer)
