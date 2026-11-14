@@ -36,6 +36,19 @@ def test_italian_knows_the_subtitle_credit_hallucination() -> None:
         ("Grazie mille per questo.", "thanks"),
         ("Ho riavviato l'app.", "presence"),
         ("Ci fermiamo qui per oggi.", "end"),
+        ("Hai fatto davvero un bel lavoro.", "compliment"),
+        ("Grazie per l'aiuto.", "thanks"),
+        ("Vai, puoi lanciarlo.", "go_ahead"),
+        ("Sì, così mi va bene.", "yes"),
+        ("Aspetta, mi è appena venuta in mente una cosa.", "idea_coming"),
+        ("Potremmo usare un altro strumento.", "idea"),
+        ("Ecco, ho riavviato.", "presence"),
+        ("Ci fermiamo qui per adesso.", "end"),
+        ("Dai, lascia perdere, smetti di cercare.", "stop"),
+        ("Ehi, puoi fermarti lì?", "stop"),
+        ("Fermati!", "stop"),
+        ("No.", "no"),
+        ("Allora, qual è il prossimo passo?", "question"),
     ],
 )
 def test_italian_words_take_the_route_of_their_meaning(words: str, expected: str, route_of: RouteOf) -> None:
@@ -48,6 +61,13 @@ def test_italian_words_take_the_route_of_their_meaning(words: str, expected: str
         "Hai visto se si è fermato bene?",
         "Dai, cominciamo.",
         "Lasciamo così.",
+        "Non ho detto stop, sei andato troppo veloce.",
+        "Sì, si è fermato bene.",
+        "Hai avuto tempo di leggere l'articolo o ti sei fermato prima di finire?",
+        "Va bene, cominciamo dallo stop.",
+        "Lascialo così, va bene.",
+        "Ci fermiamo qui.",
+        "No, lasciamo così.",
     ],
 )
 def test_italian_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) -> None:

@@ -20,20 +20,26 @@ hallucination_prefixes = [
 ]
 neutral_acknowledgements = [
   "Ricevuto.",
-  "Ben ricevuto.",
   "Messaggio ricevuto.",
   "Va bene, ricevuto.",
-  "Inteso.",
+  "Forte e chiaro.",
   "Capito.",
   "Ho capito.",
+  "Va bene, capito.",
+  "Capisco.",
+  "Ah, capisco.",
+  "Chiaro.",
+  "Inteso.",
   "Ti ho sentito bene.",
   "Annotato.",
+  "Segnato.",
+  "Me lo segno.",
   "Preso nota.",
   "Ne prendo nota.",
   "D'accordo.",
   "Va bene.",
   "Ah, ok.",
-  "Vedo.",
+  "Ti seguo.",
 ]
 
 [announcements]
@@ -68,6 +74,10 @@ examples = [
   "No no no, fermati.",
   "Adesso basta, fermati.",
   "Smetti di cercare.",
+  "Ferma tutto.",
+  "Puoi fermarti lì?",
+  "Stop.",
+  "Fermati lì.",
 ]
 sentences = [
   "Fermo tutto il lavoro in corso.",
@@ -75,6 +85,15 @@ sentences = [
   "Mi fermo immediatamente.",
   "Mi fermo adesso.",
   "Mi fermo all'istante.",
+  "Mi fermo.",
+  "Mi fermo qui.",
+  "Fermo tutto.",
+  "Blocco tutto.",
+  "Interrompo tutto.",
+  "Interrompo subito.",
+  "Interrompo il lavoro in corso.",
+  "Smetto subito.",
+  "Smetto adesso.",
 ]
 
 [[acknowledgements]]
@@ -97,14 +116,24 @@ examples = [
   "Come riaggancio?",
   "Ci fermiamo qui.",
   "Bene, ci fermiamo qui.",
+  "Chiudiamo qui per oggi.",
+  "Ciao, a domani.",
 ]
 sentences = [
   "A dopo.",
   "A presto.",
   "Alla prossima.",
+  "Ciao.",
+  "Ciao, a presto.",
+  "Ci sentiamo.",
+  "Ci sentiamo presto.",
+  "A risentirci.",
   "Ci fermiamo qui.",
-  "D'accordo, ci fermiamo.",
-  "Inteso, ci fermiamo qui.",
+  "Va bene, ci fermiamo qui.",
+  "Per oggi è tutto.",
+  "È stato un piacere.",
+  "Grazie per la sessione.",
+  "Chiudo la sessione.",
 ]
 
 [[acknowledgements]]
@@ -129,8 +158,12 @@ examples = [
 sentences = [
   "Sì?",
   "Ti ascolto.",
-  "Vai.",
-  "Prenditi il tuo tempo.",
+  "Dimmi.",
+  "Continua.",
+  "Vai pure.",
+  "Dicevi?",
+  "Fai con calma.",
+  "Con calma.",
 ]
 
 [[acknowledgements]]
@@ -171,10 +204,16 @@ examples = [
 ]
 sentences = [
   "Ci sono.",
+  "Eccomi.",
+  "Eccomi qua.",
+  "Sono qui.",
+  "Sono qua.",
+  "Sono con te.",
   "Ti sento.",
   "Ti sento bene.",
-  "Presente.",
-  "Sono qui.",
+  "Ti sento benissimo.",
+  "Ti sento perfettamente.",
+  "Ti sento forte e chiaro.",
   "Ti ascolto.",
 ]
 
@@ -202,8 +241,16 @@ examples = [
 sentences = [
   "Con piacere.",
   "Prego.",
+  "Figurati.",
+  "Ma figurati.",
+  "Di niente.",
+  "Di nulla.",
+  "Ci mancherebbe.",
+  "Quando vuoi.",
   "Il piacere è mio.",
   "È un piacere.",
+  "Sempre a disposizione.",
+  "Felice di aiutarti.",
 ]
 
 [[acknowledgements]]
@@ -225,11 +272,24 @@ examples = [
   "Sei un fenomeno.",
   "È impressionante.",
   "Bravo, è proprio quello che volevo.",
+  "Ottimo lavoro, grazie.",
+  "Grande!",
+  "Sei un mito.",
+  "Complimenti.",
+  "Bravissimo.",
 ]
 sentences = [
-  "Grazie, mi fa piacere.",
+  "Grazie.",
   "Grazie mille.",
+  "Grazie davvero.",
+  "Grazie, mi fa piacere.",
+  "Mi fa piacere.",
+  "Mi fa piacere sentirlo.",
   "Grazie, sei gentile.",
+  "Grazie, che gentile.",
+  "Che gentile.",
+  "Troppo gentile.",
+  "Grazie del complimento.",
 ]
 
 [[acknowledgements]]
@@ -254,15 +314,29 @@ examples = [
 ]
 sentences = [
   "Controllo.",
+  "Controllo subito.",
+  "Verifico.",
   "Vado a vedere.",
   "Ci do un'occhiata.",
+  "Ci guardo.",
+  "Fammi vedere.",
+  "Fammi controllare.",
   "Vediamo.",
+  "Vediamo un po'.",
   "Diamo un'occhiata.",
+  "Vediamo cosa succede.",
+  "Vediamo da dove viene.",
+  "Cerco la causa.",
+  "Vado a vedere cosa non va.",
   "Ah, accidenti.",
+  "Accidenti, ci guardo.",
   "Ah, ci guardo.",
-  "Annotato, cerco.",
+  "Segnato, ci guardo.",
   "Un attimo, guardo.",
   "Un attimo, controllo.",
+  "Un attimo, ci guardo.",
+  "Un secondo, controllo.",
+  "Un momento, verifico.",
 ]
 
 [[acknowledgements]]
@@ -285,15 +359,24 @@ examples = [
   "Apri un ticket per questo.",
   "Puoi cancellarlo.",
   "Puoi dirmi di più su questo piccolo modello?",
+  "Puoi leggere la voce di Wikipedia sulla Savoia?",
 ]
 sentences = [
   "Me ne occupo.",
-  "Mi ci metto.",
-  "Si parte.",
-  "Guardo.",
-  "Fammi guardare.",
+  "Me ne occupo io.",
   "Ci penso io.",
-  "Lancio.",
+  "Lascia fare a me.",
+  "Mi ci metto.",
+  "Ci lavoro.",
+  "Lo faccio.",
+  "Lo faccio subito.",
+  "Subito.",
+  "Si parte.",
+  "Ci guardo.",
+  "Fammi guardare.",
+  "Fammi vedere.",
+  "Un attimo, me ne occupo.",
+  "Un secondo, ci penso io.",
 ]
 
 [[acknowledgements]]
@@ -314,16 +397,29 @@ examples = [
   "Hai domande?",
   "Dove eravamo rimasti?",
   "C'è ancora qualcosa da fare?",
+  "Hai avuto il tempo di leggere l'articolo o ti sei fermato prima?",
 ]
 sentences = [
   "Ci penso.",
+  "Fammi pensare.",
+  "Ci rifletto.",
   "Vediamo.",
+  "Vediamo un po'.",
+  "Allora, vediamo.",
+  "Dunque, vediamo.",
   "Bella domanda.",
   "Fammi vedere.",
+  "Fammi controllare.",
   "Controllo.",
-  "Aspetta, guardo.",
+  "Verifico.",
+  "Mi informo.",
+  "Aspetta, ci guardo.",
+  "Aspetta, controllo.",
+  "Aspetta, ci penso.",
   "Un attimo, guardo.",
   "Un attimo, controllo.",
+  "Un attimo, ci penso.",
+  "Un secondo, controllo.",
 ]
 
 [[acknowledgements]]
@@ -344,9 +440,19 @@ examples = [
   "Ho un suggerimento.",
   "Devo dirti una cosa.",
   "Ascolta, pensavo…",
+  "Ho una cosa da proporti.",
+  "Senti, mi è venuta in mente una cosa.",
 ]
 sentences = [
   "Ti ascolto.",
+  "Sono tutta orecchi.",
+  "Dimmi.",
+  "Dimmi pure.",
+  "Dimmi tutto.",
+  "Racconta.",
+  "Raccontami.",
+  "Sentiamo.",
+  "Ah, sì?",
 ]
 
 [[acknowledgements]]
@@ -370,9 +476,17 @@ examples = [
 ]
 sentences = [
   "Capisco l'idea.",
-  "Ha senso.",
-  "Interessante.",
+  "Ho capito l'idea.",
+  "Afferro l'idea.",
+  "Capisco cosa intendi.",
+  "Capisco dove vuoi arrivare.",
+  "Vedo dove vuoi arrivare.",
   "Ah, ho capito.",
+  "Ah, capisco.",
+  "Ha senso.",
+  "Ci sta.",
+  "Interessante.",
+  "Mi segno l'idea.",
 ]
 
 [[acknowledgements]]
@@ -397,14 +511,20 @@ examples = [
 ]
 sentences = [
   "D'accordo.",
+  "Va bene.",
   "Capito.",
-  "Nessun problema.",
+  "Ah, capito.",
+  "Ah, capisco.",
   "Inteso.",
   "Ah, ok.",
-  "Va bene, d'accordo.",
-  "Correggo.",
+  "Nessun problema.",
   "Non c'è problema.",
+  "Correggo.",
+  "Sistemo.",
+  "Rivedo la cosa.",
   "Cambio rotta.",
+  "Cambio approccio.",
+  "Provo in un altro modo.",
 ]
 
 [[acknowledgements]]
@@ -425,14 +545,27 @@ examples = [
   "Sì, puoi procedere.",
   "Vai, comincia.",
   "Dai, partiamo.",
+  "Vai pure.",
+  "Dai, vai.",
+  "Procedi pure.",
+  "Vai tranquillo.",
+  "Si parte.",
+  "Va bene, iniziamo con la parte dello stop.",
 ]
 sentences = [
   "Si parte.",
+  "Allora, si parte.",
+  "Partiamo.",
   "Andiamo.",
-  "Ci siamo.",
   "Facciamolo.",
   "Comincio.",
-  "Via!",
+  "Cominciamo.",
+  "Inizio subito.",
+  "Al lavoro.",
+  "Diamoci da fare.",
+  "Mi metto subito al lavoro.",
+  "Avanti tutta.",
+  "Ci penso io.",
   "Va bene.",
 ]
 
@@ -455,14 +588,23 @@ examples = [
   "Teniamolo così, va bene.",
   "Sì, ok, lasciamo così.",
   "Mi va bene.",
+  "Esattamente.",
+  "No, è proprio così.",
+  "Mi sta bene.",
+  "Così va bene.",
+  "Sì, si è fermato correttamente.",
 ]
 sentences = [
   "Perfetto.",
+  "Ottimo.",
+  "Benissimo.",
   "Molto bene.",
+  "Bene.",
+  "Eccellente.",
   "D'accordo.",
   "Va bene.",
+  "Mi sta bene.",
   "Capito.",
   "Inteso.",
-  "Ottimo.",
-  "Bene.",
+  "Affare fatto.",
 ]
