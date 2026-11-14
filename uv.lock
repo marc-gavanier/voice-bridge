@@ -2231,6 +2231,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
+    { name = "av" },
     { name = "faster-whisper" },
     { name = "httpx" },
     { name = "huggingface-hub" },
@@ -2292,6 +2293,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.15.1" },
+    { name = "av", specifier = ">=18.1.0" },
     { name = "faster-whisper" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "huggingface-hub", specifier = ">=2.4.0" },
