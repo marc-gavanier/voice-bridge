@@ -30,6 +30,7 @@ voice-bridge-rehearsal = "voice_bridge.entrypoints.rehearsal:main"
 voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
 voice-bridge-tool-hook = "voice_bridge.entrypoints.tool_hook:main"
 voice-bridge-activity-hook = "voice_bridge.entrypoints.activity_hook:main"
+voice-bridge-claude-settings = "voice_bridge.entrypoints.claude_settings:main"
 
 [project.optional-dependencies]
 otel = [
@@ -114,6 +115,7 @@ source = ["voice_bridge"]
 omit = [
     "*/voice_bridge/entrypoints/activity_hook.py",
     "*/voice_bridge/entrypoints/channel.py",
+    "*/voice_bridge/entrypoints/claude_settings.py",
     "*/voice_bridge/entrypoints/logs.py",
     "*/voice_bridge/entrypoints/recorder.py",
     "*/voice_bridge/entrypoints/rehearsal.py",

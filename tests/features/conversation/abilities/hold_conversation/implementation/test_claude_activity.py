@@ -99,8 +99,9 @@ def test_an_unreadable_hook_input_says_nothing() -> None:
     assert news_of("not json") is None
 
 
-def test_telling_a_bridge_that_is_not_running_does_nothing(tmp_path: Path) -> None:
-    assert tell_bridge(tmp_path / "activity.sock", Idle()) is None
+def test_telling_a_bridge_that_is_not_running_logs_why(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    tell_bridge(tmp_path / "activity.sock", AgentStarted(agent_id="a1", agent_type="Explore"))
+    assert "the activity hook could not tell the bridge that agent a1 started, of type 'Explore'" in caplog.text
 
 
 @asynccontextmanager

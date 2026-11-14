@@ -38,23 +38,5 @@ jq --null-input --arg project "$project" --arg pid "$$" --argjson environment "$
       }
     }' >"$config"
 settings="${XDG_RUNTIME_DIR:-/tmp}/voice-bridge-settings.json"
-jq --null-input --arg project "$project" '
-  ("uv run --project " + ($project | @sh) + " --frozen --quiet ") as $run
-  | [{hooks: [{type: "command", command: ($run + "voice-bridge-activity-hook"), async: true}]}] as $activity
-  | {
-      hooks: {
-        PreToolUse: [
-          {
-            matcher: "*",
-            hooks: [{type: "command", command: ($run + "voice-bridge-tool-hook")}]
-          }
-        ],
-        UserPromptSubmit: $activity,
-        Stop: $activity,
-        StopFailure: $activity,
-        SessionEnd: $activity,
-        SubagentStart: $activity,
-        SubagentStop: $activity
-      }
-    }' >"$settings"
+uv run --project "$project" --frozen --quiet voice-bridge-claude-settings --project "$project" >"$settings"
 exec claude --mcp-config "$config" --settings "$settings" --allowedTools mcp__voice__reply mcp__voice__end_session mcp__voice__board --dangerously-load-development-channels server:voice "$@"

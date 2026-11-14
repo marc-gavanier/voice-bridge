@@ -95,14 +95,26 @@ def news_of(event: str) -> News | None:
             return None
 
 
+def _said(news: News) -> str:
+    match news:
+        case Busy() | Idle():
+            return f"Claude Code is {news.kind}"
+        case AgentStarted():
+            return f"agent {news.agent_id} started, of type {news.agent_type!r}"
+        case AgentFinished():
+            return f"agent {news.agent_id} finished, of type {news.agent_type!r}"
+        case _:
+            assert_never(news)
+
+
 def tell_bridge(path: Path, news: News) -> None:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
         connection.settimeout(SEND_TIMEOUT)
         try:
             connection.connect(str(path))
             connection.sendall(news.model_dump_json().encode() + b"\n")
-        except OSError:
-            return
+        except OSError as error:
+            logger.warning("the activity hook could not tell the bridge that %s: %s", _said(news), error)
 
 
 async def _read_news(stream: SocketStream) -> News | None:
@@ -117,18 +129,6 @@ async def _read_news(stream: SocketStream) -> News | None:
         return None
 
 
-def _log(news: News) -> None:
-    match news:
-        case Busy() | Idle():
-            logger.info("Claude Code is %s", news.kind)
-        case AgentStarted():
-            logger.info("agent %s started, of type %r", news.agent_id, news.agent_type)
-        case AgentFinished():
-            logger.info("agent %s finished, of type %r", news.agent_id, news.agent_type)
-        case _:
-            assert_never(news)
-
-
 async def listen_to_claude(path: Path, heard: Callable[[News], Awaitable[None]]) -> None:
     await anyio.Path(path).parent.mkdir(parents=True, exist_ok=True)
     await anyio.Path(path).unlink(missing_ok=True)
@@ -137,7 +137,7 @@ async def listen_to_claude(path: Path, heard: Callable[[News], Awaitable[None]])
         news = await _read_news(stream)
         if news is None:
             return
-        _log(news)
+        logger.info("%s", _said(news))
         await heard(news)
 
     async with await anyio.create_unix_listener(path) as listener:

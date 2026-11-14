@@ -1,9 +1,16 @@
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from voice_bridge.configuration.settings import HearingSettings, SpeechSettings, default_config_file, load_settings
+from voice_bridge.configuration.settings import (
+    LANGUAGES,
+    HearingSettings,
+    SpeechSettings,
+    default_config_file,
+    load_settings,
+)
 
 MINIMAL = """
 [mumble]
@@ -182,3 +189,12 @@ def test_a_hang_delay_must_be_positive(config_file: Path) -> None:
     _ = config_file.write_text(f"hang_after = 0\n{MINIMAL}", encoding="utf-8")
     with pytest.raises(ValidationError, match="hang_after"):
         _ = load_settings(config_file)
+
+
+def language_files() -> list[str]:
+    folder = files("voice_bridge.configuration") / "languages"
+    return sorted(Path(entry.name).stem for entry in folder.iterdir() if entry.name.endswith(".toml"))
+
+
+def test_every_language_shipped_can_be_chosen_for_the_hooks() -> None:
+    assert language_files() == list(LANGUAGES)

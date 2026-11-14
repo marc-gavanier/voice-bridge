@@ -20,6 +20,12 @@ APP_NAME = "voice-bridge"
 
 type Language = Literal["ar", "de", "en", "es", "fr", "hi", "it", "nl", "pt"]
 
+LANGUAGES: tuple[Language, ...] = ("ar", "de", "en", "es", "fr", "hi", "it", "nl", "pt")
+DEFAULT_LANGUAGE: Language = "en"
+DEFAULT_STOP_FLAG = user_runtime_path(APP_NAME) / "stop"
+DEFAULT_LOG_FILE = user_log_path(APP_NAME) / f"{APP_NAME}.log"
+DEFAULT_ACTIVITY_SOCKET = user_runtime_path(APP_NAME) / "activity.sock"
+
 
 class Section(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid", frozen=True)
@@ -97,7 +103,7 @@ class HoldMusicSettings(Section):
 
 class UnderstandingSettings(Section):
     threshold: float = 0.5
-    stop_flag: Path = user_runtime_path(APP_NAME) / "stop"
+    stop_flag: Path = DEFAULT_STOP_FLAG
 
 
 class Settings(BaseSettings):
@@ -105,7 +111,7 @@ class Settings(BaseSettings):
         env_prefix="VOICE_BRIDGE_", env_nested_delimiter="__", extra="forbid", frozen=True
     )
 
-    language: Language = "en"
+    language: Language = DEFAULT_LANGUAGE
     mumble: MumbleSettings
     speech: SpeechSettings = SpeechSettings()
     whisper: WhisperSettings = WhisperSettings()
@@ -113,10 +119,10 @@ class Settings(BaseSettings):
     hold_music: HoldMusicSettings = HoldMusicSettings()
     understanding: UnderstandingSettings = UnderstandingSettings()
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
-    log_file: Path = user_log_path(APP_NAME) / f"{APP_NAME}.log"
+    log_file: Path = DEFAULT_LOG_FILE
     logging: dict[str, JsonValue] | None = None
     hang_after: PositiveFloat = 30.0
-    activity_socket: Path = user_runtime_path(APP_NAME) / "activity.sock"
+    activity_socket: Path = DEFAULT_ACTIVITY_SOCKET
     cache_directory: Path = user_cache_path(APP_NAME)
     claude_pid: int | None = None
 

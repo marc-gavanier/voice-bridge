@@ -1,15 +1,23 @@
+import logging
 import sys
 
-from voice_bridge.configuration.settings import load_settings
-from voice_bridge.entrypoints.arguments import config_file
+from voice_bridge.entrypoints.arguments import activity_hook_options
+from voice_bridge.entrypoints.logs import log_hook_to
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     news_of,
     tell_bridge,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def main() -> None:
-    settings = load_settings(config_file("Tell the bridge what Claude Code and its agents do.", sys.argv[1:]))
-    news = news_of(sys.stdin.read())
-    if news is not None:
-        tell_bridge(settings.activity_socket, news)
+    options = activity_hook_options(sys.argv[1:])
+    log_hook_to(options.log_file)
+    try:
+        news = news_of(sys.stdin.read())
+        if news is not None:
+            tell_bridge(options.socket, news)
+    except Exception:
+        logger.exception("the activity hook failed")
+        raise

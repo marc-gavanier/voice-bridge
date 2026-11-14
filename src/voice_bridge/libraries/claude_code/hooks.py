@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from typing import Final
 
 from pydantic import BaseModel
 
@@ -30,3 +31,25 @@ def denial(reason: str) -> str:
             }
         }
     )
+
+
+TURN_EVENTS: Final = ("UserPromptSubmit", "Stop", "StopFailure", "SessionEnd")
+AGENT_EVENTS: Final = ("SubagentStart", "SubagentStop")
+
+type Command = dict[str, str | bool]
+type Matcher = dict[str, str | list[Command]]
+
+
+def _command(command: str, *, waited: bool) -> Command:
+    run: Command = {"type": "command", "command": command}
+    return run if waited else {**run, "async": True}
+
+
+def hook_settings(*, activity: str, tool: str) -> dict[str, dict[str, list[Matcher]]]:
+    return {
+        "hooks": {
+            "PreToolUse": [{"matcher": "*", "hooks": [_command(tool, waited=True)]}],
+            **{event: [{"hooks": [_command(activity, waited=False)]}] for event in TURN_EVENTS},
+            **{event: [{"hooks": [_command(activity, waited=True)]}] for event in AGENT_EVENTS},
+        }
+    }
