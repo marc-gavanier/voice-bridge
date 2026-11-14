@@ -1,7 +1,7 @@
 # ADR-018 — The speech server sets the pace of the speech
 
 **Date**: 2026-11-14
-**Status**: accepted
+**Status**: superseded by [ADR-027](ADR-027-the-bridge-sets-the-pace-of-the-speech-with-ffmpegs-atempo.md): the bridge stretches the speech with FFmpeg's `atempo` and no longer sends `speed`
 
 ## Context
 
