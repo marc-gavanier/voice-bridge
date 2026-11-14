@@ -4,7 +4,7 @@ import wave
 import numpy as np
 import pytest
 
-from voice_bridge.libraries.audio.wav import decode, encode
+from voice_bridge.libraries.audio.wav import decode, encode, read
 
 
 def raw_wav(frames: bytes, *, width: int, rate: int = 48000, channels: int = 1) -> bytes:
@@ -45,6 +45,10 @@ def test_decode_converts_8_bit_samples_to_16_bit() -> None:
 
 def test_decode_resamples_to_the_target_rate() -> None:
     assert len(decode(wav_of([0] * 24000, rate=24000), rate=48000)) == 48000 * 2
+
+
+def test_read_keeps_the_rate_of_the_file() -> None:
+    assert read(wav_of([100, 300, -100, -300], rate=24000, channels=2)) == (pcm_of(200, -200), 24000)
 
 
 def test_decode_refuses_24_bit_samples() -> None:

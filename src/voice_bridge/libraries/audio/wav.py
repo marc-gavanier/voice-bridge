@@ -20,12 +20,16 @@ def _to_float(frames: bytes, width: int) -> Samples:
     return centered / FULL_SCALE_BY_WIDTH[width]
 
 
-def decode(data: bytes, rate: int) -> bytes:
+def read(data: bytes) -> tuple[bytes, int]:
     with wave.open(io.BytesIO(data), "rb") as wav:
-        source_rate, channels, width = wav.getframerate(), wav.getnchannels(), wav.getsampwidth()
+        rate, channels, width = wav.getframerate(), wav.getnchannels(), wav.getsampwidth()
         frames = wav.readframes(wav.getnframes())
-    mono = np.average(_to_float(frames, width).reshape(-1, channels), axis=1)
-    return resample(from_float(mono), from_rate=source_rate, to_rate=rate)
+    return from_float(np.average(_to_float(frames, width).reshape(-1, channels), axis=1)), rate
+
+
+def decode(data: bytes, rate: int) -> bytes:
+    pcm, source_rate = read(data)
+    return resample(pcm, from_rate=source_rate, to_rate=rate)
 
 
 def encode(pcm: bytes, rate: int) -> bytes:
