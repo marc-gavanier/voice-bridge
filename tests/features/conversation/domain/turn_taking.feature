@@ -340,6 +340,9 @@ Feature: Turn taking
   Rule: Hold music plays while Claude works and stays silent
     Claude works from the words it was given, or from a turn Claude Code started on its own,
     until Claude Code tells the bridge it is done; Claude's own replies change nothing to it.
+    Words that the acknowledgement fully answers, such as "Can you hear me?", give Claude
+    nothing to do: they bring no music, unless they were said in pieces, over Claude's voice,
+    or while Claude was already at work.
 
     Scenario: Words given to Claude bring the hold music after a wait
       Given Claude is silent
@@ -351,6 +354,39 @@ Feature: Turn taking
       Given Claude is working on "Where are we?"
       When the wait goes on
       Then the hold music starts
+
+    Scenario: Words the acknowledgement answers bring no hold music
+      Given Claude is silent
+      And the speaker said "Can you hear me?", which its acknowledgement answers
+      When the speaker stays silent
+      Then the bridge waits for no hold music
+
+    Scenario: Words the acknowledgement answers keep the hold music of a Claude at work
+      Given Claude started working on its own
+      And the speaker said "Can you hear me?", which its acknowledgement answers
+      When the speaker stays silent
+      Then the bridge waits for the hold music
+
+    Scenario: Words the acknowledgement would answer, said while Claude talks, bring the hold music
+      Given Claude is silent
+      And Claude is saying "I found three of them."
+      And the speaker said "Can you hear me?", which its acknowledgement answers
+      When the speaker stays silent
+      Then the hold music waits for the end of that voice
+
+    Scenario: Words the acknowledgement answers, said over Claude, bring the hold music
+      Given Claude is replying "Let me look at your notes." then "I found three of them."
+      And the speaker cut Claude off
+      And the speaker said "Can you hear me?", which its acknowledgement answers
+      When the speaker stays silent
+      Then the bridge waits for the hold music
+
+    Scenario: Words said in pieces bring the hold music even when the last piece is answered
+      Given Claude is silent
+      And the speaker said "The logs."
+      And the speaker said "Can you hear me?", which its acknowledgement answers
+      When the speaker stays silent
+      Then the bridge waits for the hold music
 
     Scenario: Words given while Claude still talks wait for the end of its voice
       Given Claude is silent

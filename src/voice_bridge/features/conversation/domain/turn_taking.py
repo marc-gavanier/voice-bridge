@@ -42,6 +42,7 @@ class Transcribed:
     text: str
     noise: bool = False
     stop_at: float | None = None
+    answered: bool = False
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -204,6 +205,7 @@ class Conversation:
     hearing: bool = False
     next_ticket: int = 0
     heard: tuple[str, ...] = ()
+    answered: bool = False
     settling: int | None = None
     utterances: int = 0
     reply_heard: bool = False
@@ -354,9 +356,16 @@ def _cut(state: Conversation, at: float | None) -> Step:
     return replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True), (StopPlaying(heard_at=at),)
 
 
-def _hear(state: Conversation, text: str, stop_at: float | None) -> Step:
-    cut, commands = _cut(state, stop_at)
-    heard = replace(_transcribed(cut), heard=(*cut.heard, text), paused=None, hearing=True, ending=False)
+def _hear(state: Conversation, event: Transcribed) -> Step:
+    cut, commands = _cut(state, event.stop_at)
+    heard = replace(
+        _transcribed(cut),
+        heard=(*cut.heard, event.text),
+        answered=event.answered,
+        paused=None,
+        hearing=True,
+        ending=False,
+    )
     return _settle(heard, commands)
 
 
@@ -376,6 +385,7 @@ def _forward(state: Conversation, ticket: int, at: float) -> Step:
     if state.settling != ticket:
         return state, ()
     acknowledging = not state.acknowledged and not is_talking(state, at)
+    answered = acknowledging and state.answered and not state.interrupted and len(state.heard) == 1
     text = " ".join(state.heard)
     forward = Forward(text=text, interrupted=state.interrupted, acknowledging=acknowledging, pieces=len(state.heard))
     forwarded = replace(
@@ -386,7 +396,7 @@ def _forward(state: Conversation, ticket: int, at: float) -> Step:
         hearing=False,
         reply_heard=False,
         acknowledged=state.acknowledged or acknowledging,
-        working=True,
+        working=state.working or not answered,
     )
     commands = (forward, Acknowledge(words=text)) if acknowledging else (forward,)
     return _await_hold_after_voice(*_synthesize_next(forwarded, commands), at)
@@ -420,8 +430,8 @@ def _on_speaker(
             return _interrupt(state, at)
         case Transcribed(noise=True):
             return _noise(state)
-        case Transcribed(text=text, stop_at=stop_at):
-            return _hear(state, text, stop_at)
+        case Transcribed():
+            return _hear(state, event)
         case SoundDismissed():
             return _dismiss(state)
         case SpeechStarted():

@@ -151,6 +151,11 @@ def claude_is_done(turn: Turn) -> Turn:
     return after(turn, ClaudeIdle())
 
 
+@given("Claude started working on its own", target_fixture="turn")
+def claude_started_working_on_its_own() -> Turn:
+    return after(Turn(state=Conversation()), ClaudeBusy(at=SILENT_AT))
+
+
 @when("Claude starts working on its own", target_fixture="turn")
 def claude_starts_working_on_its_own(turn: Turn) -> Turn:
     return after(turn, ClaudeBusy(at=SILENT_AT))
@@ -245,6 +250,11 @@ def claudes_voice_fails(turn: Turn, sentence: str) -> Turn:
 @given(parsers.parse('the speaker said "{words}"'), target_fixture="turn")
 def the_speaker_said(turn: Turn, words: str) -> Turn:
     return after(turn, Transcribed(text=words))
+
+
+@given(parsers.parse('the speaker said "{words}", which its acknowledgement answers'), target_fixture="turn")
+def the_speaker_said_words_the_acknowledgement_answers(turn: Turn, words: str) -> Turn:
+    return after(turn, Transcribed(text=words, answered=True))
 
 
 @given(parsers.parse('the speaker asked to stop with "{words}"'), target_fixture="turn")
