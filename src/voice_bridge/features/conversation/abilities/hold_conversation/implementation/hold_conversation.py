@@ -16,6 +16,8 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     HoldLasted,
     Leave,
     Play,
+    Recording,
+    Said,
     SilenceLasted,
     StartHoldMusic,
     StopHoldMusic,
@@ -71,9 +73,15 @@ class _Shell:
     trace: Trace = field(default_factory=Trace)
 
 
+async def _voiced(mouth: Mouth, said: Said) -> bytes | None:
+    if isinstance(said, Recording):
+        return said.pcm
+    return await mouth.voice(said)
+
+
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
     started = mouth.clock()
-    pcm = await mouth.voice(order.sentence)
+    pcm = await _voiced(mouth, order.sentence)
     if pcm is None:
         await emit.send(SynthesisFailed(ticket=order.ticket))
         return

@@ -183,7 +183,9 @@ def _stopped(turn: Turn, at: float) -> Turn:
 def _on_voice(turn: Turn, at: float, item: Synthesize | Synthesized | SynthesisFailed) -> Turn:
     match item:
         case Synthesize(ticket=ticket, sentence=sentence):
-            order = Ordered(ticket=ticket, start=at, rank=turn.ordered, characters=len(sentence))
+            order = Ordered(
+                ticket=ticket, start=at, rank=turn.ordered, characters=len(sentence) if isinstance(sentence, str) else 0
+            )
             return replace(turn, synthesizing=(*turn.synthesizing, order), ordered=turn.ordered + 1)
         case Synthesized(ticket=ticket, at=ready, duration=duration):
             synthesized = _synthesized(turn, ticket, ready, "synthesis", (("audio.duration", duration),))

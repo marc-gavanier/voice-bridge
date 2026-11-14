@@ -1,12 +1,21 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Final, assert_never
 
 ANNOUNCED_FROM: Final = 2
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class Recording:
+    name: str
+    pcm: bytes = field(repr=False)
+
+
+type Said = str | Recording
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Asked:
-    sentences: tuple[str, ...]
+    sentences: tuple[Said, ...]
     ending: bool = False
 
 
@@ -96,7 +105,7 @@ type Event = (
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Synthesize:
     ticket: int
-    sentence: str
+    sentence: Said
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -173,12 +182,12 @@ type Command = (
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Synthesis:
     ticket: int
-    sentence: str
+    sentence: Said
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Scheduled:
-    sentence: str
+    sentence: Said
     ends_at: float
 
     def plays_at(self, at: float) -> bool:
@@ -187,10 +196,10 @@ class Scheduled:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Conversation:
-    waiting: tuple[str, ...] = ()
+    waiting: tuple[Said, ...] = ()
     synthesizing: Synthesis | None = None
     playing: tuple[Scheduled, ...] = ()
-    paused: tuple[str, ...] | None = None
+    paused: tuple[Said, ...] | None = None
     interrupted: bool = False
     hearing: bool = False
     next_ticket: int = 0
@@ -213,7 +222,7 @@ class Conversation:
 type Step = tuple[Conversation, tuple[Command, ...]]
 
 
-def unspoken(state: Conversation) -> tuple[str, ...]:
+def unspoken(state: Conversation) -> tuple[Said, ...]:
     current = (state.synthesizing.sentence,) if state.synthesizing else ()
     return (*current, *state.waiting)
 

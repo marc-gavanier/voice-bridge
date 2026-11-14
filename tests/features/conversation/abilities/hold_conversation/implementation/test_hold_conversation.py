@@ -18,6 +18,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     ClaudeBusy,
     Event,
+    Recording,
     SilenceLasted,
     SoundDismissed,
     SpeechEnded,
@@ -42,6 +43,7 @@ STATEMENT_CLIP = b"\x03\x00" * 480
 MUSIC = b"\x04\x00" * 480
 FADE = b"\x05\x00" * 48
 ANNOUNCEMENT_CLIP = b"\x06\x00" * 480
+RECORDED = b"\x07\x00" * 4800
 SOUND_DURATION = 0.1
 
 
@@ -170,6 +172,20 @@ async def test_an_asked_sentence_is_played() -> None:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = await talk.played.receive()
     assert played == SOUND
+
+
+async def test_a_recording_is_played_as_it_was_recorded() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=(Recording(name="Silent sample.wav", pcm=RECORDED),)))
+        played = await talk.played.receive()
+    assert played == RECORDED
+
+
+async def test_a_recording_is_played_after_the_sentence_before_it() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Écoute.", Recording(name="sample.wav", pcm=RECORDED))))
+        played = (await talk.played.receive(), await talk.played.receive())
+    assert played == (SOUND, RECORDED)
 
 
 async def test_a_sentence_without_voice_is_skipped_for_the_next_one() -> None:

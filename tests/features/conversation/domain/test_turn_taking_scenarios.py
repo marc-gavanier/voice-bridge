@@ -18,6 +18,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     HoldLasted,
     Leave,
     Play,
+    Recording,
     SilenceLasted,
     SoundDismissed,
     SpeechStarted,
@@ -38,6 +39,7 @@ scenarios("turn_taking.feature")
 SPEAKING_AT = 1.0
 SILENT_AT = 5.0
 NO_SILENCE = -1
+RECORDED = b"recorded"
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,10 @@ def latest_silence(turn: Turn) -> int:
 def synthesizing_ticket(turn: Turn) -> int:
     assert turn.state.synthesizing is not None
     return turn.state.synthesizing.ticket
+
+
+def recording(name: str) -> Recording:
+    return Recording(name=name, pcm=RECORDED)
 
 
 @given("Claude is silent", target_fixture="turn")
@@ -480,3 +486,36 @@ def the_announcement_follows_the_acknowledgement(turn: Turn) -> None:
 @then("the hold music stops before the announcement")
 def the_hold_music_stops_before_the_announcement(turn: Turn) -> None:
     assert turn.commands[:2] == (StopHoldMusic(), Announce(at_work=2))
+
+
+@when(parsers.parse('Claude plays the recording "{name}"'), target_fixture="turn")
+def claude_plays_the_recording(turn: Turn, name: str) -> Turn:
+    return after(turn, Asked(sentences=(recording(name),)))
+
+
+@given(parsers.parse('Claude played the recording "{name}"'), target_fixture="turn")
+def claude_played_the_recording(turn: Turn, name: str) -> Turn:
+    return claude_plays_the_recording(turn, name)
+
+
+@given(parsers.parse('Claude is playing the recording "{name}"'), target_fixture="turn")
+def claude_is_playing_the_recording(name: str) -> Turn:
+    asked = after(Turn(state=Conversation()), Asked(sentences=(recording(name),)))
+    return after(asked, Synthesized(ticket=synthesizing_ticket(asked), pcm=RECORDED, duration=3.0, at=0.0))
+
+
+@when(parsers.parse('the recording "{name}" is ready'), target_fixture="turn")
+def the_recording_is_ready(turn: Turn, name: str) -> Turn:
+    assert turn.state.synthesizing is not None
+    assert turn.state.synthesizing.sentence == recording(name)
+    return after(turn, Synthesized(ticket=synthesizing_ticket(turn), pcm=b"voice", duration=1.0, at=SILENT_AT))
+
+
+@then(parsers.parse('Claude starts saying the recording "{name}"'))
+def claude_starts_saying_the_recording(turn: Turn, name: str) -> None:
+    assert Synthesize(ticket=synthesizing_ticket(turn), sentence=recording(name)) in turn.commands
+
+
+@then(parsers.parse('Claude still has to say "{first}" and "{second}" before the recording "{name}"'))
+def claude_still_has_to_say_then_the_recording(turn: Turn, first: str, second: str, name: str) -> None:
+    assert unspoken(turn.state) == (first, second, recording(name))

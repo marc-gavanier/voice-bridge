@@ -442,6 +442,39 @@ Feature: Turn taking
       When the wait goes on
       Then the hold music starts
 
+  Rule: A recording Claude plays takes its turn like a sentence of its reply
+    Claude can have the bridge play an audio file to the speaker. It is heard after what Claude
+    still has to say, stops the hold music as a sentence does, and speaking over it cuts it
+    like Claude's voice.
+
+    Scenario: A recording played while Claude is silent is made ready at once
+      Given Claude is silent
+      When Claude plays the recording "sample.wav"
+      Then Claude starts saying the recording "sample.wav"
+
+    Scenario: A recording waits for the sentences still to say
+      Given Claude is silent
+      And Claude replied "Here it is." then "Listen."
+      When Claude plays the recording "sample.wav"
+      Then Claude still has to say "Here it is." and "Listen." before the recording "sample.wav"
+
+    Scenario: A ready recording stops the hold music before it plays
+      Given the hold music plays
+      And Claude played the recording "sample.wav"
+      When the recording "sample.wav" is ready
+      Then the hold music stops before Claude speaks
+
+    Scenario: Speaking over a recording stops it
+      Given Claude is playing the recording "sample.wav"
+      When the speaker starts talking
+      Then Claude's voice stops
+
+    Scenario: A noise plays the cut recording again
+      Given Claude is playing the recording "sample.wav"
+      And the speaker cut Claude off
+      When the speaker only makes a noise
+      Then Claude starts saying the recording "sample.wav"
+
   Rule: The bridge announces the agents at work once nobody speaks
     The bridge says how many agents are at work each time their count changes to two or more,
     from clips voiced at startup. A single agent at work, or none, is never announced: the hold
