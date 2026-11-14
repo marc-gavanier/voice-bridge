@@ -23,17 +23,24 @@ neutral_acknowledgements = [
   "Bien recibido.",
   "Mensaje recibido.",
   "Vale, recibido.",
+  "Alto y claro.",
   "Entendido.",
-  "Bien entendido.",
+  "Vale, entendido.",
   "Comprendido.",
+  "Comprendo.",
+  "Captado.",
   "Te he oído bien.",
   "Anotado.",
-  "Tomo nota.",
+  "Vale, anotado.",
   "Apuntado.",
+  "Lo apunto.",
+  "Tomo nota.",
+  "Ya lo tengo.",
   "De acuerdo.",
   "Vale.",
   "Ah, vale.",
   "Ya veo.",
+  "Te sigo.",
 ]
 
 [announcements]
@@ -68,13 +75,26 @@ examples = [
   "No no no, para.",
   "Ya basta, para.",
   "Deja de buscar.",
+  "Para todo.",
+  "Corta.",
+  "Detén todo.",
+  "¿Puedes parar ahí?",
 ]
 sentences = [
   "Detengo todo el trabajo en curso.",
   "Paro inmediatamente.",
   "Paro ahora mismo.",
   "Paro ya.",
-  "Me detengo en el acto.",
+  "Paro ahora.",
+  "Paro aquí.",
+  "Paro todo.",
+  "Lo paro todo.",
+  "Me detengo.",
+  "Me detengo ahora mismo.",
+  "Lo dejo aquí.",
+  "Corto todo.",
+  "Interrumpo todo.",
+  "Interrumpo el trabajo en curso.",
 ]
 
 [[acknowledgements]]
@@ -97,14 +117,25 @@ examples = [
   "¿Cómo cuelgo?",
   "Lo dejamos aquí.",
   "Bueno, lo dejamos aquí.",
+  "Lo dejamos por hoy.",
+  "Venga, hasta mañana.",
 ]
 sentences = [
   "Hasta luego.",
   "Hasta pronto.",
   "Hasta la próxima.",
+  "Hasta otra.",
+  "Adiós.",
+  "Nos vemos.",
+  "Nos vemos pronto.",
+  "Cuídate.",
   "Lo dejamos aquí.",
-  "Vale, paramos.",
+  "Vale, lo dejamos aquí.",
   "Entendido, lo dejamos aquí.",
+  "Lo dejamos por hoy.",
+  "Ha sido un placer.",
+  "Gracias por la sesión.",
+  "Cierro la sesión.",
 ]
 
 [[acknowledgements]]
@@ -131,6 +162,10 @@ sentences = [
   "Te escucho.",
   "Adelante.",
   "Tómate tu tiempo.",
+  "Sin prisa.",
+  "Sigue.",
+  "Dime.",
+  "¿Decías?",
 ]
 
 [[acknowledgements]]
@@ -171,10 +206,15 @@ examples = [
 ]
 sentences = [
   "Aquí estoy.",
+  "Estoy aquí.",
+  "Aquí me tienes.",
+  "Estoy contigo.",
   "Te oigo.",
   "Te oigo bien.",
-  "Presente.",
-  "Estoy aquí.",
+  "Te oigo muy bien.",
+  "Te oigo perfectamente.",
+  "Te oigo alto y claro.",
+  "Te recibo bien.",
   "Te escucho.",
 ]
 
@@ -201,9 +241,16 @@ examples = [
 ]
 sentences = [
   "Con mucho gusto.",
+  "Con gusto.",
   "De nada.",
+  "No hay de qué.",
   "El placer es mío.",
   "Es un placer.",
+  "Un placer.",
+  "Encantada de ayudar.",
+  "Para eso estoy.",
+  "Faltaría más.",
+  "Cuando quieras.",
 ]
 
 [[acknowledgements]]
@@ -225,11 +272,23 @@ examples = [
   "Eres un crack.",
   "Es impresionante.",
   "Bravo, es justo lo que quería.",
+  "Buen trabajo, gracias.",
+  "Qué máquina.",
+  "Te has lucido.",
+  "Muy bien hecho.",
 ]
 sentences = [
   "Gracias, me alegra oírlo.",
+  "Me alegra oírlo.",
   "Muchas gracias.",
+  "Mil gracias.",
+  "Gracias.",
   "Gracias, eres muy amable.",
+  "Gracias, qué amable.",
+  "Qué amable.",
+  "Gracias, me hace ilusión.",
+  "Gracias por el cumplido.",
+  "Gracias, se agradece.",
 ]
 
 [[acknowledgements]]
@@ -255,14 +314,26 @@ examples = [
 sentences = [
   "Lo compruebo.",
   "Voy a mirarlo.",
+  "Voy a ver.",
   "Le echo un vistazo.",
+  "Déjame mirar.",
+  "Lo reviso.",
+  "Voy a revisarlo.",
   "Veamos.",
+  "Vamos a ver.",
   "A ver qué pasa.",
-  "Vaya.",
+  "Vaya, lo miro.",
+  "Uy, lo miro.",
   "Ah, lo miro.",
   "Anotado, lo busco.",
   "Un momento, lo miro.",
   "Un momento, lo compruebo.",
+  "Un segundo, lo miro.",
+  "Un segundo, lo compruebo.",
+  "Busco la causa.",
+  "A ver de dónde viene.",
+  "Voy a ver qué falla.",
+  "Lo investigo.",
 ]
 
 [[acknowledgements]]
@@ -285,15 +356,24 @@ examples = [
   "Crea una incidencia para eso.",
   "Puedes borrarlo.",
   "¿Puedes contarme más sobre ese modelo pequeño?",
+  "¿Puedes leer el artículo de Wikipedia sobre Saboya?",
 ]
 sentences = [
   "Me encargo.",
+  "Me encargo yo.",
   "Me pongo con ello.",
+  "Voy con ello.",
+  "Me ocupo.",
+  "Déjamelo a mí.",
+  "Lo hago.",
+  "Ahora mismo.",
+  "Enseguida.",
+  "Marchando.",
   "Allá vamos.",
   "Lo miro.",
   "Déjame mirar.",
-  "Lo veo.",
-  "Lo lanzo.",
+  "Un momento, me encargo.",
+  "Un segundo, me pongo con ello.",
 ]
 
 [[acknowledgements]]
@@ -314,16 +394,29 @@ examples = [
   "¿Tienes alguna pregunta?",
   "¿Dónde estábamos?",
   "¿Queda algo por hacer?",
+  "¿Te ha dado tiempo a leer el artículo o te has parado antes?",
 ]
 sentences = [
-  "Lo pienso.",
+  "Lo pienso un momento.",
+  "Déjame pensar.",
+  "Déjame pensarlo.",
   "A ver.",
+  "A ver, a ver.",
+  "Vamos a ver.",
+  "Pues a ver.",
   "Buena pregunta.",
   "Déjame ver.",
   "Lo compruebo.",
+  "Lo miro.",
+  "Lo busco.",
+  "Me informo.",
   "Espera, lo miro.",
+  "Espera, lo compruebo.",
+  "Espera, que lo pienso.",
   "Un momento, lo miro.",
   "Un momento, lo compruebo.",
+  "Un segundo, lo miro.",
+  "Un segundo, lo compruebo.",
 ]
 
 [[acknowledgements]]
@@ -344,9 +437,19 @@ examples = [
   "Tengo una sugerencia.",
   "Tengo que contarte una cosa.",
   "Escucha, estaba pensando…",
+  "Tengo algo que proponerte.",
+  "Oye, se me ocurre una cosa.",
 ]
 sentences = [
   "Te escucho.",
+  "Soy toda oídos.",
+  "Cuéntame.",
+  "A ver, cuéntame.",
+  "Cuenta, cuenta.",
+  "Dime.",
+  "Adelante.",
+  "Dispara.",
+  "¿Ah, sí?",
 ]
 
 [[acknowledgements]]
@@ -370,9 +473,16 @@ examples = [
 ]
 sentences = [
   "Entiendo la idea.",
+  "Capto la idea.",
+  "Pillo la idea.",
+  "Ya veo por dónde vas.",
+  "Entiendo lo que dices.",
+  "Ya entiendo.",
+  "Ah, ya veo.",
   "Tiene sentido.",
   "Interesante.",
-  "Ah, ya veo.",
+  "Apunto la idea.",
+  "Entiendo el planteamiento.",
 ]
 
 [[acknowledgements]]
@@ -398,13 +508,21 @@ examples = [
 sentences = [
   "De acuerdo.",
   "Entendido.",
+  "Ah, entendido.",
   "Sin problema.",
+  "Vale, sin problema.",
+  "Ningún problema.",
   "Vale.",
   "Ah, vale.",
+  "Ah, ya veo.",
   "Bueno, de acuerdo.",
-  "Lo corrijo.",
   "No pasa nada.",
+  "Lo corrijo.",
+  "Lo cambio.",
+  "Lo rectifico.",
+  "Lo replanteo.",
   "Cambio de rumbo.",
+  "Cambio de enfoque.",
 ]
 
 [[acknowledgements]]
@@ -425,14 +543,27 @@ examples = [
   "Sí, puedes empezar.",
   "Venga, empieza.",
   "Vamos, ya.",
+  "Venga, vamos.",
+  "Dale.",
+  "Tira.",
+  "Vamos a ello.",
+  "Lánzate.",
 ]
 sentences = [
   "Allá vamos.",
+  "Allá voy.",
   "Vamos.",
+  "¡Vamos allá!",
+  "Venga, vamos.",
+  "Vamos a ello.",
+  "Manos a la obra.",
   "En marcha.",
   "Hagámoslo.",
   "Empiezo.",
-  "¡Vamos allá!",
+  "Empezamos.",
+  "Arrancamos.",
+  "Me pongo con ello.",
+  "Marchando.",
   "Hecho.",
 ]
 
@@ -455,13 +586,25 @@ examples = [
   "Déjalo así, está bien.",
   "Sí, vale, lo dejamos.",
   "Me vale.",
+  "Justo eso.",
+  "No, es justo eso.",
+  "Me parece bien.",
+  "Así está bien.",
+  "Déjalo así.",
+  "Déjalo como está.",
+  "Sí, se ha parado bien.",
 ]
 sentences = [
   "Perfecto.",
   "Muy bien.",
+  "Genial.",
+  "Estupendo.",
+  "Excelente.",
+  "Fenomenal.",
+  "Bien.",
   "De acuerdo.",
   "Vale.",
   "Entendido.",
-  "Genial.",
-  "Bien.",
+  "Me parece bien.",
+  "Hecho.",
 ]
