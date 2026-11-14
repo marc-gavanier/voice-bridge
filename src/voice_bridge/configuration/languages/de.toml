@@ -20,20 +20,25 @@ hallucination_prefixes = [
 ]
 neutral_acknowledgements = [
   "Angekommen.",
-  "Nachricht erhalten.",
+  "Ist angekommen.",
   "Okay, angekommen.",
+  "Nachricht erhalten.",
+  "Laut und deutlich.",
   "Verstanden.",
-  "Gut verstanden.",
+  "Okay, verstanden.",
   "Alles klar.",
+  "Verstehe.",
+  "Ah, verstehe.",
+  "Ich verstehe.",
   "Notiert.",
   "Ist notiert.",
-  "Ich notiere.",
-  "Ich nehme das auf.",
+  "Okay, notiert.",
+  "Hab's notiert.",
+  "Notier ich mir.",
+  "Hab ich.",
   "In Ordnung.",
   "Okay.",
   "Ah, okay.",
-  "Ich verstehe.",
-  "Ich sehe.",
 ]
 
 [announcements]
@@ -68,13 +73,26 @@ examples = [
   "Nein nein nein, stopp.",
   "Es reicht, hör auf.",
   "Lass es, such nicht weiter.",
+  "Stopp, hör auf.",
+  "Hör da auf.",
+  "Kannst du da aufhören?",
+  "Brich das ab.",
 ]
 sentences = [
-  "Ich breche alle laufende Arbeit ab.",
+  "Ich breche alles ab, was gerade läuft.",
   "Ich höre sofort auf.",
-  "Ich stoppe sofort.",
   "Ich höre jetzt auf.",
-  "Ich halte auf der Stelle an.",
+  "Ich höre auf der Stelle auf.",
+  "Ich höre auf.",
+  "Ich höre hier auf.",
+  "Ich breche ab.",
+  "Ich breche alles ab.",
+  "Ich breche sofort ab.",
+  "Ich stoppe sofort.",
+  "Ich stoppe alles.",
+  "Ich stoppe jetzt.",
+  "Ich unterbreche alles.",
+  "Ich unterbreche sofort.",
 ]
 
 [[acknowledgements]]
@@ -97,14 +115,25 @@ examples = [
   "Wie lege ich auf?",
   "Wir hören hier auf.",
   "Gut, hier hören wir auf.",
+  "Schluss für heute.",
+  "Machen wir Schluss, tschüss.",
 ]
 sentences = [
   "Bis später.",
   "Bis bald.",
+  "Bis dann.",
   "Bis zum nächsten Mal.",
+  "Tschüss.",
+  "Tschüss, bis bald.",
+  "Mach's gut.",
+  "Auf Wiederhören.",
   "Wir hören hier auf.",
   "Gut, wir hören auf.",
-  "Verstanden, wir machen hier Schluss.",
+  "Alles klar, wir machen hier Schluss.",
+  "Machen wir Schluss für heute.",
+  "Es war mir ein Vergnügen.",
+  "Danke für die Sitzung.",
+  "Ich beende die Sitzung.",
 ]
 
 [[acknowledgements]]
@@ -129,8 +158,12 @@ examples = [
 sentences = [
   "Ja?",
   "Ich höre zu.",
+  "Ich bin ganz Ohr.",
   "Sprich weiter.",
+  "Erzähl weiter.",
   "Lass dir Zeit.",
+  "Ganz in Ruhe.",
+  "Du sagtest?",
 ]
 
 [[acknowledgements]]
@@ -171,10 +204,15 @@ examples = [
 ]
 sentences = [
   "Ich bin da.",
+  "Bin da.",
+  "Ich bin hier.",
+  "Ich bin bei dir.",
   "Ich höre dich.",
   "Ich höre dich gut.",
-  "Hier.",
-  "Ich bin hier.",
+  "Ich höre dich sehr gut.",
+  "Ich höre dich bestens.",
+  "Ich höre dich einwandfrei.",
+  "Ich höre dich laut und deutlich.",
   "Ich höre zu.",
 ]
 
@@ -201,9 +239,16 @@ examples = [
 ]
 sentences = [
   "Gern geschehen.",
+  "Gerne.",
   "Sehr gern.",
-  "Das mache ich gern.",
   "Immer gern.",
+  "Bitte schön.",
+  "Keine Ursache.",
+  "Nichts zu danken.",
+  "Kein Problem.",
+  "Jederzeit.",
+  "Das mache ich gern.",
+  "Freut mich, dass ich helfen konnte.",
 ]
 
 [[acknowledgements]]
@@ -225,11 +270,24 @@ examples = [
   "Du bist echt gut.",
   "Das ist beeindruckend.",
   "Bravo, genau das wollte ich.",
+  "Gute Arbeit, danke.",
+  "Klasse gemacht.",
+  "Spitze.",
+  "Du bist der Hammer.",
+  "Sauber gemacht.",
 ]
 sentences = [
-  "Danke, das freut mich.",
+  "Danke.",
+  "Danke schön.",
+  "Danke sehr.",
   "Vielen Dank.",
+  "Oh, danke.",
+  "Danke, das freut mich.",
+  "Das freut mich.",
   "Danke, das ist nett.",
+  "Das ist nett von dir.",
+  "Danke, das ist lieb von dir.",
+  "Danke für das Lob.",
 ]
 
 [[acknowledgements]]
@@ -254,15 +312,28 @@ examples = [
 ]
 sentences = [
   "Ich prüfe das.",
+  "Ich prüfe das sofort.",
+  "Ich schaue nach.",
+  "Ich sehe nach.",
+  "Ich gucke mal.",
   "Ich schaue mir das an.",
   "Ich werfe einen Blick darauf.",
+  "Lass mich nachsehen.",
   "Mal sehen.",
   "Schauen wir mal.",
+  "Mal schauen, was da los ist.",
+  "Mal sehen, woran es liegt.",
+  "Ich suche die Ursache.",
+  "Ich schaue, woher das kommt.",
+  "Ich gehe dem nach.",
   "Oh, Mist.",
   "Oh, ich schaue nach.",
-  "Notiert, ich suche.",
+  "Oh, ich prüfe das.",
+  "Notiert, ich schaue nach.",
   "Einen Moment, ich schaue nach.",
   "Einen Moment, ich prüfe das.",
+  "Sekunde, ich schaue nach.",
+  "Augenblick, ich prüfe das.",
 ]
 
 [[acknowledgements]]
@@ -285,15 +356,24 @@ examples = [
   "Leg dafür ein Ticket an.",
   "Du kannst es löschen.",
   "Kannst du mir mehr über dieses kleine Modell erzählen?",
+  "Kannst du den Wikipedia-Artikel über Savoyen lesen?",
 ]
 sentences = [
   "Ich kümmere mich darum.",
+  "Ich übernehme das.",
+  "Überlass das mir.",
+  "Mach ich.",
+  "Mach ich gleich.",
+  "Wird gemacht.",
+  "Kommt sofort.",
+  "Sofort.",
   "Bin dran.",
   "Los geht's.",
   "Ich schaue nach.",
   "Lass mich nachsehen.",
   "Ich sehe mir das an.",
-  "Ich starte.",
+  "Moment, ich kümmere mich darum.",
+  "Sekunde, bin dran.",
 ]
 
 [[acknowledgements]]
@@ -314,16 +394,30 @@ examples = [
   "Hast du Fragen?",
   "Wo waren wir stehen geblieben?",
   "Gibt es noch etwas zu tun?",
+  "Hattest du Zeit, den Artikel zu lesen, oder hast du vorher aufgehört?",
 ]
 sentences = [
   "Ich denke nach.",
-  "Mal sehen.",
-  "Gute Frage.",
   "Lass mich nachdenken.",
+  "Lass mich überlegen.",
+  "Hm, lass mich überlegen.",
+  "Mal überlegen.",
+  "Mal sehen.",
+  "Mal schauen.",
+  "Gute Frage.",
   "Ich prüfe das.",
+  "Ich schaue nach.",
+  "Lass mich nachsehen.",
+  "Ich finde es heraus.",
+  "Ich informiere mich.",
   "Warte, ich schaue nach.",
+  "Warte, ich prüfe das.",
+  "Warte, ich überlege.",
   "Einen Moment, ich schaue nach.",
   "Einen Moment, ich prüfe das.",
+  "Moment, ich überlege.",
+  "Sekunde, ich überlege.",
+  "Sekunde, ich schaue nach.",
 ]
 
 [[acknowledgements]]
@@ -344,9 +438,19 @@ examples = [
   "Ich hätte eine Anregung.",
   "Ich muss dir etwas sagen.",
   "Hör mal, ich dachte gerade…",
+  "Ich hätte da einen Vorschlag.",
+  "Du, mir kommt da eine Idee.",
 ]
 sentences = [
   "Ich höre zu.",
+  "Ich bin ganz Ohr.",
+  "Erzähl.",
+  "Erzähl mal.",
+  "Schieß los.",
+  "Lass hören.",
+  "Leg los.",
+  "Na, dann erzähl.",
+  "Ich bin gespannt.",
 ]
 
 [[acknowledgements]]
@@ -370,9 +474,16 @@ examples = [
 ]
 sentences = [
   "Ich verstehe die Idee.",
-  "Das ergibt Sinn.",
-  "Interessant.",
+  "Ich verstehe, was du meinst.",
+  "Ich sehe, worauf du hinauswillst.",
+  "Ich verstehe das Prinzip.",
   "Ah, verstehe.",
+  "Aha, verstehe.",
+  "Das ergibt Sinn.",
+  "Das ist nachvollziehbar.",
+  "Interessant.",
+  "Spannend.",
+  "Ich notiere mir die Idee.",
 ]
 
 [[acknowledgements]]
@@ -398,13 +509,20 @@ examples = [
 sentences = [
   "In Ordnung.",
   "Verstanden.",
-  "Kein Problem.",
+  "Ah, verstanden.",
   "Alles klar.",
   "Ah, okay.",
+  "Ah, verstehe.",
   "Na gut.",
-  "Ich korrigiere das.",
+  "Kein Problem.",
+  "Okay, kein Problem.",
   "Geht klar.",
-  "Ich ändere den Kurs.",
+  "Ich korrigiere das.",
+  "Ich passe das an.",
+  "Ich ändere das.",
+  "Ich überdenke das.",
+  "Ich versuche es anders.",
+  "Dann eben anders.",
 ]
 
 [[acknowledgements]]
@@ -425,14 +543,28 @@ examples = [
   "Fang an.",
   "Na los, mach.",
   "Ja, starte es.",
+  "Mach mal.",
+  "Na los.",
+  "Dann mal los.",
+  "Leg einfach los.",
+  "Ja, los geht's.",
+  "Okay, wir beginnen mit dem Teil zum Stoppen.",
 ]
 sentences = [
   "Los geht's.",
   "Auf geht's.",
+  "Ab geht's.",
   "Dann los.",
+  "Na dann, los geht's.",
+  "Dann legen wir los.",
+  "Packen wir's an.",
   "Machen wir das.",
   "Ich lege los.",
-  "Los!",
+  "Ich fange an.",
+  "Ran an die Arbeit.",
+  "Bin schon dabei.",
+  "Mach ich.",
+  "Wird gemacht.",
   "Geht klar.",
 ]
 
@@ -455,13 +587,24 @@ examples = [
   "Wir lassen es so, das ist gut.",
   "Ja, passt, so bleibt es.",
   "Das passt mir.",
+  "Genau.",
+  "Nein, genau so ist es.",
+  "Passt.",
+  "So ist es gut.",
+  "Ja, es hat sauber aufgehört.",
 ]
 sentences = [
   "Perfekt.",
+  "Super.",
+  "Prima.",
+  "Klasse.",
+  "Wunderbar.",
   "Sehr gut.",
+  "Gut.",
+  "Passt.",
   "In Ordnung.",
   "Okay.",
   "Verstanden.",
-  "Super.",
-  "Gut.",
+  "Einverstanden.",
+  "Abgemacht.",
 ]
