@@ -7,6 +7,7 @@ from voice_bridge.features.conversation.domain.board import (
     Board,
     Finished,
     Task,
+    act,
     finish,
     forwarded,
     heard,
@@ -238,3 +239,51 @@ def test_claude_busy_without_a_message_forwarded_changes_nothing() -> None:
 def test_a_reconciliation_makes_the_board_reliable_again() -> None:
     late = heard(forwarded(Board(), at=MORNING), at=SILENT_TOO_LONG)
     assert unreliable_since(reconcile(late, (), at=SILENT_TOO_LONG, leaving="")[0], now=SILENT_TOO_LONG) is None
+
+
+AT_THE_CI = LATER + timedelta(minutes=2)
+
+
+def acted_once() -> Board:
+    return act(AT_WORK, agent_id="a1", action="Watch the CI", at=LATER)
+
+
+def test_an_agent_at_work_tells_its_latest_action_and_when() -> None:
+    assert acted_once().at_work[0] == replace(SEARCHER, last_action="Watch the CI", last_action_at=LATER, actions=1)
+
+
+def test_an_action_leaves_the_other_agents_unchanged() -> None:
+    assert acted_once().at_work[1] == WRITER
+
+
+def test_a_later_action_replaces_the_former_and_counts_both() -> None:
+    later = act(acted_once(), agent_id="a1", action="Read board.py", at=AT_THE_CI).at_work[0]
+    assert (later.last_action, later.last_action_at, later.actions) == ("Read board.py", AT_THE_CI, 2)
+
+
+def test_an_action_heard_after_a_later_one_is_counted_but_not_shown() -> None:
+    late = act(
+        act(AT_WORK, agent_id="a1", action="Read board.py", at=AT_THE_CI),
+        agent_id="a1",
+        action="Watch the CI",
+        at=LATER,
+    )
+    assert (late.at_work[0].last_action, late.at_work[0].last_action_at, late.at_work[0].actions) == (
+        "Read board.py",
+        AT_THE_CI,
+        2,
+    )
+
+
+def test_an_action_at_the_same_moment_replaces_the_former() -> None:
+    assert act(acted_once(), agent_id="a1", action="Read board.py", at=LATER).at_work[0].last_action == "Read board.py"
+
+
+def test_an_action_of_an_agent_not_at_work_changes_nothing() -> None:
+    assert act(AT_WORK, agent_id="a9", action="Watch the CI", at=LATER) == AT_WORK
+
+
+def test_a_finished_agent_keeps_its_latest_action() -> None:
+    assert finish(acted_once(), agent_id="a1", last_message="Done.", at=AT_THE_CI)[0].finished[0].agent.last_action == (
+        "Watch the CI"
+    )

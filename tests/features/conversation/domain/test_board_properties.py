@@ -1,14 +1,17 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import reduce
+from itertools import pairwise
 
 from hypothesis import given
 from hypothesis import strategies as st
 
 from voice_bridge.features.conversation.domain.board import (
     KEPT_FINISHED,
+    Agent,
     Board,
     Changed,
     Task,
+    act,
     finish,
     reconcile,
     start,
@@ -75,3 +78,37 @@ def test_an_agent_appears_at_most_once_on_the_board(moves: list[Move]) -> None:
 @given(MOVES)
 def test_the_finished_agents_kept_never_exceed_the_limit(moves: list[Move]) -> None:
     assert len(history(moves)[-1][0].finished) <= KEPT_FINISHED
+
+
+type Action = tuple[str, int]
+ACTIONS = st.lists(st.tuples(IDS, st.integers(min_value=0, max_value=600)), max_size=40)
+STARTED = Board(
+    at_work=tuple(Agent(id=agent_id, kind="Explore", since=MORNING) for agent_id in ("a1", "a2", "a3", "a4"))
+)
+NEVER = MORNING - timedelta(days=1)
+
+
+def acted(board: Board, action: Action) -> Board:
+    agent_id, seconds = action
+    return act(board, agent_id=agent_id, action=f"Bash {seconds}", at=MORNING + timedelta(seconds=seconds))
+
+
+def boards_acted(actions: list[Action]) -> list[Board]:
+    return reduce(lambda boards, action: [*boards, acted(boards[-1], action)], actions, [STARTED])
+
+
+def moments(board: Board) -> dict[str, datetime]:
+    return {agent.id: agent.last_action_at or NEVER for agent in board.at_work}
+
+
+def went_back(before: Board, after: Board) -> list[str]:
+    return [agent_id for agent_id, moment in moments(before).items() if moments(after)[agent_id] < moment]
+
+
+def gone_back(boards: list[Board]) -> list[list[str]]:
+    return [went_back(before, after) for before, after in pairwise(boards) if went_back(before, after)]
+
+
+@given(ACTIONS)
+def test_the_latest_action_of_an_agent_never_goes_back_in_time(actions: list[Action]) -> None:
+    assert gone_back(boards_acted(actions)) == []

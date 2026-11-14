@@ -20,6 +20,9 @@ class Agent:
     background: bool = False
     resumed: int = 0
     resumed_at: datetime | None = None
+    last_action: str = ""
+    last_action_at: datetime | None = None
+    actions: int = 0
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -71,6 +74,20 @@ def finish(board: Board, *, agent_id: str, last_message: str, at: datetime) -> C
     left = tuple(agent for agent in board.at_work if agent.id != agent_id)
     finished = (*board.finished, Finished(agent=done[0], ended=at, last_message=last_message))
     return replace(board, at_work=left, finished=finished[-KEPT_FINISHED:]), AgentsChanged(at_work=len(left))
+
+
+def _acted(agent: Agent, action: str, at: datetime) -> Agent:
+    counted = replace(agent, actions=agent.actions + 1)
+    if agent.last_action_at is not None and at < agent.last_action_at:
+        return counted
+    return replace(counted, last_action=action, last_action_at=at)
+
+
+def act(board: Board, *, agent_id: str, action: str, at: datetime) -> Board:
+    return replace(
+        board,
+        at_work=tuple(_acted(agent, action, at) if agent.id == agent_id else agent for agent in board.at_work),
+    )
 
 
 def _listed(agent: Agent, running: dict[str, Task]) -> Agent:
