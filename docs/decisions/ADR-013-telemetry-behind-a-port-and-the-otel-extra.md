@@ -1,7 +1,7 @@
 # ADR-013 — Telemetry behind a port and the otel extra, errors through the log
 
 **Date**: 2026-11-13
-**Status**: accepted
+**Status**: accepted, partly superseded by [ADR-020](ADR-020-traces-and-metrics-kept-in-local-files-by-default.md): traces and metrics are written to local files by default, and the SDK is a dependency of every install
 
 ## Context
 
