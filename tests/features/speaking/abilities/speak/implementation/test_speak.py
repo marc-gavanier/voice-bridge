@@ -12,6 +12,10 @@ def test_a_reply_becomes_sentences_written_for_the_ear() -> None:
     )
 
 
+def kept(pcm: bytes, _rate: int, _factor: float) -> bytes:
+    return pcm
+
+
 def failing(request: httpx.Request) -> httpx.Response:
     return httpx.Response(500, request=request)
 
@@ -20,6 +24,13 @@ def failing(request: httpx.Request) -> httpx.Response:
 async def test_a_sentence_without_voice_is_skipped() -> None:
     client = httpx.AsyncClient(transport=httpx.MockTransport(failing), base_url="http://speech")
     engine = SpeechEngine(
-        client=client, model="m", voice="fr_female", gain=1.0, speed=1.0, rate=48000, health="/health"
+        client=client,
+        model="m",
+        voice="fr_female",
+        gain=1.0,
+        speed=1.0,
+        stretch=kept,
+        rate=48000,
+        health="/health",
     )
     assert await voice_of(engine, "Hello.") is None

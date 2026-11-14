@@ -1,12 +1,15 @@
 import wave
 from dataclasses import dataclass
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import httpx
 import stamina
 
-from voice_bridge.libraries.audio.pcm import boost
-from voice_bridge.libraries.audio.wav import decode
+from voice_bridge.libraries.audio.pcm import boost, resample
+from voice_bridge.libraries.audio.wav import read
+
+if TYPE_CHECKING:
+    from voice_bridge.features.speaking.abilities.speak.domain.ports import Stretch
 
 HEALTH_TIMEOUT: Final = 2.0
 LONGEST_WAIT_FOR_READINESS: Final = 5.0
@@ -27,6 +30,7 @@ class SpeechEngine:
     voice: str
     gain: float
     speed: float
+    stretch: Stretch
     rate: int
     health: str
 
@@ -37,11 +41,12 @@ async def synthesize(engine: SpeechEngine, sentence: str) -> bytes:
         "input": sentence,
         "voice": engine.voice,
         "response_format": "wav",
-        "speed": engine.speed,
     }
     try:
         response = (await engine.client.post("/v1/audio/speech", json=payload)).raise_for_status()
-        return boost(decode(response.content, rate=engine.rate), engine.gain)
+        pcm, rate = read(response.content)
+        paced = engine.stretch(pcm, rate, engine.speed)
+        return boost(resample(paced, from_rate=rate, to_rate=engine.rate), engine.gain)
     except (httpx.HTTPError, wave.Error, ValueError) as error:
         raise SynthesisError(sentence) from error
 

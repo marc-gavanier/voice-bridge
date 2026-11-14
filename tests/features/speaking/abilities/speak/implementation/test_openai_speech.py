@@ -1,10 +1,12 @@
 import json
+from dataclasses import dataclass, field
 
 import httpx
 import numpy as np
 import pytest
 import stamina
 
+from voice_bridge.features.speaking.abilities.speak.domain.ports import Stretch
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import (
     SpeechEngine,
     SynthesisError,
@@ -18,10 +20,32 @@ pytestmark = pytest.mark.anyio
 
 REFUSED = "connection refused"
 SAMPLES = np.array([1000, -1000], dtype=np.int16).tobytes()
+TENTH_OF_A_SECOND_AT_24_KHZ = bytes(4800)
+
+
+def unchanged(pcm: bytes, _rate: int, _factor: float) -> bytes:
+    return pcm
+
+
+def halved(pcm: bytes, _rate: int, _factor: float) -> bytes:
+    return pcm[: len(pcm) // 2]
+
+
+@dataclass
+class WatchedStretch:
+    asked: list[tuple[int, float]] = field(default_factory=list)
+
+    def __call__(self, pcm: bytes, rate: int, factor: float) -> bytes:
+        self.asked.append((rate, factor))
+        return pcm
 
 
 def engine(
-    handler: httpx.MockTransport, gain: float = 1.0, health: str = "/health", speed: float = 1.0
+    handler: httpx.MockTransport,
+    gain: float = 1.0,
+    health: str = "/health",
+    speed: float = 1.0,
+    stretch: Stretch = unchanged,
 ) -> SpeechEngine:
     return SpeechEngine(
         client=httpx.AsyncClient(transport=handler, base_url="http://speech"),
@@ -29,6 +53,7 @@ def engine(
         voice="fr_female",
         gain=gain,
         speed=speed,
+        stretch=stretch,
         rate=48000,
         health=health,
     )
@@ -43,7 +68,6 @@ SPEECH_REQUEST = {
     "input": "Bonjour.",
     "voice": "fr_female",
     "response_format": "wav",
-    "speed": 1.0,
 }
 
 
@@ -52,15 +76,8 @@ def answering_only_the_speech_request(request: httpx.Request) -> httpx.Response:
     return answering_wav(request) if expected else httpx.Response(400, request=request)
 
 
-def answering_only_at_the_speed(speed: float) -> httpx.MockTransport:
-    def answer(request: httpx.Request) -> httpx.Response:
-        expected = request.url.path == "/v1/audio/speech" and json.loads(request.content) == {
-            **SPEECH_REQUEST,
-            "speed": speed,
-        }
-        return answering_wav(request) if expected else httpx.Response(400, request=request)
-
-    return httpx.MockTransport(answer)
+def answering_at_24_khz(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(200, content=encode(TENTH_OF_A_SECOND_AT_24_KHZ, rate=24000), request=request)
 
 
 def failing(request: httpx.Request) -> httpx.Response:
@@ -87,8 +104,20 @@ async def test_synthesis_asks_the_openai_compatible_speech_endpoint() -> None:
     assert await synthesize(engine(httpx.MockTransport(answering_only_the_speech_request)), "Bonjour.") == SAMPLES
 
 
-async def test_synthesis_asks_for_the_speed_of_the_engine() -> None:
-    assert await synthesize(engine(answering_only_at_the_speed(1.2), speed=1.2), "Bonjour.") == SAMPLES
+async def test_synthesis_leaves_the_pace_to_the_bridge_instead_of_the_server() -> None:
+    faster = engine(httpx.MockTransport(answering_only_the_speech_request), speed=1.2)
+    assert await synthesize(faster, "Bonjour.") == SAMPLES
+
+
+async def test_synthesis_stretches_the_audio_at_the_rate_of_the_server_by_the_speed() -> None:
+    stretch = WatchedStretch()
+    _ = await synthesize(engine(httpx.MockTransport(answering_at_24_khz), speed=1.2, stretch=stretch), "Bonjour.")
+    assert stretch.asked == [(24000, 1.2)]
+
+
+async def test_synthesis_resamples_the_stretched_audio_to_the_rate_of_the_engine() -> None:
+    pcm = await synthesize(engine(httpx.MockTransport(answering_at_24_khz), stretch=halved), "Bonjour.")
+    assert len(pcm) == len(TENTH_OF_A_SECOND_AT_24_KHZ)
 
 
 async def test_a_server_error_is_a_synthesis_error() -> None:
