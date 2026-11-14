@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final, assert_never
 
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
+    AgentActed,
     AgentFinished,
     AgentStarted,
     Busy,
@@ -18,6 +19,7 @@ from voice_bridge.features.conversation.domain.board import (
     Board,
     Finished,
     Task,
+    act,
     finish,
     forwarded,
     heard,
@@ -62,6 +64,9 @@ def _agent(agent: Agent) -> dict[str, str | int | None]:
         "since": _time(agent.since),
         "resumed": agent.resumed,
         "resumed_at": _time(agent.resumed_at),
+        "last_action": agent.last_action,
+        "last_action_at": _time(agent.last_action_at),
+        "actions": agent.actions,
     }
 
 
@@ -112,6 +117,9 @@ class WorkBoard:
                 return self._counted(
                     finish(reconciled, agent_id=agent_id, last_message=last_message, at=self.clock())[0]
                 )
+            case AgentActed(agent_id=agent_id, action=action, at=moment):
+                self.board = act(self.board, agent_id=agent_id, action=action, at=moment)
+                return ()
             case _:
                 assert_never(news)
 

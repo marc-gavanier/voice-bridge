@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
+    AgentActed,
     AgentFinished,
     AgentStarted,
     Busy,
@@ -69,6 +70,9 @@ def test_the_board_reports_the_agents_at_work_with_their_description() -> None:
                 "since": "2026-11-13T09:00:00+00:00",
                 "resumed": 0,
                 "resumed_at": None,
+                "last_action": "",
+                "last_action_at": None,
+                "actions": 0,
             }
         ],
         "finished": [],
@@ -85,8 +89,40 @@ def test_the_board_reports_the_finished_agents_with_their_last_message() -> None
             "since": "2026-11-13T09:00:00+00:00",
             "resumed": 0,
             "resumed_at": None,
+            "last_action": "",
+            "last_action_at": None,
+            "actions": 0,
             "ended": "2026-11-13T09:00:00+00:00",
             "last_message": "Found three.",
+        }
+    ]
+
+
+WATCHING = AgentActed(agent_id="a1", action="Watch the CI", at=MORNING + timedelta(minutes=2, seconds=30.4))
+
+
+def board_with_one_acting() -> WorkBoard:
+    work = board_with_one_at_work()
+    _ = work.events_of(WATCHING, 0.0)
+    return work
+
+
+def test_an_agents_action_changes_no_count() -> None:
+    assert board_with_one_at_work().events_of(WATCHING, 2.0) == ()
+
+
+def test_the_board_reports_the_latest_action_of_an_agent_at_work_and_when() -> None:
+    assert json.loads(board_with_one_acting().report())["at_work"] == [
+        {
+            "id": "a1",
+            "type": "general-purpose",
+            "description": "Search the notes",
+            "since": "2026-11-13T09:00:00+00:00",
+            "resumed": 0,
+            "resumed_at": None,
+            "last_action": "Watch the CI",
+            "last_action_at": "2026-11-13T09:02:30+00:00",
+            "actions": 1,
         }
     ]
 
@@ -121,6 +157,9 @@ def test_the_board_reports_how_often_an_agent_was_resumed_and_when_last() -> Non
             "since": "2026-11-13T09:00:00+00:00",
             "resumed": 1,
             "resumed_at": "2026-11-13T09:00:00+00:00",
+            "last_action": "",
+            "last_action_at": None,
+            "actions": 0,
         }
     ]
 

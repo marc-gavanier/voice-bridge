@@ -3,6 +3,7 @@ import os
 import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 import anyio
@@ -11,6 +12,7 @@ from anyio.streams.memory import MemoryObjectReceiveStream
 
 from voice_bridge.configuration.language import language_pack
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
+    AgentActed,
     Busy,
     News,
     listen_to_claude,
@@ -19,6 +21,15 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 SCRIPTS = Path(sys.executable).parent
 PROMPT = json.dumps({"hook_event_name": "UserPromptSubmit", "prompt": "Bonjour"}).encode()
 AGENT_TOOL = json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Bash", "agent_id": "a1"}).encode()
+AGENT_COMMAND = json.dumps(
+    {
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Bash",
+        "tool_input": {"command": "gh pr checks --watch", "description": "Watch the CI"},
+        "agent_id": "a1",
+        "agent_type": "general-purpose",
+    }
+).encode()
 
 
 def configured_with_an_unknown_key(home: Path) -> dict[str, str]:
@@ -45,16 +56,28 @@ async def listening(socket: Path) -> AsyncGenerator[MemoryObjectReceiveStream[Ne
         tasks.cancel_scope.cancel()
 
 
-async def heard_from_the_hook(home: Path, socket: Path) -> News:
+async def heard_from_the_hook(home: Path, socket: Path, event: bytes = PROMPT) -> News:
     async with listening(socket) as heard:
         arguments = ["--socket", str(socket), "--log-file", str(home / "bridge.log")]
-        _ = await run_hook("voice-bridge-activity-hook", arguments, PROMPT, configured_with_an_unknown_key(home))
+        _ = await run_hook("voice-bridge-activity-hook", arguments, event, configured_with_an_unknown_key(home))
         return await heard.receive()
 
 
 @pytest.mark.anyio
 async def test_the_activity_hook_ignores_a_config_file_it_cannot_read(tmp_path: Path) -> None:
     assert await heard_from_the_hook(tmp_path, tmp_path / "a.sock") == Busy()
+
+
+async def action_told_in_time(home: Path) -> tuple[str, bool]:
+    before = datetime.now().astimezone()
+    heard = await heard_from_the_hook(home, home / "a.sock", AGENT_COMMAND)
+    after = datetime.now().astimezone()
+    return (heard.action, before <= heard.at <= after) if isinstance(heard, AgentActed) else ("", False)
+
+
+@pytest.mark.anyio
+async def test_the_activity_hook_tells_an_agents_tool_call_and_when_it_was_made(tmp_path: Path) -> None:
+    assert await action_told_in_time(tmp_path) == ("Watch the CI", True)
 
 
 @pytest.mark.anyio

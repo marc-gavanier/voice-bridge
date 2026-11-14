@@ -1,10 +1,13 @@
 import logging
 import socket
+from datetime import datetime
+from pathlib import PurePath
 from typing import TYPE_CHECKING, Annotated, ClassVar, Final, Literal, assert_never
+from urllib.parse import urlsplit
 
 import anyio
 from anyio.streams.buffered import BufferedByteReceiveStream
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, ValidationError
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -16,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 LONGEST_LINE: Final = 1024 * 1024
 SEND_TIMEOUT: Final = 1.0
+LONGEST_ACTION: Final = 120
 
 
 class _Message(BaseModel):
@@ -53,7 +57,14 @@ class AgentFinished(_Message):
     tasks: tuple[Task, ...] | None = None
 
 
-type News = Annotated[Busy | Idle | AgentStarted | AgentFinished, Field(discriminator="kind")]
+class AgentActed(_Message):
+    kind: Literal["acted"] = "acted"
+    agent_id: str
+    action: str
+    at: datetime
+
+
+type News = Annotated[Busy | Idle | AgentStarted | AgentFinished | AgentActed, Field(discriminator="kind")]
 
 NEWS: Final = TypeAdapter[News](News)
 
@@ -64,20 +75,50 @@ class _HookEvent(BaseModel):
     agent_id: str = ""
     agent_type: str = ""
     last_assistant_message: str | None = None
+    tool_name: str = ""
+    tool_input: dict[str, JsonValue] = Field(default_factory=dict)
 
 
-def _agent_news(hook: _HookEvent) -> AgentStarted | AgentFinished:
-    if hook.hook_event_name == "SubagentStart":
-        return AgentStarted(agent_id=hook.agent_id, agent_type=hook.agent_type)
-    return AgentFinished(
-        agent_id=hook.agent_id,
-        agent_type=hook.agent_type,
-        last_message=hook.last_assistant_message or "",
-        tasks=hook.background_tasks,
-    )
+def _detail(tool: str, fields: dict[str, str]) -> str:
+    match tool:
+        case "Read" | "Edit" | "Write":
+            return PurePath(fields.get("file_path", "")).name
+        case "WebFetch":
+            return urlsplit(fields.get("url", "")).hostname or ""
+        case "Agent" | "Task":
+            return fields.get("description", "")
+        case "WebSearch":
+            return fields.get("query", "")
+        case "Grep" | "Glob":
+            return fields.get("pattern", "")
+        case _:
+            return ""
 
 
-def news_of(event: str) -> News | None:
+def _action(hook: _HookEvent) -> str:
+    fields = {key: value for key, value in hook.tool_input.items() if isinstance(value, str)}
+    detail = _detail(hook.tool_name, fields)
+    described = fields.get("description", "") if hook.tool_name == "Bash" else ""
+    said = described or (f"{hook.tool_name} {detail}" if detail else hook.tool_name)
+    return " ".join(said.split())[:LONGEST_ACTION]
+
+
+def _agent_news(hook: _HookEvent, at: datetime) -> AgentStarted | AgentFinished | AgentActed | None:
+    match hook.hook_event_name:
+        case "SubagentStart":
+            return AgentStarted(agent_id=hook.agent_id, agent_type=hook.agent_type)
+        case "PreToolUse":
+            return AgentActed(agent_id=hook.agent_id, action=_action(hook), at=at) if hook.agent_id else None
+        case _:
+            return AgentFinished(
+                agent_id=hook.agent_id,
+                agent_type=hook.agent_type,
+                last_message=hook.last_assistant_message or "",
+                tasks=hook.background_tasks,
+            )
+
+
+def news_of(event: str, *, at: datetime) -> News | None:
     try:
         hook = _HookEvent.model_validate_json(event)
     except ValidationError:
@@ -89,8 +130,8 @@ def news_of(event: str) -> News | None:
             return Busy(tasks=hook.background_tasks) if hook.background_tasks else Idle(tasks=hook.background_tasks)
         case "StopFailure" | "SessionEnd":
             return Idle()
-        case "SubagentStart" | "SubagentStop":
-            return _agent_news(hook)
+        case "SubagentStart" | "SubagentStop" | "PreToolUse":
+            return _agent_news(hook, at)
         case _:
             return None
 
@@ -103,6 +144,8 @@ def _said(news: News) -> str:
             return f"agent {news.agent_id} started, of type {news.agent_type!r}"
         case AgentFinished():
             return f"agent {news.agent_id} finished, of type {news.agent_type!r}"
+        case AgentActed():
+            return f"agent {news.agent_id} did {news.action!r}"
         case _:
             assert_never(news)
 
