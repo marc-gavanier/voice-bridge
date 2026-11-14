@@ -148,6 +148,7 @@ sentences = [
 [[acknowledgements]]
 name = "presence"
 greets = true
+answers = true
 examples = [
   "Can you hear me?",
   "Do you hear me?",
@@ -192,6 +193,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "thanks"
+answers = true
 examples = [
   "Thanks.",
   "Thank you.",
@@ -219,6 +221,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "compliment"
+answers = true
 examples = [
   "Well done.",
   "Great job.",

@@ -135,6 +135,7 @@ sentences = [
 [[acknowledgements]]
 name = "presence"
 greets = true
+answers = true
 examples = [
   "هل تسمعني؟",
   "هل تسمعني جيدًا؟",
@@ -178,6 +179,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "thanks"
+answers = true
 examples = [
   "شكرًا.",
   "شكرًا جزيلًا.",
@@ -205,6 +207,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "compliment"
+answers = true
 examples = [
   "أحسنت.",
   "عمل رائع.",

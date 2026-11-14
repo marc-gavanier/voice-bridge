@@ -217,6 +217,7 @@ def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
                 name=route.name,
                 threshold=settings.understanding.threshold if route.threshold is None else route.threshold,
                 stops=route.stops,
+                answers=route.answers,
             )
             for route in routes
         ),
@@ -293,8 +294,12 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         await _route(each, events_in, utterances_in, settings.hearing.silence)
 
     async def transcribed(text: str, *, noise: bool) -> None:
-        stops = not noise and understanding(text).stops
-        await events_in.send(Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None))
+        meaning = None if noise else understanding(text)
+        stops = meaning is not None and meaning.stops
+        answered = meaning is not None and meaning.answers
+        await events_in.send(
+            Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None, answered=answered)
+        )
 
     async def claude_is(news: News) -> None:
         for event in side.board.events_of(news, anyio.current_time()):

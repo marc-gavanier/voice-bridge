@@ -155,6 +155,7 @@ sentences = [
 [[acknowledgements]]
 name = "presence"
 greets = true
+answers = true
 examples = [
   "Est-ce que tu m'entends ?",
   "Tu m'entends ?",
@@ -200,6 +201,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "thanks"
+answers = true
 examples = [
   "Merci.",
   "Merci beaucoup.",
@@ -226,6 +228,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "compliment"
+answers = true
 examples = [
   "Bravo, bon travail.",
   "Bon travail.",

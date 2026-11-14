@@ -26,7 +26,8 @@ def route_of(encoder: Encoder) -> Callable[[Language, str], str]:
     def routing(language: Language) -> tuple[Router, tuple[Route, ...]]:
         pack = language_pack(language)
         routes = tuple(
-            Route(name=each.name, threshold=each.threshold or 0.5, stops=each.stops) for each in pack.acknowledgements
+            Route(name=each.name, threshold=each.threshold or 0.5, stops=each.stops, answers=each.answers)
+            for each in pack.acknowledgements
         )
         scores = router(encoder, [each.examples for each in pack.acknowledgements])
         return scores, routes

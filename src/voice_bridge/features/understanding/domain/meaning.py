@@ -12,6 +12,7 @@ class Route:
     name: str
     threshold: float
     stops: bool = False
+    answers: bool = False
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -19,6 +20,7 @@ class Meaning:
     route: int | None
     score: float
     stops: bool
+    answers: bool
     ranking: tuple[tuple[str, float], ...] = ()
 
 
@@ -39,9 +41,10 @@ def meaning_of(scores: Sequence[float], routes: Sequence[Route]) -> Meaning:
         if score >= route.threshold
     ]
     if not passing:
-        return Meaning(route=None, score=max(scores, default=0.0), stops=False, ranking=ranking)
+        return Meaning(route=None, score=max(scores, default=0.0), stops=False, answers=False, ranking=ranking)
     score, index = max(passing)
-    return Meaning(route=index, score=score, stops=routes[index].stops, ranking=ranking)
+    route = routes[index]
+    return Meaning(route=index, score=score, stops=route.stops, answers=route.answers, ranking=ranking)
 
 
 def refused(tool: str, *, stopped: bool, allowed: frozenset[str]) -> bool:

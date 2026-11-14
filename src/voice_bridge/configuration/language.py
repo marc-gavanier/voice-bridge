@@ -21,6 +21,7 @@ class AcknowledgementRoute(_Strict):
     threshold: float | None = None
     stops: bool = False
     greets: bool = False
+    answers: bool = False
 
 
 class AgentAnnouncements(_Strict):

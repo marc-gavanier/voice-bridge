@@ -133,6 +133,7 @@ sentences = [
 [[acknowledgements]]
 name = "presence"
 greets = true
+answers = true
 examples = [
   "क्या तुम मुझे सुन सकते हो?",
   "क्या तुम मुझे सुन रहे हो?",
@@ -176,6 +177,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "thanks"
+answers = true
 examples = [
   "धन्यवाद।",
   "बहुत धन्यवाद।",
@@ -203,6 +205,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "compliment"
+answers = true
 examples = [
   "बहुत अच्छा किया।",
   "शानदार काम।",

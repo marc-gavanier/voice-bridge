@@ -136,6 +136,7 @@ sentences = [
 [[acknowledgements]]
 name = "presence"
 greets = true
+answers = true
 examples = [
   "¿Me oyes?",
   "¿Me escuchas?",
@@ -179,6 +180,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "thanks"
+answers = true
 examples = [
   "Gracias.",
   "Muchas gracias.",
@@ -206,6 +208,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "compliment"
+answers = true
 examples = [
   "Bien hecho.",
   "Buen trabajo.",

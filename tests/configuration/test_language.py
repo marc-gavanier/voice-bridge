@@ -123,6 +123,12 @@ def test_only_the_presence_route_greets(language: Language) -> None:
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
+def test_only_presence_thanks_and_compliments_are_answered_by_their_acknowledgement(language: Language) -> None:
+    answered = {route.name for route in language_pack(language).acknowledgements if route.answers}
+    assert answered == {"presence", "thanks", "compliment"}
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
 def test_a_stop_needs_a_close_match(language: Language) -> None:
     stop = next(route for route in language_pack(language).acknowledgements if route.name == "stop")
     assert stop.threshold is not None
@@ -179,7 +185,7 @@ def test_a_language_file_gives_its_pack_with_the_instructions() -> None:
     assert parse_language_pack(MINIMAL_PACK, instructions="Be brief.").instructions == "Be brief."
 
 
-def test_a_route_of_a_language_file_needs_no_threshold_and_neither_stops_nor_greets() -> None:
+def test_a_route_of_a_language_file_needs_no_threshold_and_neither_stops_nor_greets_nor_answers() -> None:
     route = parse_language_pack(MINIMAL_PACK, instructions="").acknowledgements[0]
     assert route == AcknowledgementRoute(name="yes", examples=("Yes.",), sentences=("Good.",))
 

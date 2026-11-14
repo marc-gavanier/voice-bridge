@@ -7,17 +7,26 @@ ROUTES = (
     Route(name="yes", threshold=0.5),
     Route(name="question", threshold=0.5),
 )
+ANSWERED_ROUTES = (Route(name="yes", threshold=0.5), Route(name="presence", threshold=0.5, answers=True))
 MANY_ROUTES = (*ROUTES, Route(name="thanks", threshold=0.5))
 
 
 def test_the_closest_route_above_its_threshold_is_chosen() -> None:
     assert meaning_of((0.2, 0.6, 0.9), ROUTES) == Meaning(
-        route=2, score=0.9, stops=False, ranking=(("question", 0.9), ("yes", 0.6), ("stop", 0.2))
+        route=2, score=0.9, stops=False, answers=False, ranking=(("question", 0.9), ("yes", 0.6), ("stop", 0.2))
     )
 
 
 def test_a_route_asking_to_stop_carries_the_stop() -> None:
     assert meaning_of((0.8, 0.6, 0.3), ROUTES).stops
+
+
+def test_a_route_its_acknowledgement_answers_carries_the_answer() -> None:
+    assert meaning_of((0.2, 0.9), ANSWERED_ROUTES).answers
+
+
+def test_a_route_its_acknowledgement_does_not_answer_carries_no_answer() -> None:
+    assert not meaning_of((0.9, 0.2), ANSWERED_ROUTES).answers
 
 
 def test_a_score_equal_to_the_threshold_passes() -> None:
@@ -26,18 +35,18 @@ def test_a_score_equal_to_the_threshold_passes() -> None:
 
 def test_a_closer_route_below_its_own_threshold_gives_way_to_the_next() -> None:
     assert meaning_of((0.7, 0.6, 0.3), ROUTES) == Meaning(
-        route=1, score=0.6, stops=False, ranking=(("stop", 0.7), ("yes", 0.6), ("question", 0.3))
+        route=1, score=0.6, stops=False, answers=False, ranking=(("stop", 0.7), ("yes", 0.6), ("question", 0.3))
     )
 
 
 def test_words_close_to_no_route_have_no_route() -> None:
     assert meaning_of((0.7, 0.4, 0.3), ROUTES) == Meaning(
-        route=None, score=0.7, stops=False, ranking=(("stop", 0.7), ("yes", 0.4), ("question", 0.3))
+        route=None, score=0.7, stops=False, answers=False, ranking=(("stop", 0.7), ("yes", 0.4), ("question", 0.3))
     )
 
 
 def test_no_route_means_no_route_and_no_stop() -> None:
-    assert meaning_of((), ()) == Meaning(route=None, score=0.0, stops=False)
+    assert meaning_of((), ()) == Meaning(route=None, score=0.0, stops=False, answers=False)
 
 
 def test_only_the_closest_routes_are_ranked() -> None:

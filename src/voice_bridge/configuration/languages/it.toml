@@ -136,6 +136,7 @@ sentences = [
 [[acknowledgements]]
 name = "presence"
 greets = true
+answers = true
 examples = [
   "Mi senti?",
   "Mi senti bene?",
@@ -179,6 +180,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "thanks"
+answers = true
 examples = [
   "Grazie.",
   "Grazie mille.",
@@ -206,6 +208,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "compliment"
+answers = true
 examples = [
   "Ben fatto.",
   "Ottimo lavoro.",
