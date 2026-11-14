@@ -38,7 +38,7 @@ async def record_bridge(settings: Settings) -> None:
 
 def main() -> None:
     settings = load_settings(config_file("Record the bridge's voice as it reaches Mumble.", sys.argv[1:]))
-    configure_logging(settings.log_file.with_name("recorder.log"))
+    configure_logging(settings.log_file.with_name("recorder.log"), settings.log_retention)
     _ = report_errors()
     with watching_crashes(crash_file_of(settings.log_file.with_name("recorder.log"))) as watch:
         run_logged(watching_hangs, watch, settings.hang_after, partial(record_bridge, settings))

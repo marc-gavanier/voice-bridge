@@ -6,23 +6,25 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
+    from voice_bridge.configuration.settings import Retention
+
 LOG_FORMAT: Final = "%(asctime)s %(levelname)s %(name)s %(message)s"
-LARGEST_LOG: Final = 5_000_000
-KEPT_LOGS: Final = 3
 
 
-def default_logging(log_file: Path) -> dict[str, object]:
+def kept_days(retention: Retention) -> int:
+    return 0 if retention == "forever" else retention
+
+
+def default_logging(log_file: Path, kept: int) -> dict[str, object]:
     return {
         "formatters": {"plain": {"format": LOG_FORMAT}},
         "handlers": {
             "stderr": {"class": "logging.StreamHandler", "formatter": "plain", "stream": "ext://sys.stderr"},
             "file": {
-                "class": "logging.handlers.RotatingFileHandler",
+                "class": "voice_bridge.libraries.rotation.daily.DailyFile",
                 "formatter": "plain",
                 "filename": str(log_file),
-                "maxBytes": LARGEST_LOG,
-                "backupCount": KEPT_LOGS,
-                "encoding": "utf-8",
+                "kept": kept,
             },
         },
         "root": {"level": "INFO", "handlers": ["stderr", "file"]},

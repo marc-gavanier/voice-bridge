@@ -6,9 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from voice_bridge.configuration.log_config import apply_logging, default_logging
-
-LARGEST_LOG = 5_000_000
+from voice_bridge.configuration.log_config import apply_logging, default_logging, kept_days
 
 
 def close_handlers(logger: logging.Logger) -> None:
@@ -40,21 +38,27 @@ def file_section(log_file: Path) -> dict[str, object]:
 
 def test_the_default_log_writes_to_the_log_file(tmp_path: Path) -> None:
     log_file = tmp_path / "voice-bridge.log"
-    assert "INFO voice_bridge.test a line to find" in logged_to(log_file, default_logging(log_file))
+    assert "INFO voice_bridge.test a line to find" in logged_to(log_file, default_logging(log_file, 30))
 
 
-def test_the_default_log_rotates_at_five_megabytes(tmp_path: Path) -> None:
-    assert default_logging(tmp_path / "voice-bridge.log")["handlers"] == {
+def test_the_default_log_is_rotated_daily_keeping_the_days_asked(tmp_path: Path) -> None:
+    assert default_logging(tmp_path / "voice-bridge.log", 30)["handlers"] == {
         "stderr": {"class": "logging.StreamHandler", "formatter": "plain", "stream": "ext://sys.stderr"},
         "file": {
-            "class": "logging.handlers.RotatingFileHandler",
+            "class": "voice_bridge.libraries.rotation.daily.DailyFile",
             "formatter": "plain",
             "filename": str(tmp_path / "voice-bridge.log"),
-            "maxBytes": LARGEST_LOG,
-            "backupCount": 3,
-            "encoding": "utf-8",
+            "kept": 30,
         },
     }
+
+
+def test_a_retention_in_days_keeps_as_many_days() -> None:
+    assert kept_days(30) == 30
+
+
+def test_a_retention_forever_deletes_no_day() -> None:
+    assert kept_days("forever") == 0
 
 
 def test_a_section_without_a_version_applies(tmp_path: Path) -> None:

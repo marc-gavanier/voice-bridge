@@ -45,7 +45,7 @@ async def rehearse(settings: Settings, language: LanguagePack) -> None:
 
 def main() -> None:
     settings = load_settings(config_file("Repeat everything the speaker says, to test the voice path.", sys.argv[1:]))
-    configure_logging(settings.log_file.with_name("rehearsal.log"))
+    configure_logging(settings.log_file.with_name("rehearsal.log"), settings.log_retention)
     _ = report_errors()
     with watching_crashes(crash_file_of(settings.log_file.with_name("rehearsal.log"))) as watch:
         run_logged(

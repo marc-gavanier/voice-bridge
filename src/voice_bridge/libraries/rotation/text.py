@@ -1,16 +1,13 @@
 import logging
-from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, TextIO, override
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from logging import FileHandler
 
 
 class RotatingText(TextIO):
-    def __init__(self, path: Path, *, largest: int, kept: int) -> None:
-        self._handler: RotatingFileHandler = RotatingFileHandler(
-            path, maxBytes=largest, backupCount=kept, encoding="utf-8"
-        )
+    def __init__(self, handler: FileHandler) -> None:
+        self._handler: FileHandler = handler
         self._handler.terminator = ""
         self._closed: bool = False
 

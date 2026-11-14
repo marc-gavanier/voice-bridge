@@ -128,6 +128,32 @@ def test_the_telemetry_is_written_beside_the_log_by_default(config_file: Path) -
     assert settings.telemetry_directory == settings.log_file.parent.parent / "telemetry"
 
 
+def test_the_log_keeps_thirty_days_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).log_retention == 30
+
+
+def test_the_telemetry_keeps_thirty_days_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).telemetry_retention == 30
+
+
+def test_keeping_the_telemetry_forever_is_asked_in_words(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text('telemetry_retention = "forever"\n' + MINIMAL, encoding="utf-8")
+    assert load_settings(path).telemetry_retention == "forever"
+
+
+def test_no_retention_of_zero_days_is_accepted(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text("log_retention = 0\n" + MINIMAL, encoding="utf-8")
+    with pytest.raises(ValidationError, match="log_retention"):
+        _ = load_settings(path)
+
+
+def test_a_retention_is_read_from_the_environment(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VOICE_BRIDGE_TELEMETRY_RETENTION", "90")
+    assert load_settings(config_file).telemetry_retention == 90
+
+
 def test_the_default_config_file_is_named_after_the_bridge() -> None:
     assert default_config_file().parts[-2:] == ("voice-bridge", "config.toml")
 

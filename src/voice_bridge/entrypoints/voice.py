@@ -14,6 +14,7 @@ from faster_whisper import WhisperModel
 from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
+from voice_bridge.configuration.log_config import kept_days
 from voice_bridge.configuration.telemetry import run_attributes
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
@@ -264,6 +265,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
     telemetry, stalled_for = chosen_telemetry(
         anyio.current_time,
         settings.telemetry_directory,
+        kept_days(settings.telemetry_retention),
         run_attributes(settings, voice=speech_settings.voice or language.voice),
     )
 

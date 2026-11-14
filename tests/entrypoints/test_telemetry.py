@@ -28,26 +28,26 @@ def without_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_without_an_endpoint_the_telemetry_is_written_to_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     without_endpoint(monkeypatch)
-    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", {})[0], OpenTelemetry)
+    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})[0], OpenTelemetry)
 
 
 def test_without_an_endpoint_the_traces_and_metrics_have_their_own_files(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     without_endpoint(monkeypatch)
-    _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", {})
+    _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})
     assert sorted(path.name for path in (tmp_path / "telemetry").iterdir()) == ["metrics.jsonl", "traces.jsonl"]
 
 
 def test_with_an_endpoint_no_file_is_written(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317")
-    _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", {})
+    _ = chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})
     assert not (tmp_path / "telemetry").exists()
 
 
 def test_with_an_endpoint_the_telemetry_is_exported(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317")
-    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", {})[0], OpenTelemetry)
+    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})[0], OpenTelemetry)
 
 
 class CapturedTransport(Transport):

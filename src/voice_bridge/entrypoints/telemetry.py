@@ -3,9 +3,9 @@ import os
 from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
-from voice_bridge.configuration.log_config import KEPT_LOGS, LARGEST_LOG
 from voice_bridge.configuration.settings import APP_NAME
 from voice_bridge.configuration.telemetry import exports_telemetry, reports_errors
+from voice_bridge.libraries.rotation.daily import DailyFile
 from voice_bridge.libraries.rotation.text import RotatingText
 
 if TYPE_CHECKING:
@@ -19,12 +19,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _rotating(path: Path) -> RotatingText:
-    return RotatingText(path, largest=LARGEST_LOG, kept=KEPT_LOGS)
-
-
 def chosen_telemetry(
-    clock: Callable[[], float], directory: Path, attributes: Mapping[str, str | float | bool]
+    clock: Callable[[], float], directory: Path, kept: int, attributes: Mapping[str, str | float | bool]
 ) -> tuple[Telemetry, Callable[[float], None]]:
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.open_telemetry import (
         OpenTelemetry,
@@ -37,8 +33,8 @@ def chosen_telemetry(
         return adapter, adapter.stalled
     directory.mkdir(parents=True, exist_ok=True)
     providers = writing_to(
-        _rotating(directory / "traces.jsonl"),
-        _rotating(directory / "metrics.jsonl"),
+        RotatingText(DailyFile(directory / "traces.jsonl", kept=kept)),
+        RotatingText(DailyFile(directory / "metrics.jsonl", kept=kept)),
         {"service.name": APP_NAME, **attributes},
     )
     adapter = OpenTelemetry.from_providers(*providers, clock)

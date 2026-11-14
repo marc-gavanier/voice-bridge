@@ -152,8 +152,10 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `claude_pid` | none | The Claude Code process the bridge ends after a goodbye; `claude-voice.sh` sets it through `VOICE_BRIDGE_CLAUDE_PID`. Without it, `end_session` says goodbye and leaves the session open |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`languages/`](src/voice_bridge/configuration/languages) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements and announcements of the tasks in progress are kept between starts; deleting it voices them again |
-| `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at 5 MB |
-| `telemetry_directory` | `~/.local/state/voice-bridge/telemetry` | Where the traces and metrics are kept when no OTLP endpoint is set, in `traces.jsonl` and `metrics.jsonl`, each rotated at 5 MB like the log; see [Read the traces and metrics](#read-the-traces-and-metrics) |
+| `log_file` | `~/.local/state/voice-bridge/log/voice-bridge.log` | The bridge's log, rotated at midnight into a compressed `voice-bridge.log.YYYY-MM-DD.gz` |
+| `log_retention` | `30` | How many days of the log are kept, the oldest compressed day being deleted at each rotation; `"forever"` deletes none. See [Keep the files](#keep-the-files) |
+| `telemetry_directory` | `~/.local/state/voice-bridge/telemetry` | Where the traces and metrics are kept when no OTLP endpoint is set, in `traces.jsonl` and `metrics.jsonl`, each rotated at midnight like the log; see [Read the traces and metrics](#read-the-traces-and-metrics) |
+| `telemetry_retention` | `30` | How many days of the files of `telemetry_directory` are kept, as `log_retention` does for the log |
 | `hang_after` | `30.0` | Seconds the bridge's event loop may stay frozen before the stack of every thread is written to the `.crash` file; logged as a warning if the bridge resumes, see [Diagnose](#diagnose) |
 | `logging` | none | Where the bridge's log goes, its levels and its format, in the standard library's [`dictConfig`](https://docs.python.org/3/library/logging.config.html#logging-config-dictschema) schema; see below. Without it, the log goes to stderr and to `log_file`. The recorder and the rehearsal keep their own files |
 
@@ -201,7 +203,7 @@ level = "INFO"
 handlers = ["journal"]
 ```
 
-To a syslog server on the network, a handler with `address = ["logs.example.org", 514]` sends over UDP; add `socktype = "ext://socket.SOCK_STREAM"` for TCP, which connects at start, so an unreachable server stops the bridge. To keep the file as well, add a `logging.handlers.RotatingFileHandler` handler with its `filename` and list both handlers in `root`.
+To a syslog server on the network, a handler with `address = ["logs.example.org", 514]` sends over UDP; add `socktype = "ext://socket.SOCK_STREAM"` for TCP, which connects at start, so an unreachable server stops the bridge. To keep the file as well, add a handler of class `voice_bridge.libraries.rotation.daily.DailyFile`, the default's, with its `filename` and the number of days `kept`, and list both handlers in `root`.
 
 To an OpenTelemetry collector, see below: the log joins the traces and metrics there, and the section's handlers keep writing it.
 
@@ -214,21 +216,32 @@ By default, without a container or a collector to run, the bridge writes its tra
 
 Every line names the run's settings that shape a turn as resource attributes: `voice_bridge.language`, `voice_bridge.hearing.silence`, `voice_bridge.hearing.settle`, `voice_bridge.hearing.smart_turn`, `voice_bridge.hearing.turn_threshold`, `voice_bridge.whisper.model`, `voice_bridge.speech.model`, `voice_bridge.speech.voice` and `voice_bridge.speech.speed`, so that runs with different settings can be told apart. Exported over OTLP, the resource comes from `opentelemetry-instrument` instead, and `OTEL_RESOURCE_ATTRIBUTES` sets it.
 
-Each line is one export request in the [OTLP JSON encoding](https://opentelemetry.io/docs/specs/otlp/#json-protobuf-encoding), the format of OpenTelemetry's [file exporter](https://opentelemetry.io/docs/specs/otel/protocol/file-exporter/), written by the official [`opentelemetry-exporter-otlp-json-file`](https://pypi.org/project/opentelemetry-exporter-otlp-json-file/). Each file is rotated at 5 MB, keeping three older files, `.1` being the most recent, like the log. The OpenTelemetry Collector's [`otlpjsonfile` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/otlpjsonfilereceiver) can replay them into any backend later.
+Each line is one export request in the [OTLP JSON encoding](https://opentelemetry.io/docs/specs/otlp/#json-protobuf-encoding), the format of OpenTelemetry's [file exporter](https://opentelemetry.io/docs/specs/otel/protocol/file-exporter/), written by the official [`opentelemetry-exporter-otlp-json-file`](https://pypi.org/project/opentelemetry-exporter-otlp-json-file/). Each file is rotated at midnight, like the log, into a compressed copy named after its day, such as `traces.jsonl.2026-11-14.gz`, and only `telemetry_retention` days are kept ([Keep the files](#keep-the-files)). The OpenTelemetry Collector's [`otlpjsonfile` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/otlpjsonfilereceiver) can replay them into any backend later.
 
 The count and the median of each step, in seconds, over every turn kept:
 
 ```bash
-cat ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s -r '[.[].resourceSpans[].scopeSpans[].spans[] | {name, s: (((.endTimeUnixNano | tonumber) - (.startTimeUnixNano | tonumber)) / 1e9)}] | group_by(.name)[] | (map(.s) | sort) as $d | "\(.[0].name)\t\($d | length)\t\($d[($d | length) / 2 | floor])"'
+zcat -f ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s -r '[.[].resourceSpans[].scopeSpans[].spans[] | {name, s: (((.endTimeUnixNano | tonumber) - (.startTimeUnixNano | tonumber)) / 1e9)}] | group_by(.name)[] | (map(.s) | sort) as $d | "\(.[0].name)\t\($d | length)\t\($d[($d | length) / 2 | floor])"'
 ```
 
 The median response latency, the wait you hear:
 
 ```bash
-cat ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s '[.[].resourceSpans[].scopeSpans[].spans[] | select(.name == "turn") | .attributes[] | select(.key == "response.latency") | .value.doubleValue] | sort | .[length / 2 | floor]'
+zcat -f ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s '[.[].resourceSpans[].scopeSpans[].spans[] | select(.name == "turn") | .attributes[] | select(.key == "response.latency") | .value.doubleValue] | sort | .[length / 2 | floor]'
 ```
 
 `OTEL_SDK_DISABLED=true`, the SDK's standard switch, in the [tools' environment file](#one-tool-per-signal) turns the files off; the bridge still creates them, empty.
+
+### Keep the files
+
+The log and the files of `telemetry_directory` are rotated each day at midnight, local time, by the standard library's [`TimedRotatingFileHandler`](https://docs.python.org/3/library/logging.handlers.html#timedrotatingfilehandler): the day's file is compressed with gzip into a copy named after its day, and a new file starts ([ADR-024](docs/decisions/ADR-024-files-rotated-daily-and-kept-for-a-bounded-number-of-days.md)). A bridge stopped at midnight rotates at its first line of the next day it runs. `zcat -f` reads the compressed copies and the current file alike.
+
+`log_retention` and `telemetry_retention` set how many compressed days are kept, 30 by default: at each rotation, the oldest beyond that number are deleted. The count is of days the bridge ran, not of calendar days, so a bridge left unused for a week keeps its last 30 days of use. To keep everything, ask for it in words, since nothing then bounds the disk taken:
+
+```toml
+log_retention = "forever"
+telemetry_retention = "forever"
+```
 
 ### Export traces, metrics and the log
 

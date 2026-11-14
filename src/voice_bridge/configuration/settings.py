@@ -11,6 +11,7 @@ from pydantic import (
     JsonValue,
     NonNegativeFloat,
     PositiveFloat,
+    PositiveInt,
     SecretStr,
     model_validator,
 )
@@ -25,6 +26,8 @@ DEFAULT_LANGUAGE: Language = "en"
 DEFAULT_STOP_FLAG = user_runtime_path(APP_NAME) / "stop"
 DEFAULT_LOG_FILE = user_log_path(APP_NAME) / f"{APP_NAME}.log"
 DEFAULT_ACTIVITY_SOCKET = user_runtime_path(APP_NAME) / "activity.sock"
+
+type Retention = PositiveInt | Literal["forever"]
 
 
 class Section(BaseModel):
@@ -120,8 +123,10 @@ class Settings(BaseSettings):
     understanding: UnderstandingSettings = UnderstandingSettings()
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = DEFAULT_LOG_FILE
+    log_retention: Retention = 30
     logging: dict[str, JsonValue] | None = None
     telemetry_directory: Path = user_state_path(APP_NAME) / "telemetry"
+    telemetry_retention: Retention = 30
     hang_after: PositiveFloat = 30.0
     activity_socket: Path = DEFAULT_ACTIVITY_SOCKET
     cache_directory: Path = user_cache_path(APP_NAME)
