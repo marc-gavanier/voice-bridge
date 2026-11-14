@@ -9,7 +9,7 @@ from voice_bridge.features.speaking.abilities.acknowledge.implementation.acknowl
 )
 
 SOUND = b"\x01\x00" * 480
-POOLS = (("Let me see.", "Good question."), ("Silent.",), ("Alright.", "Silent."))
+POOLS = (("Let me see.", "Good question."), ("Silent.",), ("Alright.", "Silent."), ("Let me see.", "Fine."))
 
 
 def first(pool: Sequence[str]) -> str:
@@ -22,6 +22,8 @@ DRAW_FIRST: Draw = first
 def kind(words: str) -> int | None:
     if words.endswith("?"):
         return 0
+    if words.startswith("Hmm"):
+        return 3
     return 1 if words.startswith("No") else None
 
 
@@ -46,14 +48,14 @@ async def test_the_kind_of_the_words_chooses_the_pool() -> None:
 
 @pytest.mark.anyio
 async def test_words_of_no_kind_get_the_last_pool() -> None:
-    assert (await recorded())("The repository is clean.") == ("Alright.", SOUND)
+    assert (await recorded())("The repository is clean.") == ("Let me see.", SOUND)
 
 
 @pytest.mark.anyio
 async def test_without_a_kind_every_words_get_the_last_pool() -> None:
     clips = Clips(draw=DRAW_FIRST)
     await record_acknowledgements(clips, voiced, POOLS)
-    assert clips("Where are we?") == ("Alright.", SOUND)
+    assert clips("Where are we?") == ("Let me see.", SOUND)
 
 
 @pytest.mark.anyio
@@ -66,6 +68,20 @@ async def test_the_same_clip_is_not_played_twice_in_a_row() -> None:
     clips = await recorded()
     _ = clips("Where are we?")
     assert clips("And now?") == ("Good question.", SOUND)
+
+
+@pytest.mark.anyio
+async def test_the_same_clip_is_not_played_twice_in_a_row_from_two_pools() -> None:
+    clips = await recorded()
+    _ = clips("Where are we?")
+    assert clips("Hmm, I see.") == ("Fine.", SOUND)
+
+
+@pytest.mark.anyio
+async def test_the_first_clip_is_not_the_sentence_said_before_it() -> None:
+    clips = Clips(kind=kind, draw=DRAW_FIRST, last="Let me see.")
+    await record_acknowledgements(clips, voiced, POOLS)
+    assert clips("Where are we?") == ("Good question.", SOUND)
 
 
 @pytest.mark.anyio

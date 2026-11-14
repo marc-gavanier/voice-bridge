@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from voice_bridge.features.speaking.domain.acknowledgement import fresh
 
 if TYPE_CHECKING:
-    from collections.abc import Collection, Mapping, Sequence
+    from collections.abc import Collection, Sequence
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -13,11 +13,11 @@ class Candidates:
     sentences: tuple[str, ...]
 
 
-def candidates(pools: Sequence[Collection[str]], kind: int | None, last: Mapping[int, str]) -> Candidates | None:
+def candidates(pools: Sequence[Collection[str]], kind: int | None, last: str | None) -> Candidates | None:
     if not pools:
         return None
     chosen = len(pools) - 1 if kind is None else kind
     pool = tuple(pools[chosen])
     if not pool:
         return None
-    return Candidates(pool=chosen, sentences=fresh(pool, last.get(chosen)))
+    return Candidates(pool=chosen, sentences=fresh(pool, last))

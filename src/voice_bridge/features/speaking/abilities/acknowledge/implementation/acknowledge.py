@@ -23,14 +23,14 @@ class Clips:
     draw: Draw
     kind: Callable[[str], int | None] = field(default=_no_kind)
     pools: list[dict[str, bytes]] = field(default_factory=list)
-    last: dict[int, str] = field(default_factory=dict)
+    last: str | None = None
 
     def __call__(self, words: str) -> Clip | None:
         found = candidates(self.pools, self.kind(words), self.last)
         if found is None:
             return None
         sentence = self.draw(found.sentences)
-        self.last[found.pool] = sentence
+        self.last = sentence
         return sentence, self.pools[found.pool][sentence]
 
 
