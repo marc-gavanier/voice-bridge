@@ -32,8 +32,13 @@ def test_a_denial_tells_claude_code_the_reason() -> None:
 
 
 def test_the_settings_register_the_tool_hook_before_every_tool() -> None:
-    assert hook_settings(activity="activity", tool="tool")["hooks"]["PreToolUse"] == [
-        {"matcher": "*", "hooks": [{"type": "command", "command": "tool"}]}
+    assert hook_settings(activity="activity", tool="tool")["hooks"]["PreToolUse"][0]["matcher"] == "*"
+
+
+def test_the_settings_wait_for_the_tool_hook_and_tell_each_tool_call_without_waiting() -> None:
+    assert hook_settings(activity="activity", tool="tool")["hooks"]["PreToolUse"][0]["hooks"] == [
+        {"type": "command", "command": "tool"},
+        {"type": "command", "command": "activity", "async": True},
     ]
 
 

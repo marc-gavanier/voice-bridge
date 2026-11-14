@@ -48,7 +48,7 @@ def _command(command: str, *, waited: bool) -> Command:
 def hook_settings(*, activity: str, tool: str) -> dict[str, dict[str, list[Matcher]]]:
     return {
         "hooks": {
-            "PreToolUse": [{"matcher": "*", "hooks": [_command(tool, waited=True)]}],
+            "PreToolUse": [{"matcher": "*", "hooks": [_command(tool, waited=True), _command(activity, waited=False)]}],
             **{event: [{"hooks": [_command(activity, waited=False)]}] for event in TURN_EVENTS},
             **{event: [{"hooks": [_command(activity, waited=True)]}] for event in AGENT_EVENTS},
         }
