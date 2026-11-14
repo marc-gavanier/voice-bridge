@@ -18,13 +18,26 @@ hallucination_prefixes = [
   "merci d'avoir regardé",
 ]
 neutral_acknowledgements = [
-  "D'accord.",
+  "Reçu.",
+  "Bien reçu.",
+  "Message reçu.",
+  "Reçu cinq sur cinq.",
+  "OK, reçu.",
   "Entendu.",
-  "Je vois.",
-  "Noté.",
+  "C'est entendu.",
   "Compris.",
+  "Bien compris.",
+  "C'est compris.",
+  "Je t'ai bien entendu.",
+  "Noté.",
+  "C'est noté.",
+  "Bien noté.",
   "Je note.",
-  "Ah, d'accord.",
+  "Je prends note.",
+  "Pris en compte.",
+  "D'accord.",
+  "Ah, OK.",
+  "Je vois.",
 ]
 
 [announcements]
@@ -73,10 +86,11 @@ examples = [
   "Ça suffit, arrête.",
 ]
 sentences = [
-  "J'arrête.",
-  "Je m'arrête.",
-  "D'accord, j'arrête.",
-  "Entendu, j'arrête tout.",
+  "J'arrête tout le travail en cours.",
+  "J'arrête immédiatement.",
+  "J'arrête tout de suite.",
+  "J'arrête maintenant.",
+  "J'arrête sur-le-champ.",
 ]
 
 [[acknowledgements]]
@@ -98,12 +112,15 @@ examples = [
   "Comment on raccroche ?",
   "Allez, on arrête pour ce soir.",
   "C'est fini, merci, à demain.",
+  "On s'arrête là.",
+  "Bon, on s'arrête là.",
 ]
 sentences = [
-  "D'accord, on s'arrête.",
-  "Très bien.",
-  "Ça marche.",
   "À plus tard.",
+  "À bientôt.",
+  "À la prochaine.",
+  "On s'arrête là.",
+  "D'accord, on s'arrête.",
   "Entendu, on s'arrête là.",
 ]
 
@@ -130,8 +147,7 @@ sentences = [
   "Oui ?",
   "Je t'écoute.",
   "Vas-y.",
-  "Continue.",
-  "Et donc ?",
+  "Prends ton temps.",
 ]
 
 [[acknowledgements]]
@@ -154,13 +170,29 @@ examples = [
   "C'est bon, là je suis passé en 4G, est-ce que tu m'entends toujours ?",
   "Est-ce que tu m'entends ? Juste pour voir, là, je parle un peu.",
   "Tu es toujours avec moi ?",
+  "J'ai redémarré.",
+  "J'ai relancé le pont.",
+  "Là, j'ai redémarré le pont.",
+  "Je relance la session.",
+  "Voilà, j'ai redémarré la discussion.",
+  "Donc là, j'ai redémarré la discussion.",
+  "C'est relancé.",
+  "J'ai relancé Claude.",
+  "Voilà, c'est redémarré, on peut reprendre.",
+  "J'ai tout relancé.",
+  "Je viens de redémarrer le serveur.",
+  "Le pont est relancé.",
+  "Ok, j'ai rebranché le casque.",
+  "C'est bon, je me suis reconnecté.",
+  "J'ai relancé l'application sur le téléphone.",
 ]
 sentences = [
-  "Oui, je suis là.",
+  "Je suis là.",
   "Je t'entends.",
-  "Je suis là, oui.",
-  "Toujours là.",
-  "Oui, je t'entends bien.",
+  "Je t'entends bien.",
+  "Présent.",
+  "Je suis présent.",
+  "Je t'écoute.",
 ]
 
 [[acknowledgements]]
@@ -170,24 +202,51 @@ examples = [
   "Merci beaucoup.",
   "Super, merci.",
   "Merci, c'est parfait.",
+  "C'est top, merci pour ton aide.",
+  "Merci, c'est exactement ce qu'il me fallait.",
+  "Merci pour tout.",
+  "Parfait, merci beaucoup.",
+  "Merci bien.",
+  "Je te remercie.",
+  "Merci pour ton aide.",
+  "Un grand merci.",
+  "Merci pour ça.",
+  "Ok, merci.",
+  "Merci infiniment.",
+]
+sentences = [
+  "Avec plaisir.",
+  "Je t'en prie.",
+  "Tout le plaisir est pour moi.",
+  "C'est un plaisir.",
+]
+
+[[acknowledgements]]
+name = "compliment"
+examples = [
   "Bravo, bon travail.",
   "Bon travail.",
   "Bien joué.",
-  "C'est top, merci pour ton aide.",
   "Génial, ça marche très bien.",
-  "Merci, c'est exactement ce qu'il me fallait.",
   "Franchement, bravo.",
   "Super boulot, merci.",
-  "Merci pour tout.",
   "Excellent travail.",
-  "Parfait, merci beaucoup.",
+  "Bravo, tu as bien travaillé.",
+  "Super boulot.",
+  "Beau travail.",
+  "C'est du beau boulot.",
+  "Tu as assuré.",
+  "Chapeau.",
+  "Tu es trop fort.",
+  "C'est impressionnant.",
+  "Là, tu m'épates.",
+  "Bravo, c'est exactement ce que je voulais.",
+  "Nickel, bien joué.",
 ]
 sentences = [
-  "Merci !",
-  "Avec plaisir.",
   "Merci, ça fait plaisir.",
-  "De rien.",
-  "Content que ça te plaise.",
+  "Merci beaucoup.",
+  "Merci, c'est gentil.",
 ]
 
 [[acknowledgements]]
@@ -219,39 +278,20 @@ examples = [
   "On a été coupé, là. Recommence.",
 ]
 sentences = [
-  "Ah, je regarde ça.",
   "Je vérifie.",
-  "Noté, je cherche.",
   "Je vais voir ça.",
-  "Ah, mince.",
   "Je jette un œil.",
-]
-
-[[acknowledgements]]
-name = "restarted"
-examples = [
-  "J'ai redémarré.",
-  "J'ai relancé le pont.",
-  "Là, j'ai redémarré le pont.",
-  "Je relance la session.",
-  "Voilà, j'ai redémarré la discussion.",
-  "Donc là, j'ai redémarré la discussion.",
-  "C'est relancé.",
-  "J'ai relancé Claude.",
-  "Voilà, c'est redémarré, on peut reprendre.",
-  "J'ai tout relancé.",
-  "Je viens de redémarrer le serveur.",
-  "Le pont est relancé.",
-  "Ok, j'ai rebranché le casque.",
-  "C'est bon, je me suis reconnecté.",
-  "J'ai relancé l'application sur le téléphone.",
-]
-sentences = [
-  "Bien reçu.",
-  "Parfait, c'est noté.",
-  "Super.",
-  "D'accord, on y va.",
-  "Très bien.",
+  "Voyons ça.",
+  "Regardons ça.",
+  "Je vais y jeter un œil.",
+  "Jetons un œil.",
+  "Ah, mince.",
+  "Ah, je regarde ça.",
+  "Noté, je cherche.",
+  "Un instant, je regarde.",
+  "Un moment, je regarde.",
+  "Un instant, je vérifie.",
+  "Un moment, je vérifie.",
 ]
 
 [[acknowledgements]]
@@ -283,14 +323,13 @@ examples = [
   "Ouais, vas-y, note les deux.",
 ]
 sentences = [
-  "Je regarde.",
   "Je m'en occupe.",
   "Je m'y mets.",
   "C'est parti.",
-  "Ça marche, je regarde.",
-  "D'accord, je lance.",
-  "Je vois ça.",
+  "Je regarde.",
   "Laisse-moi regarder.",
+  "Je vois ça.",
+  "Je lance.",
 ]
 
 [[acknowledgements]]
@@ -317,12 +356,40 @@ examples = [
   "Pourquoi tu ne peux pas vérifier ?",
 ]
 sentences = [
+  "Je réfléchis.",
   "Voyons.",
   "Bonne question.",
-  "Je réfléchis.",
   "Laisse-moi voir.",
   "Je vérifie.",
   "Attends, je regarde.",
+  "Un instant, je regarde.",
+  "Un moment, je regarde.",
+  "Un instant, je vérifie.",
+  "Un moment, je vérifie.",
+]
+
+[[acknowledgements]]
+name = "idea_coming"
+examples = [
+  "J'ai une idée.",
+  "Attends, j'ai peut-être une idée.",
+  "Ça me fait penser à quelque chose.",
+  "J'ai une idée…",
+  "Je pensais à un truc.",
+  "Je pensais à un truc…",
+  "Il y a un truc auquel je pense.",
+  "J'ai une idée, écoute.",
+  "Attends, il me vient une idée.",
+  "Je réfléchissais à un truc.",
+  "Tiens, j'ai pensé à quelque chose.",
+  "J'ai une proposition.",
+  "J'ai une suggestion.",
+  "Il faut que je te dise un truc.",
+  "J'ai un truc à te proposer.",
+  "Écoute, je me disais…",
+]
+sentences = [
+  "Je t'écoute.",
 ]
 
 [[acknowledgements]]
@@ -330,13 +397,10 @@ name = "idea"
 examples = [
   "Je me demande si on pourrait faire autrement.",
   "Je me demande si on pourrait faire une règle.",
-  "J'ai une idée.",
-  "Attends, j'ai peut-être une idée.",
   "On pourrait utiliser un autre outil.",
   "Je pense que ce serait mieux de séparer les deux.",
   "Je trouve que c'est trop compliqué.",
   "Ce serait bien d'avoir une musique d'attente.",
-  "Ça me fait penser à quelque chose.",
   "Toujours regarder s'il n'existe pas un truc pour faire ça.",
   "J'aimerais bien ce truc automatisé, mais je ne sais pas comment faire.",
   "Je pense qu'on peut le faire maintenant.",
@@ -344,13 +408,15 @@ examples = [
   "Ça, ça me paraît être une bonne idée.",
   "C'était peut-être une idée que je me faisais.",
   "Je veux que ça fonctionne aussi sur le téléphone.",
+  "On pourrait découper ça en deux étapes.",
+  "Ce serait plus simple de tout mettre dans un seul fichier.",
+  "Peut-être qu'il faudrait le faire en deux fois.",
 ]
 sentences = [
-  "Intéressant.",
   "Je vois l'idée.",
-  "Ah, d'accord.",
-  "Je t'écoute.",
   "Ça se tient.",
+  "Intéressant.",
+  "Ah, d'accord.",
 ]
 
 [[acknowledgements]]
@@ -371,20 +437,23 @@ examples = [
   "Non, on fait tout sur la même pull request.",
   "Non, je n'ai pas d'idée.",
   "Non, je voulais dire autre chose.",
+  "Non, on laisse ça comme ça.",
 ]
 sentences = [
   "D'accord.",
   "Compris.",
-  "Très bien, on laisse.",
   "Pas de souci.",
   "Entendu.",
-  "Ça marche.",
+  "Ah, OK.",
+  "Bon, d'accord.",
+  "Je corrige.",
+  "Pas de problème.",
+  "Je change de cap.",
 ]
 
 [[acknowledgements]]
-name = "yes"
+name = "go_ahead"
 examples = [
-  "Oui.",
   "Oui, vas-y.",
   "Ouais, vas-y.",
   "C'est parti.",
@@ -392,27 +461,56 @@ examples = [
   "On y va.",
   "Lance-toi.",
   "Vas-y, lance.",
+  "Ok, on va faire ça.",
+  "Oui, on va essayer.",
+  "Oui, je veux bien que tu lises.",
+  "Oui, fais-le.",
+  "Vas-y, fais-le.",
+  "Oui, lance.",
+  "Allez, go.",
+  "Fonce.",
+  "Oui, tu peux y aller.",
+  "Vas-y, commence.",
+]
+sentences = [
+  "C'est parti.",
+  "Allons-y.",
+  "On y va.",
+  "Faisons ça.",
+  "On démarre.",
+  "Go !",
+  "Ça marche.",
+]
+
+[[acknowledgements]]
+name = "yes"
+examples = [
+  "Oui.",
   "Ok.",
   "OK, ça me va.",
   "D'accord, on fait comme ça.",
-  "Ok, on va faire ça.",
   "Parfait, je valide.",
   "C'est bon pour moi.",
   "Ouais, c'est exactement ça.",
   "C'est exactement ça.",
   "Non, c'est exactement ça.",
   "Oui, très bien.",
-  "Oui, on va essayer.",
-  "Oui, je veux bien que tu lises.",
   "Oui, ça s'est bien arrêté.",
   "Oui, je t'entends, c'est bon.",
   "Oui, c'est plus clair.",
+  "Oui, c'est bien.",
+  "Je garde.",
+  "On laisse comme ça.",
+  "On garde comme ça, c'est bien.",
+  "Oui, c'est bon, on laisse.",
+  "Ça me va.",
 ]
 sentences = [
   "Parfait.",
-  "Ça marche.",
-  "Super.",
   "Très bien.",
-  "C'est parti.",
+  "D'accord.",
+  "Compris.",
+  "Entendu.",
+  "Super.",
   "Bien.",
 ]
