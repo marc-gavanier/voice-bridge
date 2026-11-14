@@ -52,9 +52,10 @@ def test_a_sentry_dsn_reports_errors() -> None:
     assert reports_errors({"SENTRY_DSN": "https://key@sentry.example.org/1"})
 
 
-def settings() -> Settings:
+def settings(claude: dict[str, str]) -> Settings:
     return Settings.model_validate(
         {
+            "claude": claude,
             "language": "fr",
             "mumble": {
                 "host": "voice.example.org",
@@ -70,7 +71,8 @@ def settings() -> Settings:
 
 
 def test_the_run_is_described_by_the_settings_that_shape_a_turn() -> None:
-    assert run_attributes(settings(), voice="fr_female", pace="atempo") == {
+    claude = {"model": "sonnet", "subagent_model": "claude-opus-5-5"}
+    assert run_attributes(settings(claude), voice="fr_female", pace="atempo") == {
         "voice_bridge.language": "fr",
         "voice_bridge.hearing.silence": 0.7,
         "voice_bridge.hearing.settle": 1.5,
@@ -81,4 +83,14 @@ def test_the_run_is_described_by_the_settings_that_shape_a_turn() -> None:
         "voice_bridge.speech.voice": "fr_female",
         "voice_bridge.speech.speed": 1.2,
         "voice_bridge.speech.pace": "atempo",
+        "voice_bridge.claude.model": "sonnet",
+        "voice_bridge.claude.subagent_model": "claude-opus-5-5",
     }
+
+
+def test_a_run_on_claude_codes_own_models_names_them_default() -> None:
+    attributes = run_attributes(settings({}), voice="fr_female", pace="atempo")
+    assert (attributes["voice_bridge.claude.model"], attributes["voice_bridge.claude.subagent_model"]) == (
+        "default",
+        "default",
+    )

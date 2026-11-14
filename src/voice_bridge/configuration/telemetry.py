@@ -38,4 +38,6 @@ def run_attributes(settings: Settings, *, voice: str, pace: str) -> dict[str, st
         "voice_bridge.speech.voice": voice,
         "voice_bridge.speech.speed": settings.speech.speed,
         "voice_bridge.speech.pace": pace,
+        "voice_bridge.claude.model": settings.claude.model or "default",
+        "voice_bridge.claude.subagent_model": settings.claude.subagent_model or "default",
     }
