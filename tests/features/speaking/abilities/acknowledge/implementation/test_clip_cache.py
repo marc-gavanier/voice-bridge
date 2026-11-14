@@ -43,3 +43,41 @@ async def test_a_sentence_without_voice_is_not_cached(tmp_path: Path) -> None:
     _ = await cached("Silent.")
     assert await cached("Silent.") is None
     assert voice.asked == ["Silent.", "Silent."]
+
+
+def clip_names(directory: Path) -> list[str]:
+    return sorted(path.name for path in directory.iterdir())
+
+
+async def cached_by_an_older_key(directory: Path) -> list[str]:
+    _ = await CachedVoice(voice=Voice(), directory=directory, key="older")("D'accord.")
+    return clip_names(directory)
+
+
+async def test_pruning_removes_the_clips_this_run_did_not_ask_for(tmp_path: Path) -> None:
+    older = await cached_by_an_older_key(tmp_path)
+    cached = CachedVoice(voice=Voice(), directory=tmp_path, key="fr_female")
+    _ = await cached("D'accord.")
+    await cached.prune()
+    assert set(older) & set(clip_names(tmp_path)) == set()
+
+
+async def test_pruning_keeps_the_clips_this_run_asked_for(tmp_path: Path) -> None:
+    _ = await CachedVoice(voice=Voice(), directory=tmp_path, key="fr_female")("D'accord.")
+    cached = CachedVoice(voice=Voice(), directory=tmp_path, key="fr_female")
+    _ = await cached("D'accord.")
+    _ = await cached("Je regarde.")
+    await cached.prune()
+    assert len(clip_names(tmp_path)) == 2
+
+
+async def test_pruning_keeps_files_the_cache_did_not_write(tmp_path: Path) -> None:
+    _ = (tmp_path / "notes.pcm").write_bytes(SOUND)
+    cached = CachedVoice(voice=Voice(), directory=tmp_path, key="fr_female")
+    await cached.prune()
+    assert clip_names(tmp_path) == ["notes.pcm"]
+
+
+async def test_pruning_a_cache_never_written_does_nothing(tmp_path: Path) -> None:
+    await CachedVoice(voice=Voice(), directory=tmp_path / "clips", key="fr_female").prune()
+    assert not (tmp_path / "clips").exists()

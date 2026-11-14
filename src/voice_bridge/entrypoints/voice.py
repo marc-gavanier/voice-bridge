@@ -361,12 +361,16 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         async def greet() -> None:
             await wait_until_ready(engine)
             await events_in.send(Asked(sentences=sentences_of(greeting)))
+            acknowledging = cached("acknowledgements")
             await record_acknowledgements(
                 clips,
-                cached("acknowledgements"),
+                acknowledging,
                 [*(route.sentences for route in language.acknowledgements), language.neutral_acknowledgements],
             )
-            await record_announcements(announcements, cached("announcements"))
+            await acknowledging.prune()
+            announcing = cached("announcements")
+            await record_announcements(announcements, announcing)
+            await announcing.prune()
 
         _ = tasks.start_soon(stay_connected, access(settings, username), connected)
         _ = tasks.start_soon(listen, _ears(settings), with_pauses(packets_out, PATIENCE), heard, anyio.current_time)
