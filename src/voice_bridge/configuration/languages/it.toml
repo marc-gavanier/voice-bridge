@@ -7,6 +7,9 @@ reply_text_description = "Il testo da dire, scritto per l'orecchio"
 end_tool_description = "Salutare ad alta voce e poi chiudere tutta la sessione vocale: il ponte e questa sessione di Claude Code"
 end_text_description = "Il breve saluto da dire prima della fine della sessione"
 board_tool_description = "Leggere la bacheca degli agenti al lavoro e di quelli che hanno finito: il loro tipo, la descrizione del loro compito, da quando lavorano e l'ultimo messaggio di ciascuno che ha finito. Usala per dire cosa è in corso, anche dopo il riassunto della conversazione"
+play_tool_description = "Far ascoltare un file audio nelle cuffie dell'utente, come una registrazione, un estratto o dei campioni da confrontare, dopo ciò che resta da dire; l'utente può interromperlo parlando, come una risposta"
+play_path_description = "Il percorso assoluto del file audio (WAV, MP3, FLAC, Ogg, Opus, M4A o AAC), che deve trovarsi in {directory}"
+play_label_description = "Facoltativo: qualche parola detta subito prima del file, come il suo nome o cosa ascoltare, scritta per l'orecchio"
 hallucinations = [
   "",
   "grazie per la visione",

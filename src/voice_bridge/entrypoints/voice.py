@@ -302,7 +302,8 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
 
     async def relay_replies() -> None:
         async for reply in side.replies:
-            await events_in.send(Asked(sentences=sentences_of(reply.text), ending=reply.ending))
+            recordings = () if reply.recording is None else (reply.recording,)
+            await events_in.send(Asked(sentences=(*sentences_of(reply.text), *recordings), ending=reply.ending))
 
     async with (
         events_in,

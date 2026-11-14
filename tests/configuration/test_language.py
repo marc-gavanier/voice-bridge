@@ -32,6 +32,20 @@ def test_english_describes_the_board_tool_in_english() -> None:
     assert language_pack("en").board_tool_description.startswith("Read the board")
 
 
+def test_english_describes_the_play_tool_in_english() -> None:
+    assert language_pack("en").play_tool_description.startswith("Play an audio file")
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_language_tells_claude_where_clips_must_be(language: Language) -> None:
+    assert "{directory}" in language_pack(language).play_path_description
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_language_tells_claude_to_play_audio_files_with_the_play_tool(language: Language) -> None:
+    assert " play " in language_pack(language).instructions
+
+
 def test_english_describes_the_end_of_session_tool_in_english() -> None:
     assert language_pack("en").end_tool_description.startswith("Say goodbye")
 
@@ -137,6 +151,9 @@ reply_text_description = "Text"
 end_tool_description = "End"
 end_text_description = "Goodbye"
 board_tool_description = "Board"
+play_tool_description = "Play"
+play_path_description = "Path in {directory}"
+play_label_description = "Label"
 hallucinations = ["", "you"]
 hallucination_prefixes = ["subtitles by"]
 neutral_acknowledgements = ["Okay."]

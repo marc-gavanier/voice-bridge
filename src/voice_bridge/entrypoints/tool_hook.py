@@ -18,6 +18,7 @@ MAIN_AGENT: Final = frozenset(
         "mcp__voice__reply",
         "mcp__voice__end_session",
         "mcp__voice__board",
+        "mcp__voice__play",
         "Agent",
         "SendMessage",
         "TaskStop",

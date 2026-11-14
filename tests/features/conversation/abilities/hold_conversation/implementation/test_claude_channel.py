@@ -13,8 +13,10 @@ from mcp.shared.message import SessionMessage
 
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
     BoardTool,
+    ChannelTools,
     EndSessionTool,
     Forwarder,
+    PlayTool,
     Reply,
     ReplyTool,
     channel_server,
@@ -22,6 +24,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
     initialization_options,
     serve_over_stdio,
 )
+from voice_bridge.features.conversation.domain.turn_taking import Recording
 
 pytestmark = pytest.mark.anyio
 
@@ -38,6 +41,23 @@ def board() -> str:
 
 
 BOARD_TOOL = BoardTool(description="Read the board of agents", read=board)
+RECORDED = b"\x01\x00" * 480
+
+
+async def read_clip(path: str) -> bytes:
+    if path.endswith(".txt"):
+        message = f"{path} is not an audio file"
+        raise ValueError(message)
+    return RECORDED
+
+
+PLAY_TOOL = PlayTool(
+    description="Play an audio file",
+    path_description="The absolute path of the file",
+    label_description="A few words said before it",
+    read=read_clip,
+)
+TOOLS = ChannelTools(reply=TOOL, end_session=END_TOOL, board=BOARD_TOOL, play=PLAY_TOOL)
 
 
 @dataclass(frozen=True)
@@ -51,7 +71,9 @@ class Connection:
 async def connected() -> AsyncGenerator[Connection]:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
     server = channel_server(
-        instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, board_tool=BOARD_TOOL, replies=replies_in
+        instructions="Answer with reply.",
+        tools=TOOLS,
+        replies=replies_in,
     )
     async with (
         replies_in,
@@ -124,7 +146,87 @@ async def test_calling_reply_confirms_the_text_was_sent() -> None:
 async def test_the_board_tool_is_listed_after_end_session() -> None:
     async with connected() as connection:
         tools = await connection.session.list_tools()
-    assert [tool.name for tool in tools.tools] == ["reply", "end_session", "board"]
+    assert [tool.name for tool in tools.tools][:3] == ["reply", "end_session", "board"]
+
+
+async def test_the_play_tool_is_listed_last() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert tools.tools[-1].name == "play"
+
+
+async def test_the_play_tool_requires_a_path_and_takes_a_label_and_is_always_loaded() -> None:
+    async with connected() as connection:
+        tools = await connection.session.list_tools()
+    assert (tools.tools[3].description, tools.tools[3].input_schema, tools.tools[3].meta) == (
+        "Play an audio file",
+        {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The absolute path of the file"},
+                "label": {"type": "string", "description": "A few words said before it"},
+            },
+            "required": ["path"],
+        },
+        {"anthropic/alwaysLoad": True},
+    )
+
+
+async def test_playing_a_file_hands_its_recording_and_label_to_the_conversation() -> None:
+    async with connected() as connection:
+        _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav", "label": "Écoute."})
+        reply = await connection.replies.receive()
+    assert reply == Reply(text="Écoute.", recording=Recording(name="sample.wav", pcm=RECORDED))
+
+
+async def test_playing_a_file_without_a_label_says_nothing_before_it() -> None:
+    async with connected() as connection:
+        _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav"})
+        reply = await connection.replies.receive()
+    assert reply == Reply(text="", recording=Recording(name="sample.wav", pcm=RECORDED))
+
+
+async def test_playing_a_file_confirms_it_was_sent() -> None:
+    async with connected() as connection:
+        result = await connection.session.call_tool("play", {"path": "/clips/sample.wav"})
+    assert result.content == [types.TextContent(type="text", text="sent")]
+
+
+async def test_playing_a_refused_file_tells_claude_why() -> None:
+    async with connected() as connection:
+        result = await connection.session.call_tool("play", {"path": "/clips/notes.txt"})
+    assert (result.is_error, result.content) == (
+        True,
+        [types.TextContent(type="text", text="/clips/notes.txt is not an audio file")],
+    )
+
+
+async def test_playing_a_refused_file_hands_nothing_to_the_conversation() -> None:
+    async with connected() as connection:
+        _ = await connection.session.call_tool("play", {"path": "/clips/notes.txt"})
+        _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
+        reply = await connection.replies.receive()
+    assert reply == Reply(text="Bonjour.")
+
+
+async def test_a_refused_file_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with connected() as connection:
+        _ = await connection.session.call_tool("play", {"path": "/clips/notes.txt"})
+    assert "play refused: /clips/notes.txt is not an audio file" in caplog.text
+
+
+async def test_a_played_file_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with connected() as connection:
+        _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav", "label": "Écoute."})
+    assert "clip received from Claude: sample.wav, after 'Écoute.'" in caplog.text
+
+
+async def test_playing_without_a_path_is_an_error() -> None:
+    async with connected() as connection:
+        result = await connection.session.call_tool("play", {"label": "Écoute."})
+    assert result.is_error
 
 
 async def test_the_board_tool_takes_nothing_and_is_always_loaded() -> None:
@@ -246,7 +348,9 @@ HANDSHAKE = {
 async def exchanged(*requests: Mapping[str, object]) -> list[types.JSONRPCMessage]:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
     server = channel_server(
-        instructions="Answer with reply.", tool=TOOL, end_tool=END_TOOL, board_tool=BOARD_TOOL, replies=replies_in
+        instructions="Answer with reply.",
+        tools=TOOLS,
+        replies=replies_in,
     )
     written = io.StringIO()
 

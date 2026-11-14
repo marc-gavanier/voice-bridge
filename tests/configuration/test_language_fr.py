@@ -114,3 +114,7 @@ def test_french_announces_more_than_five_tasks_in_progress_in_french() -> None:
 
 def test_french_describes_the_board_tool_in_french() -> None:
     assert language_pack("fr").board_tool_description.startswith("Lire le tableau des agents")
+
+
+def test_french_describes_the_play_tool_in_french() -> None:
+    assert language_pack("fr").play_tool_description.startswith("Faire écouter un fichier audio")

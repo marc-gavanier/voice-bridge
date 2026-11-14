@@ -7,6 +7,9 @@ reply_text_description = "Der zu sprechende Text, für das Ohr geschrieben"
 end_tool_description = "Laut auf Wiedersehen sagen und dann die ganze Sprachsitzung beenden: die Brücke und diese Claude-Code-Sitzung"
 end_text_description = "Das kurze Auf Wiedersehen, das vor dem Ende der Sitzung gesprochen wird"
 board_tool_description = "Die Tafel der arbeitenden und der fertigen Agenten lesen: ihr Typ, die Beschreibung ihrer Aufgabe, seit wann sie arbeiten und die letzte Nachricht jedes fertigen. Damit sagen, was läuft, auch nachdem das Gespräch zusammengefasst wurde"
+play_tool_description = "Eine Audiodatei im Headset des Nutzers abspielen, etwa eine Aufnahme, einen Ausschnitt oder Hörproben zum Vergleichen, nach dem, was noch zu sagen ist; der Nutzer kann sie durch Sprechen unterbrechen, wie eine Antwort"
+play_path_description = "Der absolute Pfad der Audiodatei (WAV, MP3, FLAC, Ogg, Opus, M4A oder AAC), die in {directory} liegen muss"
+play_label_description = "Optional: ein paar Worte direkt vor der Datei, etwa ihr Name oder worauf zu achten ist, fürs Ohr geschrieben"
 hallucinations = [
   "",
   "vielen dank fürs zuschauen",

@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from importlib.metadata import version
+from pathlib import PurePath
 from typing import TYPE_CHECKING, Final, Protocol
 
 import anyio
@@ -11,8 +12,10 @@ from mcp.server.stdio import stdio_server
 from mcp.shared.message import SessionMessage
 from pydantic import BaseModel, ValidationError
 
+from voice_bridge.features.conversation.domain.turn_taking import Recording
+
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine
+    from collections.abc import Awaitable, Callable, Coroutine
 
     from anyio.abc import ObjectSendStream
     from mcp.server.context import ServerRequestContext
@@ -22,6 +25,7 @@ SERVER_NAME: Final = "voice"
 TOOL_NAME: Final = "reply"
 END_TOOL_NAME: Final = "end_session"
 BOARD_TOOL_NAME: Final = "board"
+PLAY_TOOL_NAME: Final = "play"
 ALWAYS_LOAD: Final = {"anthropic/alwaysLoad": True}
 CHANNEL_CAPABILITY: Final = "claude/channel"
 CHANNEL_NOTIFICATION: Final = "notifications/claude/channel"
@@ -52,9 +56,26 @@ class BoardTool:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class PlayTool:
+    description: str
+    path_description: str
+    label_description: str
+    read: Callable[[str], Awaitable[bytes]]
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ChannelTools:
+    reply: ReplyTool
+    end_session: EndSessionTool
+    board: BoardTool
+    play: PlayTool
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Reply:
     text: str
     ending: bool = False
+    recording: Recording | None = None
 
 
 class ReplyArguments(BaseModel):
@@ -63,6 +84,11 @@ class ReplyArguments(BaseModel):
 
 class EndSessionArguments(BaseModel):
     text: str
+
+
+class PlayArguments(BaseModel):
+    path: str
+    label: str = ""
 
 
 def _error(message: str) -> types.CallToolResult:
@@ -95,6 +121,39 @@ def _board_tool(tool: BoardTool) -> types.Tool:
     )
 
 
+def _play_tool(tool: PlayTool) -> types.Tool:
+    return types.Tool.model_validate(
+        {
+            "name": PLAY_TOOL_NAME,
+            "description": tool.description,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": tool.path_description},
+                    "label": {"type": "string", "description": tool.label_description},
+                },
+                "required": ["path"],
+            },
+            "_meta": ALWAYS_LOAD,
+        }
+    )
+
+
+async def _clip_of(tool: PlayTool, arguments: dict[str, object]) -> Reply | types.CallToolResult:
+    try:
+        asked = PlayArguments.model_validate(arguments)
+    except ValidationError as error:
+        return _error(str(error))
+    try:
+        pcm = await tool.read(asked.path)
+    except ValueError as error:
+        logger.info("play refused: %s", error)
+        return _error(str(error))
+    name = PurePath(asked.path).name
+    logger.info("clip received from Claude: %s, after %r", name, asked.label)
+    return Reply(text=asked.label, recording=Recording(name=name, pcm=pcm))
+
+
 def _board(tool: BoardTool) -> types.CallToolResult:
     logger.info("board read by Claude")
     return types.CallToolResult(content=[types.TextContent(type="text", text=tool.read())])
@@ -110,54 +169,55 @@ def _reply_of(name: str, arguments: dict[str, object]) -> Reply | types.CallTool
     return Reply(text=reply.text)
 
 
-def _logged(reply: Reply) -> None:
+def _logged(reply: Reply | types.CallToolResult) -> Reply | types.CallToolResult:
+    if isinstance(reply, types.CallToolResult):
+        return reply
     if reply.ending:
         logger.info("goodbye received from Claude: %r, the session ends after it", reply.text)
-        return
-    logger.info("reply received from Claude: %r", reply.text)
+    else:
+        logger.info("reply received from Claude: %r", reply.text)
+    return reply
 
 
-def channel_server(
-    *,
-    instructions: str,
-    tool: ReplyTool,
-    end_tool: EndSessionTool,
-    board_tool: BoardTool,
-    replies: ObjectSendStream[Reply],
-) -> Server[object]:
+async def _received(tools: ChannelTools, params: types.CallToolRequestParams) -> Reply | types.CallToolResult:
+    arguments = params.arguments or {}
+    if params.name == PLAY_TOOL_NAME:
+        return await _clip_of(tools.play, arguments)
+    if params.name in {TOOL_NAME, END_TOOL_NAME}:
+        return _logged(_reply_of(params.name, arguments))
+    return _error(f"unknown tool: {params.name}")
+
+
+def channel_server(*, instructions: str, tools: ChannelTools, replies: ObjectSendStream[Reply]) -> Server[object]:
     reply = types.Tool.model_validate(
         {
             "name": TOOL_NAME,
-            "description": tool.description,
+            "description": tools.reply.description,
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "text": {"type": "string", "description": tool.text_description},
+                    "text": {"type": "string", "description": tools.reply.text_description},
                 },
                 "required": ["text"],
             },
             "_meta": ALWAYS_LOAD,
         }
     )
-    end_session = _end_session_tool(end_tool)
-    board = _board_tool(board_tool)
+    listed = [reply, _end_session_tool(tools.end_session), _board_tool(tools.board), _play_tool(tools.play)]
 
     async def list_tools(
         _context: ServerRequestContext[object], _params: types.PaginatedRequestParams | None
     ) -> types.ListToolsResult:
-        return types.ListToolsResult(tools=[reply, end_session, board])
+        return types.ListToolsResult(tools=listed)
 
     async def call_tool(
         _context: ServerRequestContext[object], params: types.CallToolRequestParams
     ) -> types.CallToolResult:
         if params.name == BOARD_TOOL_NAME:
-            return _board(board_tool)
-        if params.name not in {TOOL_NAME, END_TOOL_NAME}:
-            return _error(f"unknown tool: {params.name}")
-        received = _reply_of(params.name, params.arguments or {})
+            return _board(tools.board)
+        received = await _received(tools, params)
         if isinstance(received, types.CallToolResult):
             return received
-        _logged(received)
         await replies.send(received)
         answer = "ending" if received.ending else "sent"
         return types.CallToolResult(content=[types.TextContent(type="text", text=answer)])
