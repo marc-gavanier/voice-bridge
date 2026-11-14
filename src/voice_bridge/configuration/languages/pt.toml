@@ -20,20 +20,27 @@ hallucination_prefixes = [
 ]
 neutral_acknowledgements = [
   "Recebido.",
-  "Bem recebido.",
   "Mensagem recebida.",
   "Certo, recebido.",
   "Entendido.",
   "Entendi.",
+  "Certo, entendi.",
+  "Ah, entendi.",
+  "Tá, entendi.",
   "Compreendido.",
+  "Saquei.",
+  "Captei.",
   "Te ouvi bem.",
   "Anotado.",
-  "Está anotado.",
+  "Anotei.",
+  "Certo, anotado.",
+  "Tá anotado.",
   "Vou anotar.",
-  "Combinado.",
   "Certo.",
+  "Tá bom.",
   "Ah, tá.",
   "Entendo.",
+  "Estou vendo.",
 ]
 
 [announcements]
@@ -68,6 +75,10 @@ examples = [
   "Não não não, para.",
   "Já chega, para.",
   "Para de procurar.",
+  "Para tudo.",
+  "Para aí.",
+  "Chega, para.",
+  "Você pode parar aí?",
 ]
 sentences = [
   "Paro todo o trabalho em andamento.",
@@ -75,6 +86,15 @@ sentences = [
   "Paro agora mesmo.",
   "Paro agora.",
   "Paro na hora.",
+  "Paro tudo.",
+  "Paro por aqui.",
+  "Parando tudo.",
+  "Parando agora mesmo.",
+  "Vou parar agora.",
+  "Vou parar imediatamente.",
+  "Interrompo tudo.",
+  "Interrompendo tudo.",
+  "Vou interromper o trabalho em andamento.",
 ]
 
 [[acknowledgements]]
@@ -97,14 +117,25 @@ examples = [
   "Como eu desligo?",
   "Paramos por aqui.",
   "Bom, vamos parar por aqui.",
+  "Vamos encerrar por hoje.",
+  "Valeu, até amanhã.",
 ]
 sentences = [
   "Até mais.",
   "Até logo.",
+  "Até breve.",
   "Até a próxima.",
+  "Tchau.",
+  "Tchau, até mais.",
+  "A gente se fala.",
+  "Se cuida.",
   "Paramos por aqui.",
-  "Certo, vamos parar.",
+  "Vamos parar por aqui.",
   "Entendido, paramos por aqui.",
+  "Por hoje é só.",
+  "Foi um prazer.",
+  "Obrigada pela sessão.",
+  "Vou encerrar a sessão.",
 ]
 
 [[acknowledgements]]
@@ -131,6 +162,10 @@ sentences = [
   "Estou ouvindo.",
   "Pode falar.",
   "Sem pressa.",
+  "Com calma.",
+  "Continua.",
+  "Diz aí.",
+  "Você estava dizendo?",
 ]
 
 [[acknowledgements]]
@@ -171,10 +206,14 @@ examples = [
 ]
 sentences = [
   "Estou aqui.",
-  "Estou te ouvindo.",
-  "Te ouço bem.",
-  "Presente.",
+  "Tô aqui.",
   "Aqui estou.",
+  "Estou com você.",
+  "Estou te ouvindo.",
+  "Estou te ouvindo bem.",
+  "Estou te ouvindo muito bem.",
+  "Estou te ouvindo perfeitamente.",
+  "Estou te ouvindo em alto e bom som.",
   "Estou ouvindo.",
 ]
 
@@ -202,8 +241,14 @@ examples = [
 sentences = [
   "Com prazer.",
   "De nada.",
+  "Por nada.",
+  "Imagina.",
+  "Não por isso.",
+  "Disponha.",
   "O prazer é meu.",
   "É um prazer.",
+  "Sempre às ordens.",
+  "Fico feliz em ajudar.",
 ]
 
 [[acknowledgements]]
@@ -225,11 +270,22 @@ examples = [
   "Você é demais.",
   "Impressionante.",
   "Parabéns, era exatamente o que eu queria.",
+  "Bom trabalho, obrigado.",
+  "Arrasou.",
+  "Ficou show.",
+  "Muito bem feito.",
 ]
 sentences = [
-  "Obrigada, fico feliz.",
+  "Obrigada.",
   "Muito obrigada.",
+  "Ah, obrigada.",
+  "Valeu.",
+  "Obrigada, fico feliz.",
+  "Obrigada, fico contente.",
+  "Fico feliz em ouvir isso.",
   "Obrigada, que gentileza.",
+  "Que gentileza.",
+  "Obrigada pelo elogio.",
 ]
 
 [[acknowledgements]]
@@ -254,15 +310,28 @@ examples = [
 ]
 sentences = [
   "Vou verificar.",
+  "Vou checar.",
+  "Vou checar isso.",
   "Vou ver isso.",
   "Vou dar uma olhada.",
+  "Deixa eu ver.",
+  "Deixa eu dar uma olhada.",
   "Vejamos.",
   "Vamos ver isso.",
+  "Vamos ver o que está acontecendo.",
+  "Vou ver o que houve.",
+  "Vou procurar a causa.",
+  "Vou ver de onde vem.",
+  "Vou investigar.",
   "Ah, poxa.",
+  "Poxa, vou olhar.",
+  "Xi, vou ver isso.",
   "Ah, vou olhar.",
   "Anotado, estou procurando.",
   "Um instante, vou olhar.",
   "Um instante, vou verificar.",
+  "Um segundo, vou olhar.",
+  "Só um momento, vou verificar.",
 ]
 
 [[acknowledgements]]
@@ -285,15 +354,24 @@ examples = [
   "Cria um ticket para isso.",
   "Pode apagar.",
   "Pode me contar mais sobre esse modelo pequeno?",
+  "Pode ler o artigo da Wikipédia sobre a Saboia?",
 ]
 sentences = [
   "Deixa comigo.",
+  "Pode deixar.",
+  "Pode deixar comigo.",
+  "É pra já.",
+  "Agora mesmo.",
+  "Já vou.",
   "Vou fazer.",
-  "Lá vamos nós.",
+  "Vou fazer isso.",
+  "Vou cuidar disso.",
+  "Já cuido disso.",
   "Vou olhar.",
   "Deixa eu olhar.",
   "Vou ver isso.",
-  "Vou começar.",
+  "Lá vamos nós.",
+  "Um instante, já faço.",
 ]
 
 [[acknowledgements]]
@@ -314,16 +392,29 @@ examples = [
   "Você tem perguntas?",
   "Onde a gente parou?",
   "Ainda tem algo a fazer?",
+  "Você teve tempo de ler o artigo ou parou antes?",
 ]
 sentences = [
   "Estou pensando.",
+  "Deixa eu pensar.",
+  "Hum, deixa eu pensar.",
   "Vejamos.",
+  "Vamos ver.",
   "Boa pergunta.",
   "Deixa eu ver.",
   "Vou verificar.",
+  "Vou checar.",
+  "Vou procurar.",
+  "Vou dar uma olhada.",
+  "Vou me informar.",
   "Espera, vou olhar.",
+  "Espera, vou verificar.",
+  "Espera, deixa eu pensar.",
   "Um instante, vou olhar.",
   "Um instante, vou verificar.",
+  "Um instante, deixa eu pensar.",
+  "Só um segundo, vou olhar.",
+  "Só um segundo, vou verificar.",
 ]
 
 [[acknowledgements]]
@@ -344,9 +435,19 @@ examples = [
   "Tenho uma sugestão.",
   "Preciso te contar uma coisa.",
   "Escuta, eu estava pensando…",
+  "Tenho uma coisa para te propor.",
+  "Opa, me veio uma ideia.",
 ]
 sentences = [
   "Estou ouvindo.",
+  "Sou toda ouvidos.",
+  "Conta.",
+  "Conta aí.",
+  "Me conta.",
+  "Fala.",
+  "Pode falar.",
+  "Opa, me conta.",
+  "Ah, é?",
 ]
 
 [[acknowledgements]]
@@ -370,9 +471,16 @@ examples = [
 ]
 sentences = [
   "Entendo a ideia.",
-  "Faz sentido.",
-  "Interessante.",
+  "Entendi a ideia.",
+  "Saquei a ideia.",
+  "Entendo o que você quer dizer.",
+  "Entendi aonde você quer chegar.",
+  "Já entendi.",
   "Ah, entendi.",
+  "Faz sentido.",
+  "Tem lógica.",
+  "Interessante.",
+  "Vou anotar a ideia.",
 ]
 
 [[acknowledgements]]
@@ -397,14 +505,21 @@ examples = [
 ]
 sentences = [
   "Tudo bem.",
+  "Bom, tudo bem.",
   "Entendido.",
-  "Sem problema.",
+  "Ah, entendido.",
+  "Ah, entendi.",
   "Certo.",
   "Ah, tá.",
-  "Bom, tudo bem.",
-  "Vou corrigir.",
+  "Tranquilo.",
+  "Sem problema.",
   "Não tem problema.",
-  "Mudo de rumo.",
+  "Vou corrigir.",
+  "Vou ajustar.",
+  "Vou rever isso.",
+  "Vou mudar de rumo.",
+  "Vou mudar de abordagem.",
+  "Vou tentar de outro jeito.",
 ]
 
 [[acknowledgements]]
@@ -425,14 +540,26 @@ examples = [
   "Sim, pode começar.",
   "Vai, começa.",
   "Vai lá.",
+  "Partiu.",
+  "Bora lá.",
+  "Manda ver.",
+  "Pode ir.",
+  "Vamos nessa.",
 ]
 sentences = [
   "Lá vamos nós.",
   "Vamos lá.",
   "Bora.",
+  "Bora lá.",
+  "Partiu.",
+  "Vamos nessa.",
+  "Mãos à obra.",
   "Vamos fazer isso.",
   "Começando.",
-  "Vai!",
+  "Começando agora.",
+  "Vou começar.",
+  "É pra já.",
+  "Pode deixar.",
   "Fechado.",
 ]
 
@@ -455,13 +582,23 @@ examples = [
   "Deixa como está, está bom.",
   "Sim, beleza, deixa assim.",
   "Por mim serve.",
+  "Exatamente isso.",
+  "Não, é exatamente isso.",
+  "Beleza.",
+  "Assim está bom.",
+  "Sim, parou certinho.",
 ]
 sentences = [
   "Perfeito.",
+  "Ótimo.",
+  "Excelente.",
+  "Maravilha.",
   "Muito bem.",
+  "Beleza.",
+  "Legal.",
   "Tudo bem.",
   "Certo.",
   "Entendido.",
-  "Ótimo.",
-  "Bom.",
+  "Combinado.",
+  "Fechado.",
 ]
