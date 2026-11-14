@@ -36,4 +36,5 @@ def run_attributes(settings: Settings, *, voice: str) -> dict[str, str | float |
         "voice_bridge.whisper.model": settings.whisper.model,
         "voice_bridge.speech.model": settings.speech.model,
         "voice_bridge.speech.voice": voice,
+        "voice_bridge.speech.speed": settings.speech.speed,
     }

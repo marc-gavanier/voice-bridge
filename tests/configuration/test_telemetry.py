@@ -64,7 +64,7 @@ def settings() -> Settings:
             },
             "whisper": {"model": "large-v3"},
             "hearing": {"settle": 1.5, "silence": 0.7, "smart_turn": True, "turn_threshold": 0.6},
-            "speech": {"model": "mistralai/Voxtral-4B-TTS-2603"},
+            "speech": {"model": "mistralai/Voxtral-4B-TTS-2603", "speed": 1.2},
         }
     )
 
@@ -79,4 +79,5 @@ def test_the_run_is_described_by_the_settings_that_shape_a_turn() -> None:
         "voice_bridge.whisper.model": "large-v3",
         "voice_bridge.speech.model": "mistralai/Voxtral-4B-TTS-2603",
         "voice_bridge.speech.voice": "fr_female",
+        "voice_bridge.speech.speed": 1.2,
     }
