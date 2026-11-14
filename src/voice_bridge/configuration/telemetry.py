@@ -25,7 +25,7 @@ def reports_errors(environ: Mapping[str, str]) -> bool:
     return bool(environ.get("SENTRY_DSN"))
 
 
-def run_attributes(settings: Settings, *, voice: str) -> dict[str, str | float | bool]:
+def run_attributes(settings: Settings, *, voice: str, pace: str) -> dict[str, str | float | bool]:
     hearing = settings.hearing
     return {
         "voice_bridge.language": settings.language,
@@ -37,4 +37,5 @@ def run_attributes(settings: Settings, *, voice: str) -> dict[str, str | float |
         "voice_bridge.speech.model": settings.speech.model,
         "voice_bridge.speech.voice": voice,
         "voice_bridge.speech.speed": settings.speech.speed,
+        "voice_bridge.speech.pace": pace,
     }

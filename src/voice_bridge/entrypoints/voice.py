@@ -279,7 +279,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         anyio.current_time,
         settings.telemetry_directory,
         kept_days(settings.telemetry_retention),
-        run_attributes(settings, voice=speech_settings.voice or language.voice),
+        run_attributes(settings, voice=speech_settings.voice or language.voice, pace=PACE_METHOD),
     )
 
     async def connected(client: MumbleClient) -> None:

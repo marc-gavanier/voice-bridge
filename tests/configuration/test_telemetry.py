@@ -70,7 +70,7 @@ def settings() -> Settings:
 
 
 def test_the_run_is_described_by_the_settings_that_shape_a_turn() -> None:
-    assert run_attributes(settings(), voice="fr_female") == {
+    assert run_attributes(settings(), voice="fr_female", pace="atempo") == {
         "voice_bridge.language": "fr",
         "voice_bridge.hearing.silence": 0.7,
         "voice_bridge.hearing.settle": 1.5,
@@ -80,4 +80,5 @@ def test_the_run_is_described_by_the_settings_that_shape_a_turn() -> None:
         "voice_bridge.speech.model": "mistralai/Voxtral-4B-TTS-2603",
         "voice_bridge.speech.voice": "fr_female",
         "voice_bridge.speech.speed": 1.2,
+        "voice_bridge.speech.pace": "atempo",
     }
