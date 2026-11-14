@@ -2,10 +2,12 @@ from importlib.resources import files
 from pathlib import Path
 
 import pytest
+from platformdirs import user_state_path
 from pydantic import ValidationError
 
 from voice_bridge.configuration.settings import (
     LANGUAGES,
+    ClipsSettings,
     HearingSettings,
     SpeechSettings,
     default_config_file,
@@ -197,6 +199,35 @@ def test_the_hold_music_comes_from_the_config_file(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     _ = path.write_text(MINIMAL + '[hold_music]\nfile = "/music/hold.mp3"\n', encoding="utf-8")
     assert load_settings(path).hold_music.file == Path("/music/hold.mp3")
+
+
+def test_clips_are_played_from_the_state_directory_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).clips.directory == user_state_path("voice-bridge") / "clips"
+
+
+def test_the_clips_directory_comes_from_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[clips]\ndirectory = "/srv/clips"\n', encoding="utf-8")
+    assert load_settings(path).clips.directory == Path("/srv/clips")
+
+
+def test_a_clip_is_limited_to_five_minutes_and_fifty_megabytes_by_default(config_file: Path) -> None:
+    clips = load_settings(config_file).clips
+    assert (clips.longest, clips.largest) == (300.0, 50_000_000)
+
+
+def test_a_clip_plays_at_its_own_volume_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).clips.volume == 1.0
+
+
+def test_a_clip_limit_must_be_positive() -> None:
+    with pytest.raises(ValidationError, match="longest"):
+        _ = ClipsSettings(longest=0.0)
+
+
+def test_a_clip_size_must_be_positive() -> None:
+    with pytest.raises(ValidationError, match="largest"):
+        _ = ClipsSettings(largest=0)
 
 
 def test_the_speech_engine_is_checked_on_its_health_route_by_default(config_file: Path) -> None:

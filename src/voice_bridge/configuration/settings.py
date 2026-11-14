@@ -104,6 +104,13 @@ class HoldMusicSettings(Section):
     fade_out: NonNegativeFloat = 0.3
 
 
+class ClipsSettings(Section):
+    directory: Path = user_state_path(APP_NAME) / "clips"
+    longest: PositiveFloat = 300.0
+    largest: PositiveInt = 50_000_000
+    volume: NonNegativeFloat = 1.0
+
+
 class UnderstandingSettings(Section):
     threshold: float = 0.5
     stop_flag: Path = DEFAULT_STOP_FLAG
@@ -120,6 +127,7 @@ class Settings(BaseSettings):
     whisper: WhisperSettings = WhisperSettings()
     hearing: HearingSettings = HearingSettings()
     hold_music: HoldMusicSettings = HoldMusicSettings()
+    clips: ClipsSettings = ClipsSettings()
     understanding: UnderstandingSettings = UnderstandingSettings()
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = DEFAULT_LOG_FILE
