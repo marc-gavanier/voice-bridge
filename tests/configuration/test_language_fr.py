@@ -21,6 +21,10 @@ def test_french_describes_the_end_of_session_tool_in_french() -> None:
     assert language_pack("fr").end_tool_description.startswith("Dire au revoir")
 
 
+def test_french_tells_claude_that_the_board_gives_each_agents_latest_action() -> None:
+    assert "dernière action" in language_pack("fr").board_tool_description
+
+
 def test_french_knows_the_subtitle_credit_hallucination() -> None:
     assert "sous-titrage" in language_pack("fr").hallucination_prefixes
 
