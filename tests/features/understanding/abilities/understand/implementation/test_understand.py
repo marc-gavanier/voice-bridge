@@ -12,8 +12,8 @@ from voice_bridge.features.understanding.abilities.understand.implementation.und
 from voice_bridge.features.understanding.domain.meaning import Meaning, Route
 
 ROUTES = (Route(name="stop", threshold=0.75, stops=True), Route(name="yes", threshold=0.5))
-STOP = Meaning(route=0, score=0.9, stops=True)
-YES = Meaning(route=1, score=0.8, stops=False)
+STOP = Meaning(route=0, score=0.9, stops=True, ranking=(("stop", 0.9), ("yes", 0.2)))
+YES = Meaning(route=1, score=0.8, stops=False, ranking=(("yes", 0.8), ("stop", 0.1)))
 ALLOWED = frozenset({"mcp__voice__reply"})
 
 
