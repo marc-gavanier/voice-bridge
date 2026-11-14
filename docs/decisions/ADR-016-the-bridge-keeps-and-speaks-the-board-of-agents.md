@@ -1,7 +1,7 @@
 # ADR-016 — The bridge keeps and speaks the board of agents
 
 **Date**: 2026-11-13
-**Status**: accepted, partly supersedes [ADR-014](ADR-014-claude-codes-hooks-tell-when-claude-works.md) for the socket's messages, partly superseded by [ADR-019](ADR-019-the-bridge-announces-only-two-or-more-tasks-at-work.md) for the announcements
+**Status**: accepted, partly supersedes [ADR-014](ADR-014-claude-codes-hooks-tell-when-claude-works.md) for the socket's messages, partly superseded by [ADR-019](ADR-019-the-bridge-announces-only-two-or-more-tasks-at-work.md) for the announcements and by [ADR-022](ADR-022-the-board-of-agents-heals-and-says-when-it-cannot-be-trusted.md) for the rules of the board
 
 ## Context
 
