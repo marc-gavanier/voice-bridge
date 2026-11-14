@@ -111,18 +111,18 @@ def test_the_speed_of_the_speech_comes_from_the_config_file(tmp_path: Path) -> N
     assert load_settings(path).speech.speed == 1.2
 
 
-def test_a_speed_below_a_quarter_stops_the_start() -> None:
+def test_a_speed_below_half_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="speed"):
-        _ = SpeechSettings(speed=0.2)
+        _ = SpeechSettings(speed=0.49)
 
 
-def test_a_speed_above_four_stops_the_start() -> None:
+def test_a_speed_above_double_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="speed"):
-        _ = SpeechSettings(speed=4.1)
+        _ = SpeechSettings(speed=2.01)
 
 
 def test_the_extreme_speeds_are_accepted() -> None:
-    assert (SpeechSettings(speed=0.25).speed, SpeechSettings(speed=4.0).speed) == (0.25, 4.0)
+    assert (SpeechSettings(speed=0.5).speed, SpeechSettings(speed=2.0).speed) == (0.5, 2.0)
 
 
 def test_the_telemetry_is_written_beside_the_log_by_default(config_file: Path) -> None:

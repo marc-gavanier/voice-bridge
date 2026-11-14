@@ -48,7 +48,7 @@ class SpeechSettings(Section):
     model: str = "mistralai/Voxtral-4B-TTS-2603"
     voice: str | None = None
     gain: float = 1.0
-    speed: Annotated[float, Field(ge=0.25, le=4.0)] = 1.0
+    speed: Annotated[float, Field(ge=0.5, le=2.0)] = 1.0
     timeout: float = 120.0
     health: str = "/health"
 
