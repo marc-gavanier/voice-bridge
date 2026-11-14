@@ -16,12 +16,23 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
 )
 
+type Attribute = str | int | float | bool
+
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Span:
     name: str
     start: float
     end: float
+    attributes: tuple[tuple[str, Attribute], ...] = ()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Ordered:
+    ticket: int
+    start: float
+    rank: int
+    characters: int
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -46,7 +57,8 @@ class Turn:
     forwarded_at: float
     steps: tuple[Span, ...]
     answered: bool = False
-    synthesizing: tuple[tuple[int, float], ...] = ()
+    synthesizing: tuple[Ordered, ...] = ()
+    ordered: int = 0
     voiced: float = 0.0
     playing: tuple[Span, ...] = ()
     interrupted: bool = False
@@ -105,12 +117,14 @@ def _answered(turn: Turn, at: float) -> Turn:
     return replace(turn, answered=True, steps=(*turn.steps, Span(name="claude", start=turn.forwarded_at, end=at)))
 
 
-def _synthesized(turn: Turn, ticket: int, at: float, name: str) -> Turn:
-    started = dict(turn.synthesizing)
-    if ticket not in started:
+def _synthesized(turn: Turn, ticket: int, at: float, name: str, voiced: tuple[tuple[str, Attribute], ...] = ()) -> Turn:
+    order = next((each for each in turn.synthesizing if each.ticket == ticket), None)
+    if order is None:
         return turn
-    rest = tuple((each, start) for each, start in turn.synthesizing if each != ticket)
-    return replace(turn, synthesizing=rest, steps=(*turn.steps, Span(name=name, start=started[ticket], end=at)))
+    rest = tuple(each for each in turn.synthesizing if each.ticket != ticket)
+    attributes = (("rank", order.rank), ("characters", order.characters), *voiced)
+    span = Span(name=name, start=order.start, end=at, attributes=attributes)
+    return replace(turn, synthesizing=rest, steps=(*turn.steps, span))
 
 
 def _played(turn: Turn, at: float) -> Turn:
@@ -125,10 +139,12 @@ def _stopped(turn: Turn, at: float) -> Turn:
 
 def _on_voice(turn: Turn, at: float, item: Synthesize | Synthesized | SynthesisFailed) -> Turn:
     match item:
-        case Synthesize(ticket=ticket):
-            return replace(turn, synthesizing=(*turn.synthesizing, (ticket, at)))
+        case Synthesize(ticket=ticket, sentence=sentence):
+            order = Ordered(ticket=ticket, start=at, rank=turn.ordered, characters=len(sentence))
+            return replace(turn, synthesizing=(*turn.synthesizing, order), ordered=turn.ordered + 1)
         case Synthesized(ticket=ticket, at=ready, duration=duration):
-            return replace(_synthesized(turn, ticket, ready, "synthesis"), voiced=duration)
+            synthesized = _synthesized(turn, ticket, ready, "synthesis", (("audio.duration", duration),))
+            return replace(synthesized, voiced=duration)
         case SynthesisFailed(ticket=ticket):
             return _synthesized(turn, ticket, at, "failed synthesis")
         case _:

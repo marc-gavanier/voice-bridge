@@ -127,14 +127,56 @@ def test_only_the_first_reply_ends_the_wait_for_claude() -> None:
     ) == ["end of turn", "transcription", "settle", "claude"]
 
 
+def synthesis_of(*moments: Moment) -> Span:
+    return next(step for step in steps_of(*moments) if step.name.endswith("synthesis"))
+
+
 def test_a_synthesis_lasts_from_its_order_to_its_voice() -> None:
-    assert Span(name="synthesis", start=6.0, end=7.0) in steps_of(*heard(), (4.0, FORWARD), *answered(ready=7.0))
+    synthesis = synthesis_of(*heard(), (4.0, FORWARD), *answered(ready=7.0))
+    assert (synthesis.name, synthesis.start, synthesis.end) == ("synthesis", 6.0, 7.0)
+
+
+def test_a_synthesis_tells_its_rank_its_length_and_the_length_of_its_voice() -> None:
+    assert synthesis_of(*heard(), (4.0, FORWARD), *answered(sentence="Trois notes.", duration=2.0)).attributes == (
+        ("rank", 0),
+        ("characters", 12),
+        ("audio.duration", 2.0),
+    )
 
 
 def test_a_failed_synthesis_is_kept_as_such() -> None:
-    assert Span(name="failed synthesis", start=6.0, end=8.0) in steps_of(
+    assert synthesis_of(
         *heard(), (4.0, FORWARD), (6.0, Synthesize(ticket=0, sentence="Trois.")), (8.0, SynthesisFailed(ticket=0))
-    )
+    ) == Span(name="failed synthesis", start=6.0, end=8.0, attributes=(("rank", 0), ("characters", 6)))
+
+
+def synthesis_ranks(*moments: Moment) -> list[object]:
+    return [dict(step.attributes)["rank"] for step in steps_of(*moments) if step.name == "synthesis"]
+
+
+def test_each_sentence_of_a_turn_takes_the_next_rank() -> None:
+    assert synthesis_ranks(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Un.")),
+        (6.5, Synthesize(ticket=1, sentence="Deux.")),
+        (7.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=7.0)),
+        (8.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=8.0)),
+    ) == [1, 0]
+
+
+def second_turn_ranks(*moments: Moment) -> list[object]:
+    return [dict(step.attributes)["rank"] for step in turns_of(*moments)[1].steps if step.name == "synthesis"]
+
+
+def test_the_ranks_start_again_with_each_turn() -> None:
+    assert second_turn_ranks(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Un.")),
+        (7.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=7.0)),
+        (14.0, FORWARD),
+        (16.0, Synthesize(ticket=1, sentence="Deux.")),
+        (17.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=17.0)),
+    ) == [0]
 
 
 def test_the_voice_of_a_dropped_synthesis_is_not_a_step() -> None:
@@ -186,15 +228,19 @@ def test_an_interruption_drops_the_sentences_not_yet_playing() -> None:
     ) == ["end of turn", "transcription", "settle", "claude", "synthesis", "synthesis", "playback"]
 
 
+def synthesis_starts(*moments: Moment) -> list[float]:
+    return [step.start for step in steps_of(*moments) if step.name == "synthesis"]
+
+
 def test_an_interruption_drops_the_syntheses_under_way() -> None:
-    assert Span(name="synthesis", start=7.5, end=9.0) not in steps_of(
+    assert synthesis_starts(
         *heard(),
         (4.0, FORWARD),
         *answered(),
         (7.5, Synthesize(ticket=1, sentence="Et une quatrième.")),
         (8.0, StopPlaying(heard_at=8.0)),
         (9.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=9.0)),
-    )
+    ) == [6.0]
 
 
 def test_an_interrupted_turn_says_so() -> None:

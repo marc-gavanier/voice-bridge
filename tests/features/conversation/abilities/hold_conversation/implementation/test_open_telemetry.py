@@ -31,6 +31,12 @@ TURN = FinishedTurn(
     steps=(Span(name="transcription", start=1.0, end=1.5), Span(name="claude", start=2.0, end=3.0)),
     interrupted=True,
 )
+SPOKEN = FinishedTurn(
+    start=1.0,
+    end=4.0,
+    steps=(Span(name="synthesis", start=3.0, end=3.5, attributes=(("rank", 0), ("characters", 12))),),
+    interrupted=False,
+)
 
 
 @dataclass(frozen=True)
@@ -53,8 +59,8 @@ def exported() -> Exported:
     return Exported(telemetry=telemetry, spans=spans, metrics=metrics)
 
 
-def finished_spans(exported: Exported) -> dict[str, ReadableSpan]:
-    exported.telemetry(TURN)
+def finished_spans(exported: Exported, turn: FinishedTurn = TURN) -> dict[str, ReadableSpan]:
+    exported.telemetry(turn)
     return {span.name: span for span in exported.spans.get_finished_spans()}
 
 
@@ -108,6 +114,11 @@ def test_a_turn_keeps_its_own_times(exported: Exported) -> None:
 
 def test_a_turn_tells_whether_it_was_interrupted(exported: Exported) -> None:
     assert dict(finished_spans(exported)["turn"].attributes or {}) == {"interrupted": True}
+
+
+def test_a_step_keeps_its_attributes(exported: Exported) -> None:
+    synthesis = finished_spans(exported, SPOKEN)["synthesis"]
+    assert dict(synthesis.attributes or {}) == {"rank": 0, "characters": 12}
 
 
 def test_each_step_lasting_is_measured(exported: Exported) -> None:

@@ -91,7 +91,9 @@ class OpenTelemetry:
         )
         context = trace.set_span_in_context(root)
         for each in turn.steps:
-            span = self.tracer.start_span(each.name, context=context, start_time=self.to_epoch(each.start))
+            span = self.tracer.start_span(
+                each.name, context=context, start_time=self.to_epoch(each.start), attributes=dict(each.attributes)
+            )
             span.end(end_time=self.to_epoch(each.end))
             self.steps.record(each.end - each.start, {"step": each.name})
         root.end(end_time=self.to_epoch(turn.end))
