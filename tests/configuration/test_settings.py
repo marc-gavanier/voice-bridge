@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from voice_bridge.configuration.settings import (
     LANGUAGES,
+    ClaudeSettings,
     ClipsSettings,
     HearingSettings,
     SpeechSettings,
@@ -260,3 +261,27 @@ def language_files() -> list[str]:
 
 def test_every_language_shipped_can_be_chosen_for_the_hooks() -> None:
     assert language_files() == list(LANGUAGES)
+
+
+def test_claude_code_chooses_its_own_models_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).claude == ClaudeSettings(model=None, subagent_model=None)
+
+
+def test_the_models_of_claude_code_come_from_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[claude]\nmodel = "sonnet"\nsubagent_model = "claude-opus-5-5"\n', encoding="utf-8")
+    assert load_settings(path).claude == ClaudeSettings(model="sonnet", subagent_model="claude-opus-5-5")
+
+
+def test_a_model_with_a_longer_context_is_accepted() -> None:
+    assert ClaudeSettings(model="opus[1m]").model == "opus[1m]"
+
+
+def test_an_empty_model_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="model"):
+        _ = ClaudeSettings(model="")
+
+
+def test_a_model_that_could_be_read_as_an_option_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="subagent_model"):
+        _ = ClaudeSettings(subagent_model="--dangerously-skip-permissions")

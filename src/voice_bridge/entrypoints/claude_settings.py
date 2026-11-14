@@ -5,6 +5,7 @@ import sys
 from voice_bridge.configuration.settings import load_settings
 from voice_bridge.entrypoints.arguments import claude_settings_options
 from voice_bridge.libraries.claude_code.hooks import hook_settings
+from voice_bridge.libraries.claude_code.models import model_settings
 
 
 def main() -> None:
@@ -22,4 +23,6 @@ def main() -> None:
         settings.language,
         *log_file,
     ]
-    _ = sys.stdout.write(json.dumps(hook_settings(activity=shlex.join(activity), tool=shlex.join(tool))))
+    models = model_settings(model=settings.claude.model, subagent_model=settings.claude.subagent_model)
+    hooks = hook_settings(activity=shlex.join(activity), tool=shlex.join(tool))
+    _ = sys.stdout.write(json.dumps({**hooks, **models}))

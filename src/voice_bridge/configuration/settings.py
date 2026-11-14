@@ -29,6 +29,8 @@ DEFAULT_ACTIVITY_SOCKET = user_runtime_path(APP_NAME) / "activity.sock"
 
 type Retention = PositiveInt | Literal["forever"]
 
+type ClaudeModel = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9.-]*(\[1m\])?$")]
+
 
 class Section(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid", frozen=True)
@@ -111,6 +113,11 @@ class ClipsSettings(Section):
     volume: NonNegativeFloat = 1.0
 
 
+class ClaudeSettings(Section):
+    model: ClaudeModel | None = None
+    subagent_model: ClaudeModel | None = None
+
+
 class UnderstandingSettings(Section):
     threshold: float = 0.5
     stop_flag: Path = DEFAULT_STOP_FLAG
@@ -129,6 +136,7 @@ class Settings(BaseSettings):
     hold_music: HoldMusicSettings = HoldMusicSettings()
     clips: ClipsSettings = ClipsSettings()
     understanding: UnderstandingSettings = UnderstandingSettings()
+    claude: ClaudeSettings = ClaudeSettings()
     instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
     log_file: Path = DEFAULT_LOG_FILE
     log_retention: Retention = 30

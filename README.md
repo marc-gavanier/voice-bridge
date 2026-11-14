@@ -162,6 +162,8 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `understanding.threshold` | `0.5` | The cosine similarity to its closest example a sentence needs to take a route; the stop route asks 0.75, set in each language's TOML file in [`languages/`](src/voice_bridge/configuration/languages). The model, 220 MB, is downloaded from Hugging Face on first start |
 | `activity_socket` | `$XDG_RUNTIME_DIR/voice-bridge/activity.sock` | The Unix socket where `voice-bridge-activity-hook` tells the bridge whether Claude works and which agents start, act or finish; a Unix socket path holds at most 107 bytes |
 | `understanding.stop_flag` | `$XDG_RUNTIME_DIR/voice-bridge/stop` | The file whose presence makes `voice-bridge-tool-hook` refuse Claude's tools after a stop |
+| `claude.model` | none | The model of the Claude Code session that talks to you, an alias such as `sonnet` or a full name such as `claude-sonnet-5-5`, passed as the `model` key of the settings `voice-bridge-claude-settings` writes; unset, Claude Code picks it from its own settings. `/model` still changes it during the session ([ADR-031](docs/decisions/ADR-031-the-voice-session-may-run-on-a-faster-model-than-its-agents.md)) |
+| `claude.subagent_model` | none | The model of the background agents that get none another way, passed as `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` of the same settings; unset, they run on the session's model. A model Claude passes when it starts an agent, or an agent's own `model` field, wins over it, and a fork always runs on the session's model |
 | `claude_pid` | none | The Claude Code process the bridge ends after a goodbye; `claude-voice.sh` sets it through `VOICE_BRIDGE_CLAUDE_PID`. Without it, `end_session` says goodbye and leaves the session open |
 | `instructions_file` | `~/.config/voice-bridge/instructions.md` | What Claude is told about the channel; when the file is missing, the language's defaults from [`languages/`](src/voice_bridge/configuration/languages) apply |
 | `cache_directory` | `~/.cache/voice-bridge` | Where the voiced acknowledgements and announcements of the tasks in progress are kept between starts; once they are recorded, the clips this start did not ask for, left by an older voice, speed or wording, are removed; deleting it voices them again |
@@ -344,7 +346,7 @@ From the folder you want Claude Code to work in:
 ~/path/to/voice-bridge/scripts/claude-voice.sh
 ```
 
-The launcher starts Voxtral when it is not running, which takes a few minutes the first time, then starts Claude Code with the `voice` channel and the hooks, which `voice-bridge-claude-settings` registers with the socket, stop flag, language and log file read from the config at launch: the hooks never read the config themselves, so that editing it under a running session cannot break them, and a change of these settings reaches them at the next launch. Arguments go to Claude Code, so `--resume <session>` works.
+The launcher starts Voxtral when it is not running, which takes a few minutes the first time, then starts Claude Code with the `voice` channel and the hooks, which `voice-bridge-claude-settings` registers with the socket, stop flag, language and log file read from the config at launch, along with the models of `claude.model` and `claude.subagent_model` when they are set: the hooks never read the config themselves, so that editing it under a running session cannot break them, and a change of these settings reaches them at the next launch. Arguments go to Claude Code, so `--resume <session>` works.
 
 1. **Accept the warning.** Claude Code shows a full-screen warning about development channels at every start: choose *I am using this for local development*. Below the banner, `Channels (experimental) messages from server:voice` confirms the channel is registered.
 2. **Connect from the phone.** Once Whisper is loaded and Voxtral answers, you hear the greeting, one of the presence acknowledgements such as « Je suis là. », and the bridge's user appears in the channel.
@@ -458,7 +460,7 @@ src/voice_bridge/
   libraries/
     audio/         PCM and WAV with numpy and soxr, audio files decoded and speech paced with FFmpeg (PyAV)
     mumble/        pinned connection, speaker audio, loudspeaker (pymumble-rev)
-    claude_code/   the input and the refusal of Claude Code's PreToolUse hook, and the settings that register the hooks
+    claude_code/   the input and the refusal of Claude Code's PreToolUse hook, and the settings that register the hooks and choose the models
     rotation/      files rotated daily into gzip copies, kept a number of days (logging's TimedRotatingFileHandler)
   configuration/   settings (pydantic-settings), languages, default instructions
   entrypoints/     voice-bridge-channel, voice-bridge-rehearsal, voice-bridge-recorder, voice-bridge-tool-hook, voice-bridge-activity-hook, voice-bridge-claude-settings
