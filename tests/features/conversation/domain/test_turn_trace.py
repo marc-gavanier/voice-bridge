@@ -206,6 +206,40 @@ def test_a_turn_ends_with_the_end_of_its_last_voice() -> None:
     assert turn_of(*heard(), (4.0, FORWARD), *answered(ready=7.0, duration=2.0)).end == 9.0
 
 
+def test_the_response_lasts_from_the_end_of_the_last_voice_to_the_first_playback() -> None:
+    assert (
+        turn_of(
+            *heard(ended=1.0, at=1.5), *heard(ended=2.0, closed=2.5, at=3.0), (4.0, FORWARD), *answered(ready=7.0)
+        ).response
+        == 5.0
+    )
+
+
+def test_a_turn_never_played_has_no_response() -> None:
+    assert turn_of(*heard(), (4.0, FORWARD)).response is None
+
+
+def test_words_without_a_known_end_of_voice_are_answered_from_their_forward() -> None:
+    assert turn_of((3.0, Transcribed(text="Bonjour.")), (4.0, FORWARD), *answered(ready=7.0)).response == 3.0
+
+
+def test_a_noise_after_the_words_does_not_move_the_end_of_the_voice() -> None:
+    assert (
+        turn_of(
+            *heard(ended=2.0, at=3.0),
+            (3.5, SpeechEnded(at=3.5)),
+            (3.8, Transcribed(text="", noise=True)),
+            (4.0, FORWARD),
+            *answered(ready=7.0),
+        ).response
+        == 5.0
+    )
+
+
+def test_the_next_turn_is_answered_from_its_own_words() -> None:
+    assert turns_of(*heard(), (4.0, FORWARD), (14.0, FORWARD), *answered(ready=17.0))[1].response == 3.0
+
+
 def test_a_turn_is_finished_when_the_next_words_are_forwarded() -> None:
     assert turn_starts(*heard(ended=2.0), (4.0, FORWARD), *heard(ended=12.0, at=13.0), (14.0, FORWARD)) == [2.0, 12.0]
 

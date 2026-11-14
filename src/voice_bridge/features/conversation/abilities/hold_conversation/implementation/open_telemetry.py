@@ -54,6 +54,7 @@ class OpenTelemetry:
     tracer: Tracer
     turns: Histogram
     steps: Histogram
+    responses: Histogram
     events: Counter
     stalls: Histogram
     to_epoch: Callable[[float], int]
@@ -68,6 +69,11 @@ class OpenTelemetry:
                 description="From the end of the speaker's voice to the end of the reply",
             ),
             steps=meter.create_histogram(f"{NAME}.step.duration", unit="s", description="Each step of a turn"),
+            responses=meter.create_histogram(
+                f"{NAME}.response.latency",
+                unit="s",
+                description="From the end of the speaker's voice to the first sound of the reply",
+            ),
             events=meter.create_counter(f"{NAME}.events", description="Interruptions and sounds dismissed"),
             stalls=meter.create_histogram(
                 f"{NAME}.audio.stall.duration", unit="s", description="Gaps in the speaker's audio reaching the bridge"
@@ -86,8 +92,9 @@ class OpenTelemetry:
         return cls.of(tracers.get_tracer(NAME), meters.get_meter(NAME), epoch_of(clock))
 
     def _trace(self, turn: FinishedTurn) -> None:
+        response = {} if turn.response is None else {"response.latency": turn.response}
         root = self.tracer.start_span(
-            "turn", start_time=self.to_epoch(turn.start), attributes={"interrupted": turn.interrupted}
+            "turn", start_time=self.to_epoch(turn.start), attributes={"interrupted": turn.interrupted, **response}
         )
         context = trace.set_span_in_context(root)
         for each in turn.steps:
@@ -98,6 +105,8 @@ class OpenTelemetry:
             self.steps.record(each.end - each.start, {"step": each.name})
         root.end(end_time=self.to_epoch(turn.end))
         self.turns.record(turn.end - turn.start, {"interrupted": turn.interrupted})
+        if turn.response is not None:
+            self.responses.record(turn.response)
 
     def __call__(self, report: Report, /) -> None:
         match report:

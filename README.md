@@ -222,14 +222,20 @@ The count and the median of each step, in seconds, over every turn kept:
 cat ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s -r '[.[].resourceSpans[].scopeSpans[].spans[] | {name, s: (((.endTimeUnixNano | tonumber) - (.startTimeUnixNano | tonumber)) / 1e9)}] | group_by(.name)[] | (map(.s) | sort) as $d | "\(.[0].name)\t\($d | length)\t\($d[($d | length) / 2 | floor])"'
 ```
 
+The median response latency, the wait you hear:
+
+```bash
+cat ~/.local/state/voice-bridge/telemetry/traces.jsonl* | jq -s '[.[].resourceSpans[].scopeSpans[].spans[] | select(.name == "turn") | .attributes[] | select(.key == "response.latency") | .value.doubleValue] | sort | .[length / 2 | floor]'
+```
+
 `OTEL_SDK_DISABLED=true`, the SDK's standard switch, in the [tools' environment file](#one-tool-per-signal) turns the files off; the bridge still creates them, empty.
 
 ### Export traces, metrics and the log
 
 Nothing leaves the machine by default. With the `otel` extra installed and an OTLP endpoint set, the bridge exports instead of writing the files, to the collector of your choice:
 
-- **one trace per turn**: a `turn` span from the end of your voice until your next words reach Claude, with a span for each step: `end of turn`, from the end of your voice until the bridge judges your sentence finished, then `transcription` by Whisper, for each piece of what you said, `settle` before your words are pushed, `claude` until its first reply, each `synthesis` or `failed synthesis`, with the sentence's `rank` in the turn, from 0 for the first, its length in `characters` and, once voiced, its `audio.duration` in seconds, and each `playback`, cut where you interrupted; the turn tells whether it was `interrupted`;
-- **metrics**: `voice_bridge.turn.duration` and `voice_bridge.step.duration` by step, in seconds; `voice_bridge.events`, the interruptions and the sounds dismissed as too short; `voice_bridge.audio.stall.duration`, the gaps in your audio reaching the bridge;
+- **one trace per turn**: a `turn` span from the end of your voice until your next words reach Claude, with a span for each step: `end of turn`, from the end of your voice until the bridge judges your sentence finished, then `transcription` by Whisper, for each piece of what you said, `settle` before your words are pushed, `claude` until its first reply, each `synthesis` or `failed synthesis`, with the sentence's `rank` in the turn, from 0 for the first, its length in `characters` and, once voiced, its `audio.duration` in seconds, and each `playback`, cut where you interrupted; the turn tells whether it was `interrupted` and, once Claude's voice played, its `response.latency`, in seconds from the end of your last voice to the first sound of the reply, acknowledgements aside;
+- **metrics**: `voice_bridge.turn.duration` and `voice_bridge.step.duration` by step, in seconds; `voice_bridge.response.latency`, the same response latency as the turns'; `voice_bridge.events`, the interruptions and the sounds dismissed as too short; `voice_bridge.audio.stall.duration`, the gaps in your audio reaching the bridge;
 - **the process and the machine**: memory, CPU, threads, open files, garbage collection, and the machine's CPU, memory, disks and network, from OpenTelemetry's [system metrics instrumentation](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/system_metrics/system_metrics.html);
 - **the log**, alongside the handlers of `[logging]` or the default log, which keep writing.
 

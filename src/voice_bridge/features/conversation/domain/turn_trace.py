@@ -41,6 +41,7 @@ class FinishedTurn:
     end: float
     steps: tuple[Span, ...]
     interrupted: bool
+    response: float | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -55,6 +56,7 @@ type Report = FinishedTurn | Counted
 class Turn:
     start: float
     forwarded_at: float
+    spoken_until: float
     steps: tuple[Span, ...]
     answered: bool = False
     synthesizing: tuple[Ordered, ...] = ()
@@ -68,6 +70,7 @@ class Turn:
 class Trace:
     ending: Span | None = None
     heard_from: float | None = None
+    spoken_until: float | None = None
     heard_at: float | None = None
     pieces: tuple[Span, ...] = ()
     turn: Turn | None = None
@@ -79,7 +82,8 @@ type Observed = tuple[Trace, tuple[Report, ...]]
 def _finished(turn: Turn) -> FinishedTurn:
     steps = (*turn.steps, *turn.playing)
     end = max(step.end for step in steps)
-    return FinishedTurn(start=turn.start, end=end, steps=steps, interrupted=turn.interrupted)
+    response = turn.playing[0].start - turn.spoken_until if turn.playing else None
+    return FinishedTurn(start=turn.start, end=end, steps=steps, interrupted=turn.interrupted, response=response)
 
 
 def close(trace: Trace) -> tuple[Report, ...]:
@@ -98,17 +102,20 @@ def _transcribed(trace: Trace, at: float, *, noise: bool) -> Trace:
     if noise:
         return replace(trace, ending=None, heard_from=trace.heard_from if trace.pieces else None)
     pieces = (*trace.pieces, *_heard_pieces(trace.ending, at))
-    return replace(trace, ending=None, heard_at=at, pieces=pieces)
+    spoken_until = None if trace.ending is None else trace.ending.start
+    return replace(trace, ending=None, heard_at=at, spoken_until=spoken_until, pieces=pieces)
 
 
 def _forwarded(trace: Trace, at: float) -> Observed:
     settle = Span(name="settle", start=at if trace.heard_at is None else trace.heard_at, end=at)
+    start = at if trace.heard_from is None else trace.heard_from
     turn = Turn(
-        start=at if trace.heard_from is None else trace.heard_from,
+        start=start,
         forwarded_at=at,
+        spoken_until=at if trace.spoken_until is None else trace.spoken_until,
         steps=(*trace.pieces, settle),
     )
-    return replace(trace, heard_from=None, heard_at=None, pieces=(), turn=turn), close(trace)
+    return replace(trace, heard_from=None, spoken_until=None, heard_at=None, pieces=(), turn=turn), close(trace)
 
 
 def _answered(turn: Turn, at: float) -> Turn:
