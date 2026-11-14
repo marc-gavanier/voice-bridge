@@ -1,7 +1,7 @@
 # ADR-014 — Claude Code's hooks tell when Claude works
 
 **Date**: 2026-11-13
-**Status**: accepted, partly superseded by [ADR-016](ADR-016-the-bridge-keeps-and-speaks-the-board-of-agents.md) for the socket's messages and by [ADR-022](ADR-022-the-board-of-agents-heals-and-says-when-it-cannot-be-trusted.md) for how the hooks are run and fail
+**Status**: accepted, partly superseded by [ADR-016](ADR-016-the-bridge-keeps-and-speaks-the-board-of-agents.md) for the socket's messages and by [ADR-022](ADR-022-the-board-of-agents-heals-and-says-when-it-cannot-be-trusted.md) for how the hooks are run and fail, and amended by [ADR-026](ADR-026-words-the-acknowledgement-answers-bring-no-hold-music.md) for words the acknowledgement answers
 
 ## Context
 
