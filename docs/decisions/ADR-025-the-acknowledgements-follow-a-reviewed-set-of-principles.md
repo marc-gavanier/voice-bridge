@@ -45,7 +45,14 @@ The routes become fourteen, in the same order in every language, which a test ho
 
 « OK. » stays out of every pool, although the review listed it: Voxtral derails on it, and the test that keeps it out still holds.
 
-The other eight languages follow the same routes and principles, with sentences translated from the French ones; no native speaker has reviewed them yet.
+The other eight languages follow the same routes and principles. Their acknowledgements are written as a speaker of the language would say them in a casual exchange, not translated word for word from French, in about as many sentences per route:
+
+- the familiar register of each language, as French uses « tu »: « du », « tú », « tu », « je », « você », « तुम », and the masculine address of Arabic;
+- the gender of the voice each language is spoken with: female everywhere but in Arabic, so « Obrigada », « Sono tutta orecchi » or « मैं सुन रही हूँ »;
+- one variety per language: the Spanish of Spain, the Portuguese of Brazil, the Dutch of the Netherlands, spoken Hindi with the English words it uses, such as « चेक करती हूँ », and the light Modern Standard Arabic understood across the Arab world, with common spoken turns such as « تمام » or « يلا بنا »;
+- the idioms of the language for the backchannels, thanks and stops, such as « Wird gemacht. », « Komt voor elkaar. », « Imagina. » or « Figurati. », rather than the French ones, and none that commits to an outcome, such as « Komt goed. », or says the work is done, such as « تم. ».
+
+No native speaker has reviewed them yet: they were written on 2026-11-15 without one, and checked only against the router and the tests.
 
 ## Consequences
 
@@ -61,6 +68,7 @@ The other eight languages follow the same routes and principles, with sentences 
 - **Finer question routes**, asking for a verification, an explanation or an opinion, if the corpus shows they can be told apart.
 - **A stop that blocks at once with an undo window**: about ten seconds during which « annule » lifts it.
 - **Detecting a message not addressed to the bridge**: no acknowledgement, and the message forwarded with a flag.
+- **A review by native speakers** of the eight languages other than French, by ear, as Marc did for French, with their own sentences for the route tests.
 - **Calibration from the OpenTelemetry utterance events** of the `feat/utterance-events` branch, which record each utterance, the route taken, the three closest routes with their scores and the acknowledgement played.
 
 ## Alternatives considered

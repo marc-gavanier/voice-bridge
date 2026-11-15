@@ -314,7 +314,7 @@ The bridge speaks Arabic, Dutch, English, French, German, Hindi, Italian, Portug
 To add one:
 
 1. Add its code to `Language` in [`settings.py`](src/voice_bridge/configuration/settings.py) and to `LANGUAGES` in `tests/configuration/test_language.py`.
-2. Copy `en.toml` and `en.md` to `<code>.toml` and `<code>.md` and translate them.
+2. Copy `en.toml` and `en.md` to `<code>.toml` and `<code>.md` and translate them; write the acknowledgements as a speaker of the language would say them, following the principles of [ADR-025](docs/decisions/ADR-025-the-acknowledgements-follow-a-reviewed-set-of-principles.md), rather than word for word.
 3. Add `tests/configuration/test_language_<code>.py`, after the other ones, with real sentences of that language for the routes and for words about stopping that must not stop.
 4. Add `<code>.toml`, `<code>.md` and `*_<code>.py` to `[tool.typos.type.localized]` in `pyproject.toml`, so typos checks their names but not their content.
 5. Try it with someone who speaks it, read the `understood '…' as <route> (<score>)` lines, and adjust the examples and the stop threshold.
