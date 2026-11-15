@@ -71,7 +71,7 @@ from voice_bridge.features.understanding.abilities.understand.implementation.und
 from voice_bridge.features.understanding.domain.meaning import Route
 from voice_bridge.libraries.audio.file import read_audio
 from voice_bridge.libraries.audio.tempo import METHOD as PACE_METHOD
-from voice_bridge.libraries.audio.tempo import stretch
+from voice_bridge.libraries.audio.tempo import pace
 from voice_bridge.libraries.mumble.audio import (
     MUMBLE_RATE,
     Loudspeaker,
@@ -328,7 +328,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             voice=speech_settings.voice or language.voice,
             gain=speech_settings.gain,
             speed=speech_settings.speed,
-            stretch=stretch,
+            pacing=pace,
             rate=MUMBLE_RATE,
             health=speech_settings.health,
         )
