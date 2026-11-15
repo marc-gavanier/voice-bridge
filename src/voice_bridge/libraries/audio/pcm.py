@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass
 from typing import Final
 
 import numpy as np
@@ -42,3 +43,29 @@ def resample(pcm: bytes, from_rate: int, to_rate: int) -> bytes:
 
 def duration(pcm: bytes, rate: int) -> float:
     return len(pcm) / SAMPLE_BYTES / rate
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Resampling:
+    stream: soxr.ResampleStream
+
+    def push(self, pcm: bytes) -> bytes:
+        return from_float(self.stream.resample_chunk(to_float(pcm)))
+
+    def end(self) -> bytes:
+        return from_float(self.stream.resample_chunk(np.zeros(0, dtype=np.float32), last=True))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Unresampled:
+    def push(self, pcm: bytes) -> bytes:
+        return pcm
+
+    def end(self) -> bytes:
+        return b""
+
+
+def resampling(from_rate: int, to_rate: int) -> Resampling | Unresampled:
+    if from_rate == to_rate:
+        return Unresampled()
+    return Resampling(stream=soxr.ResampleStream(from_rate, to_rate, 1, dtype="float32"))

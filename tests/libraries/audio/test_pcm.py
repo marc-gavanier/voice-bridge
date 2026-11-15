@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from voice_bridge.libraries.audio.pcm import boost, duration, from_float, level, ramp, resample, to_float
+from voice_bridge.libraries.audio.pcm import boost, duration, from_float, level, ramp, resample, resampling, to_float
 
 
 def pcm_of(*values: int) -> bytes:
@@ -66,3 +66,21 @@ def test_a_ramp_down_ends_silent() -> None:
 
 def test_a_ramp_of_nothing_is_nothing() -> None:
     assert ramp(b"", 0.0, 1.0) == b""
+
+
+def resampled_in_pieces(pcm: bytes, piece: int) -> list[bytes]:
+    resampler = resampling(24000, 48000)
+    return [*(resampler.push(pcm[start : start + piece]) for start in range(0, len(pcm), piece)), resampler.end()]
+
+
+def test_audio_resampled_in_pieces_has_the_length_of_audio_resampled_whole() -> None:
+    assert len(b"".join(resampled_in_pieces(bytes(9600), 1920))) == len(resample(bytes(9600), 24000, 48000))
+
+
+def test_the_first_piece_is_resampled_before_the_rest_arrives() -> None:
+    assert resampled_in_pieces(bytes(9600), 4800)[0] != b""
+
+
+def test_audio_resampled_at_its_own_rate_passes_through_piece_by_piece() -> None:
+    resampler = resampling(48000, 48000)
+    assert (resampler.push(pcm_of(1, 2)), resampler.end()) == (pcm_of(1, 2), b"")
