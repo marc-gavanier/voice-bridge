@@ -1,7 +1,7 @@
 # ADR-010 — Semantic routing chooses the acknowledgement and detects a stop
 
 **Date**: 2026-11-11
-**Status**: accepted; its hook, renamed `voice-bridge-tool-hook`, also enforces [ADR-015](ADR-015-the-main-agent-delegates-in-voice-sessions.md); its routes and acknowledgements are revised by [ADR-025](ADR-025-the-acknowledgements-follow-a-reviewed-set-of-principles.md)
+**Status**: accepted; its hook, renamed `voice-bridge-tool-hook`, also enforces [ADR-015](ADR-015-the-main-agent-delegates-in-voice-sessions.md); its routes and acknowledgements are revised by [ADR-025](ADR-025-the-acknowledgements-follow-a-reviewed-set-of-principles.md), and its thresholds by [ADR-030](ADR-030-the-acknowledgement-thresholds-sit-above-the-noise-of-unrelated-sentences.md)
 
 ## Context
 
