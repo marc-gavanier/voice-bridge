@@ -23,17 +23,25 @@ neutral_acknowledgements = [
   "Goed ontvangen.",
   "Bericht ontvangen.",
   "Oké, ontvangen.",
+  "Luid en duidelijk.",
   "Begrepen.",
+  "Oké, begrepen.",
   "Goed begrepen.",
   "Duidelijk.",
+  "Helder.",
+  "Oké, helder.",
+  "Ik snap het.",
+  "Ah, ik snap het.",
+  "Ik begrijp het.",
   "Ik heb je goed gehoord.",
   "Genoteerd.",
   "Staat genoteerd.",
+  "Oké, genoteerd.",
   "Ik noteer het.",
-  "Akkoord.",
+  "Ik schrijf het op.",
   "Oké.",
   "Ah, oké.",
-  "Ik snap het.",
+  "Ik volg je.",
 ]
 
 [announcements]
@@ -68,13 +76,26 @@ examples = [
   "Nee nee nee, stop.",
   "Genoeg, stop.",
   "Hou op met zoeken.",
+  "Stop ermee.",
+  "Hou daar op.",
+  "Kun je daar stoppen?",
+  "Breek het af.",
 ]
 sentences = [
   "Ik stop al het lopende werk.",
   "Ik stop onmiddellijk.",
   "Ik stop meteen.",
   "Ik stop nu.",
-  "Ik stop op staande voet.",
+  "Ik stop direct.",
+  "Ik stop.",
+  "Ik stop ermee.",
+  "Ik stop hier.",
+  "Ik stop alles.",
+  "Ik hou op.",
+  "Ik hou meteen op.",
+  "Ik hou ermee op.",
+  "Ik breek alles af.",
+  "Ik onderbreek alles.",
 ]
 
 [[acknowledgements]]
@@ -97,14 +118,24 @@ examples = [
   "Hoe hang ik op?",
   "We stoppen hier.",
   "Goed, hier stoppen we.",
+  "Klaar voor vandaag.",
+  "We stoppen ermee, doei.",
 ]
 sentences = [
   "Tot later.",
   "Tot snel.",
+  "Tot ziens.",
   "Tot de volgende keer.",
+  "Doei.",
+  "Doei, tot snel.",
+  "Spreek je later.",
+  "Spreek je snel.",
   "We stoppen hier.",
-  "Goed, we stoppen.",
-  "Begrepen, we stoppen hier.",
+  "Goed, we stoppen hier.",
+  "Prima, we stoppen ermee.",
+  "Het was me een genoegen.",
+  "Bedankt voor de sessie.",
+  "Ik sluit de sessie af.",
 ]
 
 [[acknowledgements]]
@@ -130,7 +161,11 @@ sentences = [
   "Ja?",
   "Ik luister.",
   "Ga je gang.",
+  "Ga verder.",
+  "Vertel.",
+  "Zeg het maar.",
   "Neem je tijd.",
+  "Je zei?",
 ]
 
 [[acknowledgements]]
@@ -171,10 +206,15 @@ examples = [
 ]
 sentences = [
   "Ik ben er.",
+  "Ik ben hier.",
+  "Hier ben ik.",
+  "Ik ben bij je.",
   "Ik hoor je.",
   "Ik hoor je goed.",
-  "Present.",
-  "Ik ben hier.",
+  "Ik hoor je prima.",
+  "Ik hoor je heel goed.",
+  "Ik hoor je perfect.",
+  "Ik hoor je luid en duidelijk.",
   "Ik luister.",
 ]
 
@@ -202,8 +242,13 @@ examples = [
 sentences = [
   "Graag gedaan.",
   "Met plezier.",
-  "Het genoegen is aan mijn kant.",
+  "Geen dank.",
+  "Niets te danken.",
+  "Geen probleem.",
   "Altijd graag.",
+  "Tuurlijk.",
+  "Fijn dat ik kon helpen.",
+  "Het genoegen is geheel aan mijn kant.",
 ]
 
 [[acknowledgements]]
@@ -225,11 +270,24 @@ examples = [
   "Je bent geweldig.",
   "Indrukwekkend.",
   "Bravo, precies wat ik wilde.",
+  "Goed werk, bedankt.",
+  "Top gedaan.",
+  "Je bent een kanjer.",
+  "Lekker bezig.",
+  "Netjes gedaan.",
 ]
 sentences = [
-  "Dank je, dat doet me plezier.",
+  "Dank je.",
   "Dank je wel.",
+  "Bedankt.",
+  "O, dank je.",
+  "Dank je, leuk om te horen.",
+  "Leuk om te horen.",
+  "Fijn om te horen.",
   "Dank je, dat is lief.",
+  "Dank je, wat aardig.",
+  "Wat aardig van je.",
+  "Bedankt voor het compliment.",
 ]
 
 [[acknowledgements]]
@@ -254,15 +312,27 @@ examples = [
 ]
 sentences = [
   "Ik controleer het.",
+  "Ik check het even.",
   "Ik ga het bekijken.",
   "Ik kijk er even naar.",
+  "Ik kijk even.",
+  "Ik zoek het uit.",
+  "Ik ga het uitzoeken.",
+  "Ik duik erin.",
   "Eens kijken.",
+  "Even kijken.",
   "Laten we kijken.",
-  "Ah, jammer.",
+  "Even kijken wat er aan de hand is.",
+  "Eens kijken waar het aan ligt.",
+  "Ik zoek de oorzaak.",
+  "Ik kijk waar het vandaan komt.",
+  "Oei, ik kijk even.",
   "Ah, ik kijk ernaar.",
-  "Genoteerd, ik zoek het.",
+  "Genoteerd, ik zoek het uit.",
+  "Moment, ik kijk even.",
   "Momentje, ik kijk.",
   "Momentje, ik controleer het.",
+  "Even geduld, ik controleer het.",
 ]
 
 [[acknowledgements]]
@@ -285,15 +355,24 @@ examples = [
   "Maak daar een ticket voor.",
   "Je mag het verwijderen.",
   "Kun je me meer vertellen over dat kleine model?",
+  "Kun je het Wikipedia-artikel over Savoie lezen?",
 ]
 sentences = [
   "Ik regel het.",
+  "Komt voor elkaar.",
+  "Ik pak het op.",
+  "Doe ik.",
+  "Ik doe het.",
+  "Laat maar aan mij over.",
+  "Ik zorg ervoor.",
   "Ik ga ermee aan de slag.",
+  "Komt eraan.",
+  "Meteen.",
   "Daar gaan we.",
   "Ik kijk even.",
   "Laat me kijken.",
-  "Ik zie het.",
-  "Ik start.",
+  "Moment, ik regel het.",
+  "Momentje, ik pak het op.",
 ]
 
 [[acknowledgements]]
@@ -314,16 +393,28 @@ examples = [
   "Heb je vragen?",
   "Waar waren we?",
   "Is er nog iets te doen?",
+  "Had je tijd om het artikel te lezen of ben je eerder gestopt?",
 ]
 sentences = [
   "Ik denk na.",
+  "Ik denk even na.",
+  "Even nadenken.",
+  "Laat me even nadenken.",
+  "Hm, even nadenken.",
   "Eens kijken.",
+  "Even kijken.",
+  "Laat me even kijken.",
   "Goede vraag.",
-  "Laat me zien.",
   "Ik controleer het.",
-  "Wacht, ik kijk.",
+  "Ik check het even.",
+  "Ik zoek het op.",
+  "Ik zoek het uit.",
+  "Wacht, ik kijk even.",
+  "Wacht, ik denk even na.",
+  "Wacht, ik controleer het.",
   "Momentje, ik kijk.",
   "Momentje, ik controleer het.",
+  "Momentje, ik denk na.",
 ]
 
 [[acknowledgements]]
@@ -344,9 +435,19 @@ examples = [
   "Ik heb een suggestie.",
   "Ik moet je iets vertellen.",
   "Luister, ik zat te denken…",
+  "Ik heb iets om voor te stellen.",
+  "Hé, ik krijg een idee.",
 ]
 sentences = [
   "Ik luister.",
+  "Ik ben een en al oor.",
+  "Vertel.",
+  "Vertel maar.",
+  "Zeg het maar.",
+  "Kom maar op.",
+  "Brand los.",
+  "Laat maar horen.",
+  "O ja?",
 ]
 
 [[acknowledgements]]
@@ -370,9 +471,16 @@ examples = [
 ]
 sentences = [
   "Ik snap het idee.",
+  "Ik begrijp het idee.",
+  "Ik snap wat je bedoelt.",
+  "Ik begrijp wat je bedoelt.",
+  "Ik zie waar je heen wilt.",
+  "Ik snap waar je heen wilt.",
+  "Ah, ik snap het.",
+  "Ah, zo.",
   "Dat is logisch.",
   "Interessant.",
-  "Ah, ik zie het.",
+  "Ik noteer het idee.",
 ]
 
 [[acknowledgements]]
@@ -397,13 +505,20 @@ examples = [
 ]
 sentences = [
   "Prima.",
+  "Is goed.",
   "Begrepen.",
-  "Geen probleem.",
-  "Akkoord.",
+  "Ah, begrepen.",
   "Ah, oké.",
+  "Ah, ik snap het.",
   "Goed dan.",
-  "Ik corrigeer het.",
+  "Akkoord.",
+  "Geen probleem.",
+  "Oké, geen probleem.",
   "Geen enkel probleem.",
+  "Ik corrigeer het.",
+  "Ik pas het aan.",
+  "Ik kijk er opnieuw naar.",
+  "Ik probeer het anders.",
   "Ik gooi het roer om.",
 ]
 
@@ -425,15 +540,28 @@ examples = [
   "Ja, je kunt beginnen.",
   "Begin maar.",
   "Vooruit, we gaan.",
+  "Ga maar.",
+  "Toe maar.",
+  "Kom op, doe maar.",
+  "Gaan met die banaan.",
+  "Ja, daar gaan we.",
+  "Oké, we beginnen met het deel over stoppen.",
 ]
 sentences = [
   "Daar gaan we.",
-  "Kom op.",
-  "We gaan.",
+  "Daar ga ik.",
+  "Hup, aan de slag.",
+  "Aan de slag.",
   "Laten we het doen.",
+  "Laten we beginnen.",
+  "We gaan ervoor.",
+  "Ik ga ervoor.",
+  "Gaan met die banaan.",
   "Ik begin.",
-  "Hup!",
-  "Komt goed.",
+  "Ik begin meteen.",
+  "Ik ga aan de slag.",
+  "Komt voor elkaar.",
+  "Doe ik.",
 ]
 
 [[acknowledgements]]
@@ -455,13 +583,25 @@ examples = [
   "Laat het maar zo, het is goed.",
   "Ja, prima, we laten het.",
   "Dat vind ik goed.",
+  "Precies dat.",
+  "Nee, dat is precies het.",
+  "Is goed.",
+  "Zo is het goed.",
+  "Ja, het is goed gestopt.",
 ]
 sentences = [
   "Perfect.",
+  "Mooi.",
+  "Fijn.",
+  "Super.",
+  "Uitstekend.",
   "Heel goed.",
+  "Helemaal goed.",
+  "Goed.",
   "Prima.",
+  "Is goed.",
   "Oké.",
   "Begrepen.",
-  "Super.",
-  "Goed.",
+  "Akkoord.",
+  "Afgesproken.",
 ]
