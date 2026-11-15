@@ -100,6 +100,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "end"
+threshold = 0.75
 examples = [
   "We stoppen hier voor vandaag.",
   "We stoppen hier voor vandaag, tot morgen.",
@@ -170,6 +171,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "presence"
+threshold = 0.7
 greets = true
 answers = true
 examples = [

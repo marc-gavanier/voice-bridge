@@ -112,6 +112,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "end"
+threshold = 0.75
 examples = [
   "On s'arrête là pour aujourd'hui.",
   "On s'arrête là pour aujourd'hui, on verra ça demain.",
@@ -181,6 +182,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "presence"
+threshold = 0.7
 greets = true
 answers = true
 examples = [

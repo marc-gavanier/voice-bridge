@@ -161,7 +161,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `clips.directory` | `~/.local/state/voice-bridge/clips` | The only directory, with its subdirectories, from which Claude's `play` tool reads audio files; a link inside it to a file elsewhere is refused |
 | `clips.longest`, `clips.largest` | `300.0`, `50000000` | The longest clip in seconds and the largest file in bytes `play` accepts; the playback buffer holds 600 s |
 | `clips.volume` | `1.0` | Loudness of the clips, as the file has it by default; the speech's `gain` does not apply to them |
-| `understanding.threshold` | `0.6` | The cosine similarity to its closest example a sentence needs to take a route; the stop route asks 0.75, set in each language's TOML file in [`languages/`](src/voice_bridge/configuration/languages). The model, 220 MB, is downloaded from Hugging Face on first start |
+| `understanding.threshold` | `0.6` | The cosine similarity to its closest example a sentence needs to take a route; the presence route asks 0.7, and the end and stop routes 0.75, set in each language's TOML file in [`languages/`](src/voice_bridge/configuration/languages). The model, 220 MB, is downloaded from Hugging Face on first start |
 | `activity_socket` | `$XDG_RUNTIME_DIR/voice-bridge/activity.sock` | The Unix socket where `voice-bridge-activity-hook` tells the bridge whether Claude works and which agents start, act or finish; a Unix socket path holds at most 107 bytes |
 | `understanding.stop_flag` | `$XDG_RUNTIME_DIR/voice-bridge/stop` | The file whose presence makes `voice-bridge-tool-hook` refuse Claude's tools after a stop |
 | `claude.model` | none | The model of the Claude Code session that talks to you, an alias such as `sonnet` or a full name such as `claude-sonnet-5-5`, passed as the `model` key of the settings `voice-bridge-claude-settings` writes; unset, Claude Code picks it from its own settings. `/model` still changes it during the session ([ADR-031](docs/decisions/ADR-031-the-voice-session-may-run-on-a-faster-model-than-its-agents.md)) |
@@ -310,7 +310,7 @@ Nothing said reaches Sentry: the bridge turns off breadcrumbs, which would carry
 
 The bridge speaks Arabic, Dutch, English, French, German, Hindi, Italian, Portuguese and Spanish, the nine languages Voxtral has voices for. Each one is two files in [`languages/`](src/voice_bridge/configuration/languages), named after its ISO 639-1 code:
 
-- `<code>.toml`: the Whisper language code, the default voice, the tool descriptions, the Whisper hallucinations to drop, and the fourteen routes with their examples, acknowledgements and the stop threshold; the presence route, marked `greets`, also gives the greeting, one of its sentences drawn at each start; the presence, thanks and compliment routes, marked `answers`, bring no hold music, since their acknowledgement fully answers them. A test asks for at least 15 examples per route, and for the same routes, in the same order, as French.
+- `<code>.toml`: the Whisper language code, the default voice, the tool descriptions, the Whisper hallucinations to drop, and the fourteen routes with their examples, acknowledgements and the thresholds of the stop, presence and end routes; the presence route, marked `greets`, also gives the greeting, one of its sentences drawn at each start; the presence, thanks and compliment routes, marked `answers`, bring no hold music, since their acknowledgement fully answers them. A test asks for at least 15 examples per route, and for the same routes, in the same order, as French.
 - `<code>.md`: the instructions Claude is given, when the user has no `instructions_file`.
 
 To add one:
@@ -319,7 +319,7 @@ To add one:
 2. Copy `en.toml` and `en.md` to `<code>.toml` and `<code>.md` and translate them; write the acknowledgements as a speaker of the language would say them, following the principles of [ADR-025](docs/decisions/ADR-025-the-acknowledgements-follow-a-reviewed-set-of-principles.md), rather than word for word.
 3. Add `tests/configuration/test_language_<code>.py`, after the other ones, with real sentences of that language for the routes and for words about stopping that must not stop.
 4. Add `<code>.toml`, `<code>.md` and `*_<code>.py` to `[tool.typos.type.localized]` in `pyproject.toml`, so typos checks their names but not their content.
-5. Try it with someone who speaks it, read the `understood '…' as <route> (<score>)` lines, and adjust the examples and the stop threshold.
+5. Try it with someone who speaks it, read the `understood '…' as <route> (<score>)` lines, and adjust the examples and the route thresholds.
 
 Sentences are cut on Western punctuation, the Arabic question mark, the Devanagari full stop and the CJK marks, so Chinese and Japanese replies are already voiced one sentence at a time. The first sentence of a reply is also cut at its first clause on the Western comma, semicolon, colon and dashes only. A language Voxtral does not voice needs another speech server with the OpenAI speech API, such as [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI): point `speech.url`, `speech.model` and `speech.voice` at it, and set `speech.health` to its health route, or leave it empty if it has none.
 
@@ -384,7 +384,7 @@ Two more commands help test the voice path without Claude:
 | Symptom | Where to look |
 |---|---|
 | No greeting | `scripts/voxtral.sh status`, then the log |
-| The wrong acknowledgement, or a stop missed or wrongly taken | Lines `understood '…' as <route> (<score>)`: add the sentence to the right route's examples in the language's TOML file in [`languages/`](src/voice_bridge/configuration/languages), or adjust `understanding.threshold` and the stop route's threshold |
+| The wrong acknowledgement, or a stop missed or wrongly taken | Lines `understood '…' as <route> (<score>)`: add the sentence to the right route's examples in the language's TOML file in [`languages/`](src/voice_bridge/configuration/languages), or adjust `understanding.threshold` and the thresholds of the stop, presence and end routes |
 | Claude's tools are refused after a stop | `stop asked` and `stop lifted` in the log: any sentence that does not ask to stop lifts it |
 | Claude says it cannot edit, write or run a command itself | Expected in a session started by `scripts/claude-voice.sh`: `voice-bridge-tool-hook` refuses the main agent its working tools, and Claude should hand the task to a background agent. To run it once by hand: `echo '{"tool_name": "Bash"}' \| uv run voice-bridge-tool-hook` prints the refusal, and the same input with an `"agent_id"` prints nothing |
 | No acknowledgement after you speak | `acknowledgements ready` in the log: until Voxtral has voiced them, the bridge has none to play |

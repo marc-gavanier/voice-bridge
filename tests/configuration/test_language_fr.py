@@ -9,6 +9,10 @@ from voice_bridge.features.hearing.domain.noise import Hallucinations, is_noise
 type RouteOf = Callable[[Language, str], str]
 
 
+def said(*parts: str) -> str:
+    return " ".join(parts)
+
+
 def test_french_is_spoken_with_a_french_voice() -> None:
     assert language_pack("fr").voice == "fr_female"
 
@@ -72,6 +76,13 @@ def test_french_knows_the_thanks_for_watching_hallucination() -> None:
         ("Et donc, qu'est-ce que c'est la suite ?", "question"),
         ("Non.", "no"),
         ("C'est exactement ça.", "yes"),
+        (
+            said(
+                "Ouais ça me va, prépare ça maintenant et on verra ça demain quand je cours, quand j'irai courir.",
+                "Mais tu peux déjà préparer ça maintenant et on l'activera quand on redémarrera le pont.",
+            ),
+            "go_ahead",
+        ),
     ],
 )
 def test_french_words_take_the_route_of_their_meaning(
@@ -100,10 +111,6 @@ def test_french_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) 
     assert route_of("fr", words) != "stop"
 
 
-def said(*parts: str) -> str:
-    return " ".join(parts)
-
-
 @pytest.mark.parametrize(
     "words",
     [
@@ -124,6 +131,11 @@ def said(*parts: str) -> str:
             "Non, je cherche vraiment à accélérer, fluidifier la conversation. Tu m'as parlé des 1,2 secondes.",
             "Je veux en savoir plus sur pourquoi on a mis ça en place, à quoi ça sert.",
         ),
+        said(
+            "Ah oui, je voulais te dire que dans mes notes aussi,",
+            "j'ai relu valider, trier, filtrer, ajouter les éléments du...",
+        ),
+        "Est-ce que tu peux regarder ce qui reste à faire sur 10-44 ?",
     ],
 )
 def test_french_words_close_to_no_route_get_the_neutral_acknowledgement(words: str, route_of: RouteOf) -> None:

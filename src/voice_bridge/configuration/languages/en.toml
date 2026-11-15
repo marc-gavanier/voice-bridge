@@ -108,6 +108,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "end"
+threshold = 0.75
 examples = [
   "Let's stop here for today.",
   "Let's stop here for today, we'll see tomorrow.",
@@ -180,6 +181,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "presence"
+threshold = 0.7
 greets = true
 answers = true
 examples = [

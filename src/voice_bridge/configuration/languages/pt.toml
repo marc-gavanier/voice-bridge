@@ -99,6 +99,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "end"
+threshold = 0.75
 examples = [
   "Vamos parar por aqui hoje.",
   "Paramos por aqui hoje, continuamos amanhã.",
@@ -170,6 +171,7 @@ sentences = [
 
 [[acknowledgements]]
 name = "presence"
+threshold = 0.7
 greets = true
 answers = true
 examples = [

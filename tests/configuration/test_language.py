@@ -169,6 +169,14 @@ def test_a_stop_needs_a_close_match(language: Language) -> None:
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("name", ["presence", "end"])
+def test_a_presence_or_an_end_of_session_needs_a_closer_match_than_other_routes(language: Language, name: str) -> None:
+    route = next(route for route in language_pack(language).acknowledgements if route.name == name)
+    assert route.threshold is not None
+    assert route.threshold > UnderstandingSettings().threshold
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
 def test_every_route_has_acknowledgements(language: Language) -> None:
     assert all(route.sentences for route in language_pack(language).acknowledgements)
 
