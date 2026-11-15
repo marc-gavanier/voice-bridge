@@ -44,6 +44,14 @@ neutral_acknowledgements = [
   "OK, noté.",
   "OK, compris.",
 ]
+neutral_question_acknowledgements = [
+  "Voyons.",
+  "Je regarde.",
+  "Laisse-moi voir.",
+  "Je vérifie.",
+  "Un instant, je regarde.",
+  "Attends, je vérifie ça.",
+]
 
 [announcements]
 at_work = [

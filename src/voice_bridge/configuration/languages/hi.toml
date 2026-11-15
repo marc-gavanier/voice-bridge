@@ -36,6 +36,14 @@ neutral_acknowledgements = [
   "ध्यान में रख लिया।",
   "ठीक है।",
 ]
+neutral_question_acknowledgements = [
+  "देखते हैं।",
+  "देखती हूँ।",
+  "मुझे देखने दो।",
+  "मैं जाँचती हूँ।",
+  "एक पल, मैं देखती हूँ।",
+  "रुको, मैं देखती हूँ।",
+]
 
 [announcements]
 at_work = [

@@ -127,11 +127,6 @@ def test_french_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) 
             "Tu ne m'as peut-être pas entendu parce qu'il y a eu encore un problème avec Mumble.",
             "Mais je voulais dire que j'ai validé dans mes notes les réponses de validation.",
         ),
-        "Est-ce que les voix sont synthétisées plus rapidement qu'elles ne prennent de temps à prononcer ?",
-        said(
-            "Sur le ticket de 44 qui parlait de la fluidification de la parole,",
-            "il resterait quoi à faire qu'on n'a pas encore abordé ?",
-        ),
         said(
             "Non, je cherche vraiment à accélérer, fluidifier la conversation. Tu m'as parlé des 1,2 secondes.",
             "Je veux en savoir plus sur pourquoi on a mis ça en place, à quoi ça sert.",
@@ -140,11 +135,28 @@ def test_french_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) 
             "Ah oui, je voulais te dire que dans mes notes aussi,",
             "j'ai relu valider, trier, filtrer, ajouter les éléments du...",
         ),
-        "Est-ce que tu peux regarder ce qui reste à faire sur 10-44 ?",
     ],
 )
 def test_french_words_close_to_no_route_get_the_neutral_acknowledgement(words: str, route_of: RouteOf) -> None:
     assert route_of("fr", words) == "neutral"
+
+
+@pytest.mark.parametrize(
+    "words",
+    [
+        "Les nouveaux seuils sont-ils activés ?",
+        "Est-ce que les voix sont synthétisées plus rapidement qu'elles ne prennent de temps à prononcer ?",
+        said(
+            "Sur le ticket de 44 qui parlait de la fluidification de la parole,",
+            "il resterait quoi à faire qu'on n'a pas encore abordé ?",
+        ),
+        "Est-ce que tu peux regarder ce qui reste à faire sur 10-44 ?",
+    ],
+)
+def test_french_questions_close_to_no_route_get_the_neutral_acknowledgement_for_a_question(
+    words: str, route_of: RouteOf
+) -> None:
+    assert route_of("fr", words) == "neutral_question"
 
 
 @pytest.mark.parametrize("sentence", ["Ah, OK.", "Je vois."])

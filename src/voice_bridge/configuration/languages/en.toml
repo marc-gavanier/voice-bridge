@@ -41,6 +41,14 @@ neutral_acknowledgements = [
   "I've noted that.",
   "I've got that.",
 ]
+neutral_question_acknowledgements = [
+  "Let's see.",
+  "Let me look.",
+  "Let me see.",
+  "Let me check.",
+  "One moment, let me look.",
+  "Hold on, let me check that.",
+]
 
 [announcements]
 at_work = [

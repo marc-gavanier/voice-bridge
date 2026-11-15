@@ -185,7 +185,13 @@ def test_every_route_has_acknowledgements(language: Language) -> None:
 def test_no_acknowledgement_is_one_voxtral_derails_on(language: Language) -> None:
     pack = language_pack(language)
     sentences = {sentence for route in pack.acknowledgements for sentence in route.sentences}
-    assert not (sentences | set(pack.neutral_acknowledgements)) & {"Top.", "OK.", "Ok."}
+    neutral = {*pack.neutral_acknowledgements, *pack.neutral_question_acknowledgements}
+    assert not (sentences | neutral) & {"Top.", "OK.", "Ok."}
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_every_language_has_neutral_acknowledgements_for_a_question(language: Language) -> None:
+    assert language_pack(language).neutral_question_acknowledgements
 
 
 MINIMAL_PACK = """
@@ -204,6 +210,7 @@ play_label_description = "Label"
 hallucinations = ["", "you"]
 hallucination_prefixes = ["subtitles by"]
 neutral_acknowledgements = ["Okay."]
+neutral_question_acknowledgements = ["Let me see."]
 
 [announcements]
 at_work = ["Two at work."]

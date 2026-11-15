@@ -36,6 +36,14 @@ neutral_acknowledgements = [
   "In Ordnung.",
   "Okay.",
 ]
+neutral_question_acknowledgements = [
+  "Mal sehen.",
+  "Ich schaue nach.",
+  "Lass mich nachsehen.",
+  "Ich prüfe das.",
+  "Einen Moment, ich schaue nach.",
+  "Warte, ich prüfe das.",
+]
 
 [announcements]
 at_work = [

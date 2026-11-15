@@ -34,6 +34,7 @@ class LanguagePack(_Strict):
     voice: str
     acknowledgements: tuple[AcknowledgementRoute, ...]
     neutral_acknowledgements: tuple[str, ...]
+    neutral_question_acknowledgements: tuple[str, ...]
     announcements: AgentAnnouncements
     stop_refusal: str
     delegation_refusal: str

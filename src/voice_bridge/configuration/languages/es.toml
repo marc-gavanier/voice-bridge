@@ -40,6 +40,14 @@ neutral_acknowledgements = [
   "Vale.",
   "Te sigo.",
 ]
+neutral_question_acknowledgements = [
+  "A ver.",
+  "Lo miro.",
+  "Déjame ver.",
+  "Lo compruebo.",
+  "Un momento, lo miro.",
+  "Espera, lo compruebo.",
+]
 
 [announcements]
 at_work = [

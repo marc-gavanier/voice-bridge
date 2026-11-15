@@ -41,6 +41,14 @@ neutral_acknowledgements = [
   "Oké.",
   "Ik volg je.",
 ]
+neutral_question_acknowledgements = [
+  "Even kijken.",
+  "Ik kijk even.",
+  "Laat me even kijken.",
+  "Ik controleer het.",
+  "Momentje, ik kijk.",
+  "Wacht, ik controleer het.",
+]
 
 [announcements]
 at_work = [

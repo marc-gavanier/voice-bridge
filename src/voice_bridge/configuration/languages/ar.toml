@@ -38,6 +38,14 @@ neutral_acknowledgements = [
   "أخذت ذلك بعين الاعتبار.",
   "حسنًا.",
 ]
+neutral_question_acknowledgements = [
+  "لنرَ.",
+  "سأنظر.",
+  "دعني أرى.",
+  "سأتحقق.",
+  "لحظة، أنظر.",
+  "انتظر، سأتحقق من ذلك.",
+]
 
 [announcements]
 at_work = [

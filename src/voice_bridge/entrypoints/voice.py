@@ -52,6 +52,7 @@ from voice_bridge.features.hearing.abilities.transcribe.implementation.transcrib
 )
 from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
+from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import pool_of
 from voice_bridge.features.speaking.abilities.acknowledge.implementation.acknowledge import (
     Clips,
     record_acknowledgements,
@@ -337,7 +338,11 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             health=speech_settings.health,
         )
         greeting = secrets.choice(language.greetings)
-        clips = Clips(draw=secrets.choice, kind=lambda words: understanding(words).route, last=greeting)
+        clips = Clips(
+            draw=secrets.choice,
+            kind=lambda words: pool_of(understanding(words).route, words, routes=len(language.acknowledgements)),
+            last=greeting,
+        )
         announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
             voice=partial(voice_streamed, engine),
@@ -369,7 +374,11 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             await record_acknowledgements(
                 clips,
                 acknowledging,
-                [*(route.sentences for route in language.acknowledgements), language.neutral_acknowledgements],
+                [
+                    *(route.sentences for route in language.acknowledgements),
+                    language.neutral_acknowledgements,
+                    language.neutral_question_acknowledgements,
+                ],
             )
             await acknowledging.prune()
             announcing = cached("announcements")

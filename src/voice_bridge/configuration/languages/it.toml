@@ -38,6 +38,14 @@ neutral_acknowledgements = [
   "Va bene.",
   "Ti seguo.",
 ]
+neutral_question_acknowledgements = [
+  "Vediamo.",
+  "Guardo.",
+  "Fammi vedere.",
+  "Controllo.",
+  "Un attimo, guardo.",
+  "Aspetta, controllo.",
+]
 
 [announcements]
 at_work = [

@@ -5,6 +5,7 @@ import pytest
 
 from voice_bridge.configuration.language import language_pack
 from voice_bridge.configuration.settings import Language, UnderstandingSettings
+from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import fallback
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import (
     Encoder,
     Router,
@@ -40,6 +41,6 @@ def route_of(encoder: Encoder) -> Callable[[Language, str], str]:
     def route(language: Language, words: str) -> str:
         scores, routes = routing(language)
         meaning = Understanding(scores=scores, routes=routes)(words)
-        return "neutral" if meaning.route is None else routes[meaning.route].name
+        return fallback(words) if meaning.route is None else routes[meaning.route].name
 
     return route
