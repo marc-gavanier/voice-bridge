@@ -26,8 +26,6 @@ neutral_acknowledgements = [
   "Capito.",
   "Ho capito.",
   "Va bene, capito.",
-  "Capisco.",
-  "Ah, capisco.",
   "Chiaro.",
   "Inteso.",
   "Ti ho sentito bene.",
@@ -38,7 +36,6 @@ neutral_acknowledgements = [
   "Ne prendo nota.",
   "D'accordo.",
   "Va bene.",
-  "Ah, ok.",
   "Ti seguo.",
 ]
 

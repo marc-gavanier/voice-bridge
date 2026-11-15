@@ -147,6 +147,11 @@ def test_french_words_close_to_no_route_get_the_neutral_acknowledgement(words: s
     assert route_of("fr", words) == "neutral"
 
 
+@pytest.mark.parametrize("sentence", ["Ah, OK.", "Je vois."])
+def test_the_french_neutral_acknowledgement_does_not_react_to_news(sentence: str) -> None:
+    assert sentence not in language_pack("fr").neutral_acknowledgements
+
+
 def test_french_refuses_tools_in_french() -> None:
     assert "arrêter" in language_pack("fr").stop_refusal
 

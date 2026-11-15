@@ -27,9 +27,6 @@ neutral_acknowledgements = [
   "Verstanden.",
   "Okay, verstanden.",
   "Alles klar.",
-  "Verstehe.",
-  "Ah, verstehe.",
-  "Ich verstehe.",
   "Notiert.",
   "Ist notiert.",
   "Okay, notiert.",
@@ -38,7 +35,6 @@ neutral_acknowledgements = [
   "Hab ich.",
   "In Ordnung.",
   "Okay.",
-  "Ah, okay.",
 ]
 
 [announcements]

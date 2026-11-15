@@ -25,7 +25,6 @@ neutral_acknowledgements = [
   "Entendido.",
   "Entendi.",
   "Certo, entendi.",
-  "Ah, entendi.",
   "Tá, entendi.",
   "Compreendido.",
   "Saquei.",
@@ -38,9 +37,7 @@ neutral_acknowledgements = [
   "Vou anotar.",
   "Certo.",
   "Tá bom.",
-  "Ah, tá.",
   "Entendo.",
-  "Estou vendo.",
 ]
 
 [announcements]
