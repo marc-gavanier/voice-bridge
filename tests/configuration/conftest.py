@@ -4,7 +4,7 @@ from functools import cache
 import pytest
 
 from voice_bridge.configuration.language import language_pack
-from voice_bridge.configuration.settings import Language
+from voice_bridge.configuration.settings import Language, UnderstandingSettings
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import (
     Encoder,
     Router,
@@ -26,7 +26,12 @@ def route_of(encoder: Encoder) -> Callable[[Language, str], str]:
     def routing(language: Language) -> tuple[Router, tuple[Route, ...]]:
         pack = language_pack(language)
         routes = tuple(
-            Route(name=each.name, threshold=each.threshold or 0.5, stops=each.stops, answers=each.answers)
+            Route(
+                name=each.name,
+                threshold=UnderstandingSettings().threshold if each.threshold is None else each.threshold,
+                stops=each.stops,
+                answers=each.answers,
+            )
             for each in pack.acknowledgements
         )
         scores = router(encoder, [each.examples for each in pack.acknowledgements])

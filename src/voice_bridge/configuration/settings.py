@@ -119,7 +119,7 @@ class ClaudeSettings(Section):
 
 
 class UnderstandingSettings(Section):
-    threshold: float = 0.5
+    threshold: float = 0.6
     stop_flag: Path = DEFAULT_STOP_FLAG
 
 

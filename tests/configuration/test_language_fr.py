@@ -100,6 +100,36 @@ def test_french_words_about_stopping_do_not_stop(words: str, route_of: RouteOf) 
     assert route_of("fr", words) != "stop"
 
 
+def said(*parts: str) -> str:
+    return " ".join(parts)
+
+
+@pytest.mark.parametrize(
+    "words",
+    [
+        said(
+            "C'est dommage que dans les moments longs comme ça,",
+            "tu ne puisses pas me dire ce qui est en train de se passer.",
+        ),
+        said(
+            "Tu ne m'as peut-être pas entendu parce qu'il y a eu encore un problème avec Mumble.",
+            "Mais je voulais dire que j'ai validé dans mes notes les réponses de validation.",
+        ),
+        "Est-ce que les voix sont synthétisées plus rapidement qu'elles ne prennent de temps à prononcer ?",
+        said(
+            "Sur le ticket de 44 qui parlait de la fluidification de la parole,",
+            "il resterait quoi à faire qu'on n'a pas encore abordé ?",
+        ),
+        said(
+            "Non, je cherche vraiment à accélérer, fluidifier la conversation. Tu m'as parlé des 1,2 secondes.",
+            "Je veux en savoir plus sur pourquoi on a mis ça en place, à quoi ça sert.",
+        ),
+    ],
+)
+def test_french_words_close_to_no_route_get_the_neutral_acknowledgement(words: str, route_of: RouteOf) -> None:
+    assert route_of("fr", words) == "neutral"
+
+
 def test_french_refuses_tools_in_french() -> None:
     assert "arrêter" in language_pack("fr").stop_refusal
 
