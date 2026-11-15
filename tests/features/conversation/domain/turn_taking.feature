@@ -31,7 +31,14 @@ Feature: Turn taking
       And Claude replied "I found three of them."
       And the speaker started talking
       When Claude's voice for "I found three of them." is ready
-      Then nothing happens
+      Then Claude's voice does not play
+
+    Scenario: A voice ready while the speaker talks abandons its synthesis
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      And the speaker started talking
+      When the first piece of Claude's voice for "I found three of them." is ready
+      Then the synthesis under way is abandoned
 
     Scenario: The unheard reply is spoken after the speaker's words, which are not an interruption
       Given Claude is silent
@@ -694,3 +701,62 @@ Feature: Turn taking
       And the speaker only made a noise
       When Claude's voice for "See you tomorrow." is ready
       Then the bridge leaves when that voice ends
+
+  Rule: Claude's voice plays as it arrives
+    The speech server streams the voice of a sentence in pieces. The first piece plays at once,
+    and the next sentence is synthesized once the whole voice of this one has arrived, so only one
+    sentence is synthesized at a time. A synthesis whose voice is no longer wanted is abandoned,
+    so the server stops voicing it.
+
+    Scenario: The first piece of a voice plays before the rest arrives
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      When the first piece of Claude's voice for "I found three of them." is ready
+      Then Claude's voice plays
+
+    Scenario: The next sentence waits for the whole voice of the one before
+      Given Claude is silent
+      And Claude replied "Let me look at your notes." then "I found three of them."
+      When the first piece of Claude's voice for "Let me look at your notes." is ready
+      Then Claude says nothing yet
+
+    Scenario: The next sentence is synthesized once the voice of the one before has arrived
+      Given Claude is silent
+      And Claude replied "Let me look at your notes." then "I found three of them."
+      And the first piece of Claude's voice for "Let me look at your notes." was ready
+      When the rest of Claude's voice for "Let me look at your notes." arrives
+      Then Claude starts saying "I found three of them."
+
+    Scenario: Speaking over a voice still arriving abandons its synthesis
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      And the first piece of Claude's voice for "I found three of them." was ready
+      When the speaker starts talking
+      Then the synthesis under way is abandoned
+
+    Scenario: Speaking over a voice still arriving stops it
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      And the first piece of Claude's voice for "I found three of them." was ready
+      When the speaker starts talking
+      Then Claude's voice stops
+
+    Scenario: A noise resumes a sentence whose voice was still arriving
+      Given Claude is silent
+      And Claude replied "I found three of them."
+      And the first piece of Claude's voice for "I found three of them." was ready
+      And the speaker cut Claude off
+      When the speaker only makes a noise
+      Then Claude starts saying "I found three of them."
+
+    Scenario: Speaking while Claude is silent abandons no synthesis
+      Given Claude is silent
+      When the speaker starts talking
+      Then no synthesis is abandoned
+
+    Scenario: A voice that breaks off moves on to the next sentence
+      Given Claude is silent
+      And Claude replied "Let me look at your notes." then "I found three of them."
+      And the first piece of Claude's voice for "Let me look at your notes." was ready
+      When Claude's voice for "Let me look at your notes." fails
+      Then Claude starts saying "I found three of them."

@@ -14,6 +14,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Synthesize,
     Synthesized,
     Transcribed,
+    Voiced,
 )
 from voice_bridge.features.conversation.domain.turn_trace import (
     Counted,
@@ -71,8 +72,9 @@ def answered(sentence: str = "Trois notes.", ready: float = 7.0, duration: float
     return (
         (6.0, Asked(sentences=(sentence,))),
         (6.0, Synthesize(ticket=0, sentence=sentence)),
-        (ready, Synthesized(ticket=0, pcm=b"", duration=duration, at=ready)),
+        (ready, Voiced(ticket=0, pcm=b"", duration=duration, at=ready)),
         (ready, Play(pcm=b"")),
+        (ready, Synthesized(ticket=0, at=ready)),
     )
 
 
@@ -173,8 +175,10 @@ def test_each_sentence_of_a_turn_takes_the_next_rank() -> None:
         (4.0, FORWARD),
         (6.0, Synthesize(ticket=0, sentence="Un.")),
         (6.5, Synthesize(ticket=1, sentence="Deux.")),
-        (7.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=7.0)),
-        (8.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=8.0)),
+        (7.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=7.0)),
+        (7.0, Synthesized(ticket=1, at=7.0)),
+        (8.0, Voiced(ticket=0, pcm=b"", duration=1.0, at=8.0)),
+        (8.0, Synthesized(ticket=0, at=8.0)),
     ) == [1, 0]
 
 
@@ -186,10 +190,12 @@ def test_the_ranks_start_again_with_each_turn() -> None:
     assert second_turn_ranks(
         (4.0, FORWARD),
         (6.0, Synthesize(ticket=0, sentence="Un.")),
-        (7.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=7.0)),
+        (7.0, Voiced(ticket=0, pcm=b"", duration=1.0, at=7.0)),
+        (7.0, Synthesized(ticket=0, at=7.0)),
         (14.0, FORWARD),
         (16.0, Synthesize(ticket=1, sentence="Deux.")),
-        (17.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=17.0)),
+        (17.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=17.0)),
+        (17.0, Synthesized(ticket=1, at=17.0)),
     ) == [0]
 
 
@@ -211,8 +217,9 @@ def test_a_sentence_plays_after_the_one_before_it() -> None:
         (4.0, FORWARD),
         *answered(duration=2.0),
         (7.5, Synthesize(ticket=1, sentence="Et une quatrième.")),
-        (8.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=8.0)),
+        (8.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=8.0)),
         (8.0, Play(pcm=b"")),
+        (8.0, Synthesized(ticket=1, at=8.0)),
     )
 
 
@@ -270,10 +277,21 @@ def test_an_interruption_drops_the_sentences_not_yet_playing() -> None:
         (4.0, FORWARD),
         *answered(ready=7.0, duration=2.0),
         (7.5, Synthesize(ticket=1, sentence="Et une quatrième.")),
-        (8.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=8.0)),
+        (8.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=8.0)),
         (8.0, Play(pcm=b"")),
+        (8.0, Synthesized(ticket=1, at=8.0)),
         (8.5, StopPlaying(heard_at=8.5)),
-    ) == ["end of turn", "transcription", "settle", "claude", "synthesis", "synthesis", "playback"]
+    ) == [
+        "end of turn",
+        "transcription",
+        "settle",
+        "claude",
+        "first audio",
+        "synthesis",
+        "first audio",
+        "synthesis",
+        "playback",
+    ]
 
 
 def synthesis_starts(*moments: Moment) -> list[float]:
@@ -287,7 +305,8 @@ def test_an_interruption_drops_the_syntheses_under_way() -> None:
         *answered(),
         (7.5, Synthesize(ticket=1, sentence="Et une quatrième.")),
         (8.0, StopPlaying(heard_at=8.0)),
-        (9.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=9.0)),
+        (9.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=9.0)),
+        (9.0, Synthesized(ticket=1, at=9.0)),
     ) == [6.0]
 
 
@@ -383,27 +402,33 @@ def test_two_syntheses_under_way_each_end_their_own_step() -> None:
         (4.0, FORWARD),
         (6.0, Synthesize(ticket=0, sentence="Un.")),
         (6.5, Synthesize(ticket=1, sentence="Deux.")),
-        (7.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=7.0)),
-        (8.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=8.0)),
-    ) == ["settle", "synthesis", "synthesis"]
+        (7.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=7.0)),
+        (7.0, Synthesized(ticket=1, at=7.0)),
+        (8.0, Voiced(ticket=0, pcm=b"", duration=1.0, at=8.0)),
+        (8.0, Synthesized(ticket=0, at=8.0)),
+    ) == ["settle", "first audio", "synthesis", "first audio", "synthesis"]
 
 
 def test_a_voice_already_received_is_not_a_second_step() -> None:
     assert step_names(
         (4.0, FORWARD),
         (6.0, Synthesize(ticket=0, sentence="Un.")),
-        (7.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=7.0)),
-        (8.0, Synthesized(ticket=0, pcm=b"", duration=1.0, at=8.0)),
-    ) == ["settle", "synthesis"]
+        (7.0, Voiced(ticket=0, pcm=b"", duration=1.0, at=7.0)),
+        (7.0, Synthesized(ticket=0, at=7.0)),
+        (8.0, Voiced(ticket=0, pcm=b"", duration=1.0, at=8.0)),
+        (8.0, Synthesized(ticket=0, at=8.0)),
+    ) == ["settle", "first audio", "synthesis"]
 
 
 def test_a_sentence_due_to_start_as_the_voice_is_cut_never_plays() -> None:
     assert step_names(
         (4.0, FORWARD),
-        (7.0, Synthesized(ticket=0, pcm=b"", duration=2.0, at=7.0)),
+        (7.0, Voiced(ticket=0, pcm=b"", duration=2.0, at=7.0)),
         (7.0, Play(pcm=b"")),
-        (8.0, Synthesized(ticket=1, pcm=b"", duration=1.0, at=8.0)),
+        (7.0, Synthesized(ticket=0, at=7.0)),
+        (8.0, Voiced(ticket=1, pcm=b"", duration=1.0, at=8.0)),
         (8.0, Play(pcm=b"")),
+        (8.0, Synthesized(ticket=1, at=8.0)),
         (9.0, StopPlaying(heard_at=9.0)),
     ) == ["settle", "playback"]
 
@@ -431,3 +456,101 @@ def test_a_forwarded_utterance_tells_it_interrupted_claude() -> None:
 
 def test_an_utterance_forwarded_without_a_turn_ends_its_voice_when_forwarded() -> None:
     assert forwarded(Trace(), 4.0, FORWARD, QUESTION, None).voice_end == 4.0
+
+
+def first_audio_of(*moments: Moment) -> Span:
+    return next(step for step in steps_of(*moments) if step.name == "first audio")
+
+
+def test_the_first_audio_lasts_from_the_order_to_the_first_piece_of_voice() -> None:
+    assert first_audio_of(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Trois.")),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.5, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.5)),
+    ) == Span(name="first audio", start=6.0, end=6.2, attributes=(("rank", 0), ("characters", 6)))
+
+
+def test_a_synthesis_lasts_until_its_whole_voice_has_arrived() -> None:
+    synthesis = synthesis_of(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Trois.")),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.5, Voiced(ticket=0, pcm=b"", duration=0.5, at=6.5)),
+        (6.6, Synthesized(ticket=0, at=6.6)),
+    )
+    assert (synthesis.start, synthesis.end, dict(synthesis.attributes)["audio.duration"]) == (6.0, 6.6, 1.5)
+
+
+def test_a_synthesis_failed_partway_tells_how_much_voice_it_gave() -> None:
+    assert synthesis_of(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Trois.")),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.6, SynthesisFailed(ticket=0)),
+    ).attributes == (("rank", 0), ("characters", 6), ("audio.duration", 1.0))
+
+
+def playbacks_of(*moments: Moment) -> list[Span]:
+    return [step for step in steps_of(*moments) if step.name == "playback"]
+
+
+def playback_starts(*moments: Moment) -> list[float]:
+    return [step.start for step in playbacks_of(*moments)]
+
+
+def test_the_pieces_of_one_voice_make_one_playback() -> None:
+    assert playbacks_of(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Trois.")),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.2, Play(pcm=b"")),
+        (6.5, Voiced(ticket=0, pcm=b"", duration=0.5, at=6.5)),
+        (6.5, Play(pcm=b"")),
+    ) == [Span(name="playback", start=6.2, end=7.7)]
+
+
+def test_a_piece_arriving_after_the_voice_ran_out_extends_the_playback_from_its_arrival() -> None:
+    assert playbacks_of(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Trois.")),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.2, Play(pcm=b"")),
+        (8.0, Voiced(ticket=0, pcm=b"", duration=0.5, at=8.0)),
+        (8.0, Play(pcm=b"")),
+    ) == [Span(name="playback", start=6.2, end=8.5)]
+
+
+def test_the_voice_of_the_next_sentence_makes_its_own_playback() -> None:
+    assert playback_starts(
+        (4.0, FORWARD),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.2, Play(pcm=b"")),
+        (6.5, Voiced(ticket=1, pcm=b"", duration=0.5, at=6.5)),
+        (6.5, Play(pcm=b"")),
+    ) == [6.2, 7.2]
+
+
+def test_a_play_without_any_voice_heard_starts_its_own_playback() -> None:
+    assert playback_starts((4.0, FORWARD), (6.2, Play(pcm=b"")), (6.5, Play(pcm=b""))) == [6.2, 6.5]
+
+
+def test_only_the_first_piece_of_a_voice_ends_its_first_audio() -> None:
+    assert step_names(
+        (4.0, FORWARD),
+        (6.0, Synthesize(ticket=0, sentence="Trois.")),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.5, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.5)),
+    ) == ["settle", "first audio"]
+
+
+def test_the_pieces_of_the_second_sentence_extend_its_own_playback() -> None:
+    assert playbacks_of(
+        (4.0, FORWARD),
+        (6.2, Voiced(ticket=0, pcm=b"", duration=1.0, at=6.2)),
+        (6.2, Play(pcm=b"")),
+        (6.5, Voiced(ticket=1, pcm=b"", duration=0.5, at=6.5)),
+        (6.5, Play(pcm=b"")),
+        (6.6, Voiced(ticket=1, pcm=b"", duration=0.5, at=6.6)),
+        (6.6, Play(pcm=b"")),
+    ) == [Span(name="playback", start=6.2, end=7.2), Span(name="playback", start=7.2, end=8.2)]

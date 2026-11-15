@@ -12,6 +12,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Asked,
     AwaitHold,
     AwaitSilence,
+    CancelSynthesis,
     ClaudeBusy,
     ClaudeIdle,
     Command,
@@ -19,6 +20,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Event,
     Forward,
     HoldLasted,
+    Play,
     SilenceLasted,
     SoundDismissed,
     SpeechEnded,
@@ -27,19 +29,19 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Synthesize,
     Synthesized,
     Transcribed,
+    Voiced,
     VoiceDetected,
     step,
 )
 
-TICKETS = st.integers(min_value=0, max_value=10)
+TICKETS = st.integers(min_value=0, max_value=2)
 MOMENTS = st.floats(min_value=0.0, max_value=100.0)
 EVENTS: st.SearchStrategy[Event] = st.one_of(
     st.builds(Asked, sentences=st.lists(st.text(min_size=1), max_size=3).map(tuple), ending=st.booleans()),
     st.builds(ClaudeBusy, at=MOMENTS),
     st.builds(ClaudeIdle),
-    st.builds(
-        Synthesized, ticket=TICKETS, pcm=st.just(b""), duration=st.floats(min_value=0.0, max_value=5.0), at=MOMENTS
-    ),
+    st.builds(Voiced, ticket=TICKETS, pcm=st.just(b""), duration=st.floats(min_value=0.0, max_value=5.0), at=MOMENTS),
+    st.builds(Synthesized, ticket=TICKETS, at=MOMENTS),
     st.builds(SynthesisFailed, ticket=TICKETS),
     st.builds(VoiceDetected, at=MOMENTS),
     st.builds(Transcribed, text=st.text(), noise=st.booleans(), stop_at=st.none() | MOMENTS, answered=st.booleans()),
@@ -147,3 +149,52 @@ def announced_while_heard(events: list[Event]) -> list[Announce]:
 @given(st.lists(EVENTS, max_size=50))
 def test_no_announcement_is_made_while_the_speaker_is_heard(events: list[Event]) -> None:
     assert announced_while_heard(events) == []
+
+
+def replayed(event: Event, cancelled: frozenset[int], commands: tuple[Command, ...]) -> list[int]:
+    if isinstance(event, Voiced) and event.ticket in cancelled and Play(pcm=event.pcm) in commands:
+        return [event.ticket]
+    return []
+
+
+def played_after_their_cancel(events: list[Event]) -> list[int]:
+    def advance(
+        history: tuple[Conversation, frozenset[int], list[int]], event: Event
+    ) -> tuple[Conversation, frozenset[int], list[int]]:
+        state, cancelled, played = history
+        later, commands = step(state, event)
+        abandoned = {command.ticket for command in commands if isinstance(command, CancelSynthesis)}
+        return later, cancelled | abandoned, [*played, *replayed(event, cancelled, commands)]
+
+    return reduce(advance, events, (Conversation(), frozenset[int](), list[int]()))[2]
+
+
+@given(st.lists(EVENTS, max_size=50))
+def test_a_cancelled_synthesis_is_never_played(events: list[Event]) -> None:
+    assert played_after_their_cancel(events) == []
+
+
+def ended_by(event: Event, ticket: int) -> bool:
+    return isinstance(event, Synthesized | SynthesisFailed) and event.ticket == ticket
+
+
+def orphaned(state: Conversation, event: Event) -> list[int]:
+    before = state.synthesizing
+    later, commands = step(state, event)
+    if before is None or ended_by(event, before.ticket) or CancelSynthesis(ticket=before.ticket) in commands:
+        return []
+    kept = later.synthesizing is not None and later.synthesizing.ticket == before.ticket
+    return [] if kept else [before.ticket]
+
+
+def dropped_without_cancel(events: list[Event]) -> list[int]:
+    def advance(history: tuple[Conversation, list[int]], event: Event) -> tuple[Conversation, list[int]]:
+        state, orphans = history
+        return step(state, event)[0], [*orphans, *orphaned(state, event)]
+
+    return reduce(advance, events, (Conversation(), list[int]()))[1]
+
+
+@given(st.lists(EVENTS, max_size=50))
+def test_a_synthesis_dropped_before_its_voice_ended_is_cancelled(events: list[Event]) -> None:
+    assert dropped_without_cancel(events) == []

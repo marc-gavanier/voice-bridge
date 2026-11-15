@@ -9,6 +9,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Announce,
     AwaitHold,
     AwaitSilence,
+    CancelSynthesis,
     Command,
     Conversation,
     Event,
@@ -25,6 +26,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     SynthesisFailed,
     Synthesize,
     Synthesized,
+    Voiced,
     step,
 )
 from voice_bridge.features.conversation.domain.turn_trace import Acknowledged, Trace, close, forwarded, observe
@@ -43,6 +45,7 @@ if TYPE_CHECKING:
         Interpreter,
         Speaker,
         Telemetry,
+        Voice,
     )
     from voice_bridge.features.conversation.domain.turn_trace import Report
 
@@ -51,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Mouth:
-    voice: Callable[[str], Awaitable[bytes | None]]
+    voice: Voice
     speaker: Speaker
     claude: Claude
     rate: int
@@ -69,25 +72,65 @@ class Mouth:
 @dataclass(slots=True)
 class _Shell:
     scopes: list[anyio.CancelScope] = field(default_factory=list)
+    syntheses: dict[int, anyio.CancelScope] = field(default_factory=dict)
     acknowledgement: tuple[str, bytes] | None = None
     trace: Trace = field(default_factory=Trace)
 
 
-async def _voiced(mouth: Mouth, said: Said) -> bytes | None:
+async def _voiced(mouth: Mouth, said: Said, hear: Callable[[bytes], Awaitable[None]]) -> bool:
     if isinstance(said, Recording):
-        return said.pcm
-    return await mouth.voice(said)
+        await hear(said.pcm)
+        return True
+    return await mouth.voice(said, hear)
+
+
+@dataclass(slots=True)
+class _Voicing:
+    started: float
+    first: float | None = None
+    spoken: float = 0.0
 
 
 async def _synthesize(mouth: Mouth, emit: ObjectSendStream[Event], order: Synthesize) -> None:
-    started = mouth.clock()
-    pcm = await _voiced(mouth, order.sentence)
-    if pcm is None:
+    voicing = _Voicing(started=mouth.clock())
+
+    async def hear(pcm: bytes) -> None:
+        at, lasting = mouth.clock(), duration(pcm, mouth.rate)
+        if voicing.first is None:
+            voicing.first = at
+            logger.info("first audio in %.2f s: %r", at - voicing.started, order.sentence)
+        voicing.spoken += lasting
+        await emit.send(Voiced(ticket=order.ticket, pcm=pcm, duration=lasting, at=at))
+
+    if not await _voiced(mouth, order.sentence, hear):
         await emit.send(SynthesisFailed(ticket=order.ticket))
         return
-    spoken, ready = duration(pcm, mouth.rate), mouth.clock()
-    logger.info("voice in %.2f s for %.1f s of speech: %r", ready - started, spoken, order.sentence)
-    await emit.send(Synthesized(ticket=order.ticket, pcm=pcm, duration=spoken, at=ready))
+    ready = mouth.clock()
+    logger.info("voice in %.2f s for %.1f s of speech: %r", ready - voicing.started, voicing.spoken, order.sentence)
+    await emit.send(Synthesized(ticket=order.ticket, at=ready))
+
+
+async def _synthesize_within(
+    mouth: Mouth, emit: ObjectSendStream[Event], shell: _Shell, order: Synthesize, scope: anyio.CancelScope
+) -> None:
+    try:
+        with scope:
+            await _synthesize(mouth, emit, order)
+    finally:
+        _ = shell.syntheses.pop(order.ticket, None)
+
+
+def _start_synthesis(
+    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, shell: _Shell, order: Synthesize
+) -> None:
+    scope = anyio.CancelScope()
+    shell.syntheses[order.ticket] = scope
+    _ = tasks.start_soon(_synthesize_within, mouth, emit, shell, order, scope)
+
+
+def _cancel_synthesis(shell: _Shell, order: CancelSynthesis) -> None:
+    shell.syntheses.pop(order.ticket, anyio.CancelScope()).cancel()
+    logger.info("synthesis %d cancelled", order.ticket)
 
 
 async def _forward(mouth: Mouth, shell: _Shell, command: Forward) -> None:
@@ -159,12 +202,8 @@ def _stop_music(mouth: Mouth, shell: _Shell) -> None:
     logger.info("hold music stopped")
 
 
-async def _later(
-    mouth: Mouth, emit: ObjectSendStream[Event], command: Synthesize | AwaitSilence | AwaitHold | Leave
-) -> None:
+async def _later(mouth: Mouth, emit: ObjectSendStream[Event], command: AwaitSilence | AwaitHold | Leave) -> None:
     match command:
-        case Synthesize():
-            await _synthesize(mouth, emit, command)
         case AwaitSilence():
             await _await_silence(mouth, emit, command)
         case AwaitHold():
@@ -175,12 +214,18 @@ async def _later(
             assert_never(command)
 
 
-async def _execute(
-    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, shell: _Shell, command: Command
+def _voice(
+    mouth: Mouth,
+    emit: ObjectSendStream[Event],
+    tasks: TaskGroup,
+    shell: _Shell,
+    command: Synthesize | CancelSynthesis | Play | StopPlaying,
 ) -> None:
     match command:
-        case Synthesize() | AwaitSilence() | AwaitHold() | Leave():
-            _ = tasks.start_soon(_later, mouth, emit, command)
+        case Synthesize():
+            _start_synthesis(mouth, emit, tasks, shell, command)
+        case CancelSynthesis():
+            _cancel_synthesis(shell, command)
         case Play(pcm=pcm):
             mouth.speaker.play(pcm)
         case StopPlaying(heard_at=heard_at):
@@ -188,6 +233,18 @@ async def _execute(
             logger.info(
                 "interrupted, playback stopped %.0f ms after the voice was heard", (mouth.clock() - heard_at) * 1000
             )
+        case _:
+            assert_never(command)
+
+
+async def _execute(
+    mouth: Mouth, emit: ObjectSendStream[Event], tasks: TaskGroup, shell: _Shell, command: Command
+) -> None:
+    match command:
+        case Synthesize() | CancelSynthesis() | Play() | StopPlaying():
+            _voice(mouth, emit, tasks, shell, command)
+        case AwaitSilence() | AwaitHold() | Leave():
+            _ = tasks.start_soon(_later, mouth, emit, command)
         case Acknowledge():
             _acknowledge(mouth, shell, command)
         case Announce():

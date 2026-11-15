@@ -64,7 +64,11 @@ from voice_bridge.features.speaking.abilities.announce.implementation.announce i
 )
 from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import SpeechEngine, wait_until_ready
-from voice_bridge.features.speaking.abilities.speak.implementation.speak import sentences_of, voice_of
+from voice_bridge.features.speaking.abilities.speak.implementation.speak import (
+    sentences_of,
+    voice_of,
+    voice_streamed,
+)
 from voice_bridge.features.speaking.domain.track import Track
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import load_encoder, router
 from voice_bridge.features.understanding.abilities.understand.implementation.understand import StopFlag, Understanding
@@ -336,7 +340,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         clips = Clips(draw=secrets.choice, kind=lambda words: understanding(words).route, last=greeting)
         announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
-            voice=partial(voice_of, engine),
+            voice=partial(voice_streamed, engine),
             speaker=speaker,
             claude=_following_stops(side.claude, understanding, StopFlag(settings.understanding.stop_flag)),
             rate=MUMBLE_RATE,

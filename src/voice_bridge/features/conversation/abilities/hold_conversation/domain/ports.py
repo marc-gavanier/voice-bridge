@@ -1,7 +1,13 @@
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from voice_bridge.features.conversation.domain.turn_trace import Report, Understood
+
+
+class Voice(Protocol):
+    async def __call__(self, sentence: str, hear: Callable[[bytes], Awaitable[None]], /) -> bool: ...
 
 
 class Claude(Protocol):

@@ -16,6 +16,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Synthesize,
     Synthesized,
     Transcribed,
+    Voiced,
 )
 from voice_bridge.features.conversation.domain.turn_trace import FinishedTurn, Report, Trace, close, observe
 
@@ -27,9 +28,8 @@ ITEMS: st.SearchStrategy[Event | Command] = st.one_of(
     st.builds(Transcribed, text=st.just("Bonjour."), noise=st.booleans()),
     st.builds(SoundDismissed),
     st.builds(Synthesize, ticket=TICKETS, sentence=st.just("Un.")),
-    st.builds(
-        Synthesized, ticket=TICKETS, pcm=st.just(b""), duration=st.floats(min_value=0.0, max_value=5.0), at=MOMENTS
-    ),
+    st.builds(Voiced, ticket=TICKETS, pcm=st.just(b""), duration=st.floats(min_value=0.0, max_value=5.0), at=MOMENTS),
+    st.builds(Synthesized, ticket=TICKETS, at=MOMENTS),
     st.builds(SynthesisFailed, ticket=TICKETS),
     st.builds(Play, pcm=st.just(b"")),
     st.builds(StopPlaying, heard_at=MOMENTS),

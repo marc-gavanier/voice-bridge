@@ -20,10 +20,16 @@ class Asked:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Synthesized:
+class Voiced:
     ticket: int
     pcm: bytes
     duration: float
+    at: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Synthesized:
+    ticket: int
     at: float
 
 
@@ -88,6 +94,7 @@ class AgentsChanged:
 
 type Event = (
     Asked
+    | Voiced
     | Synthesized
     | SynthesisFailed
     | VoiceDetected
@@ -107,6 +114,11 @@ type Event = (
 class Synthesize:
     ticket: int
     sentence: Said
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CancelSynthesis:
+    ticket: int
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -167,6 +179,7 @@ class Announce:
 
 type Command = (
     Synthesize
+    | CancelSynthesis
     | Play
     | StopPlaying
     | Forward
@@ -184,6 +197,7 @@ type Command = (
 class Synthesis:
     ticket: int
     sentence: Said
+    ends_at: float | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -280,31 +294,57 @@ def _synthesize_next(state: Conversation, commands: tuple[Command, ...] = ()) ->
     return started, (*commands, Synthesize(ticket=synthesis.ticket, sentence=synthesis.sentence))
 
 
-def _is_current(state: Conversation, ticket: int) -> bool:
-    return state.synthesizing is not None and state.synthesizing.ticket == ticket
+def _cancelled(state: Conversation) -> tuple[Command, ...]:
+    if state.synthesizing is None:
+        return ()
+    return (CancelSynthesis(ticket=state.synthesizing.ticket),)
 
 
-def _play(state: Conversation, event: Synthesized) -> Step:
-    if state.synthesizing is None or not _is_current(state, event.ticket):
-        return state, ()
+def _start_playing(state: Conversation, synthesis: Synthesis, event: Voiced) -> Step:
     if state.hearing:
-        return replace(state, synthesizing=None, waiting=(state.synthesizing.sentence, *state.waiting)), ()
+        return replace(state, synthesizing=None, waiting=(synthesis.sentence, *state.waiting)), _cancelled(state)
     last_end = max((event.at, *(scheduled.ends_at for scheduled in state.playing)))
-    scheduled = Scheduled(sentence=state.synthesizing.sentence, ends_at=last_end + event.duration)
     still_playing = tuple(each for each in state.playing if each.plays_at(event.at))
-    played = replace(state, synthesizing=None, playing=(*still_playing, scheduled), reply_heard=True)
-    voiced, commands = _synthesize_next(*_stop_holding(played, (Play(pcm=event.pcm),)))
+    started = replace(synthesis, ends_at=last_end + event.duration)
+    playing = replace(state, synthesizing=started, playing=still_playing, reply_heard=True)
+    return _stop_holding(playing, (Play(pcm=event.pcm),))
+
+
+def _play(state: Conversation, event: Voiced) -> Step:
+    synthesis = state.synthesizing
+    if synthesis is None or synthesis.ticket != event.ticket:
+        return state, ()
+    if synthesis.ends_at is None:
+        return _start_playing(state, synthesis, event)
+    longer = replace(synthesis, ends_at=max(event.at, synthesis.ends_at) + event.duration)
+    return replace(state, synthesizing=longer), (Play(pcm=event.pcm),)
+
+
+def _played(state: Conversation, synthesis: Synthesis) -> tuple[Scheduled, ...]:
+    if synthesis.ends_at is None:
+        return state.playing
+    return (*state.playing, Scheduled(sentence=synthesis.sentence, ends_at=synthesis.ends_at))
+
+
+def _finish(state: Conversation, event: Synthesized) -> Step:
+    synthesis = state.synthesizing
+    if synthesis is None or synthesis.ticket != event.ticket:
+        return state, ()
+    if synthesis.ends_at is None:
+        return _skip(state, event.ticket)
+    voiced, commands = _synthesize_next(replace(state, synthesizing=None, playing=_played(state, synthesis)))
     if unspoken(voiced):
         return voiced, commands
     if voiced.ending:
-        return voiced, (*commands, Leave(until=scheduled.ends_at))
-    return _await_hold(voiced, commands, after=scheduled.ends_at - event.at)
+        return voiced, (*commands, Leave(until=synthesis.ends_at))
+    return _await_hold(voiced, commands, after=synthesis.ends_at - event.at)
 
 
 def _skip(state: Conversation, ticket: int) -> Step:
-    if not _is_current(state, ticket):
+    synthesis = state.synthesizing
+    if synthesis is None or synthesis.ticket != ticket:
         return state, ()
-    skipped, commands = _synthesize_next(replace(state, synthesizing=None))
+    skipped, commands = _synthesize_next(replace(state, synthesizing=None, playing=_played(state, synthesis)))
     if unspoken(skipped):
         return skipped, commands
     if skipped.ending:
@@ -321,7 +361,10 @@ def _interrupt(state: Conversation, at: float) -> Step:
     unfinished = tuple(scheduled.sentence for scheduled in state.playing if scheduled.plays_at(at))
     stopped = (*unfinished, *unspoken(state))
     silenced = replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True, hearing=True)
-    return replace(silenced, paused=(*(state.paused or ()), *stopped)), (StopPlaying(heard_at=at),)
+    return replace(silenced, paused=(*(state.paused or ()), *stopped)), (
+        *_cancelled(state),
+        StopPlaying(heard_at=at),
+    )
 
 
 def _resume(state: Conversation) -> Step:
@@ -353,7 +396,10 @@ def _transcribed(state: Conversation) -> Conversation:
 def _cut(state: Conversation, at: float | None) -> Step:
     if at is None or not is_talking(state, at):
         return state, ()
-    return replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True), (StopPlaying(heard_at=at),)
+    return replace(state, waiting=(), synthesizing=None, playing=(), interrupted=True), (
+        *_cancelled(state),
+        StopPlaying(heard_at=at),
+    )
 
 
 def _hear(state: Conversation, event: Transcribed) -> Step:
@@ -402,7 +448,7 @@ def _forward(state: Conversation, ticket: int, at: float) -> Step:
     return _await_hold_after_voice(*_synthesize_next(forwarded, commands), at)
 
 
-def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed) -> Step:
+def _on_claude(state: Conversation, event: Asked | Voiced | Synthesized | SynthesisFailed) -> Step:
     match event:
         case Asked(sentences=sentences, ending=ending):
             return _synthesize_next(
@@ -414,8 +460,10 @@ def _on_claude(state: Conversation, event: Asked | Synthesized | SynthesisFailed
                     ending=ending,
                 )
             )
-        case Synthesized():
+        case Voiced():
             return _play(state, event)
+        case Synthesized():
+            return _finish(state, event)
         case SynthesisFailed(ticket=ticket):
             return _skip(state, ticket)
         case _:
@@ -471,7 +519,7 @@ def _on_agents(state: Conversation, event: AgentsChanged) -> Step:
 
 def step(state: Conversation, event: Event) -> Step:
     match event:
-        case Asked() | Synthesized() | SynthesisFailed():
+        case Asked() | Voiced() | Synthesized() | SynthesisFailed():
             return _on_claude(state, event)
         case VoiceDetected() | Transcribed() | SoundDismissed() | SpeechStarted() | SpeechEnded():
             return _on_speaker(state, event)

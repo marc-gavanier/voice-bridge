@@ -1,4 +1,4 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
@@ -8,7 +8,11 @@ from anyio import wait_all_tasks_blocked
 from anyio.abc import ObjectReceiveStream
 from anyio.streams.memory import MemoryObjectSendStream
 
-from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Acknowledgement, Announcement
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
+    Acknowledgement,
+    Announcement,
+    Voice,
+)
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
     Mouth,
     hold_conversation,
@@ -98,8 +102,32 @@ def announced(at_work: int) -> tuple[str, bytes] | None:
     return None if sentence is None else (sentence, ANNOUNCEMENT_CLIP)
 
 
-async def voiced(sentence: str) -> bytes | None:
-    return None if sentence.startswith("Silent") else SOUND
+type Hear = Callable[[bytes], Awaitable[None]]
+
+
+async def voiced(sentence: str, hear: Hear) -> bool:
+    if sentence.startswith("Silent"):
+        return False
+    await hear(SOUND)
+    return True
+
+
+async def voiced_in_pieces(sentence: str, hear: Hear) -> bool:
+    await hear(SOUND)
+    await hear(sentence.encode())
+    return True
+
+
+async def broken_after_a_piece(sentence: str, hear: Hear) -> bool:
+    await hear(SOUND)
+    return not sentence.startswith("Broken")
+
+
+async def hanging_after_a_piece(sentence: str, hear: Hear) -> bool:
+    await hear(SOUND)
+    await anyio.Event().wait()
+    await hear(sentence.encode())
+    return True
 
 
 @dataclass(frozen=True)
@@ -118,6 +146,7 @@ async def talking(
     music: bool = True,
     settle: float = 0.0,
     announcement: Announcement = announced,
+    voice: Voice = voiced,
 ) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
@@ -135,7 +164,7 @@ async def talking(
         await left_in.send(anyio.current_time() - started)
 
     mouth = Mouth(
-        voice=voiced,
+        voice=voice,
         speaker=StreamedSpeaker(played_in),
         claude=claude,
         rate=48000,
@@ -417,3 +446,58 @@ async def test_the_turn_under_way_is_reported_when_the_conversation_ends() -> No
             interrupted=False,
         )
     ]
+
+
+async def test_each_piece_of_a_voice_is_played_as_it_arrives() -> None:
+    async with talking(voice=voiced_in_pieces) as talk:
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        played = (await talk.played.receive(), await talk.played.receive())
+    assert played == (SOUND, b"Bonjour.")
+
+
+async def test_the_next_sentence_follows_the_whole_voice_of_the_one_before() -> None:
+    async with talking(voice=voiced_in_pieces) as talk:
+        await talk.say.send(Asked(sentences=("Un.", "Deux.")))
+        played = (
+            await talk.played.receive(),
+            await talk.played.receive(),
+            await talk.played.receive(),
+            await talk.played.receive(),
+        )
+    assert played == (SOUND, b"Un.", SOUND, b"Deux.")
+
+
+async def test_a_voice_broken_after_a_piece_moves_on_to_the_next_sentence() -> None:
+    async with talking(voice=broken_after_a_piece) as talk:
+        await talk.say.send(Asked(sentences=("Broken sentence.", "Spoken sentence.")))
+        played = (await talk.played.receive(), await talk.played.receive())
+    assert played == (SOUND, SOUND)
+
+
+async def test_an_interruption_cancels_the_voice_still_arriving(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with talking(voice=hanging_after_a_piece) as talk:
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        _ = await talk.played.receive()
+        await talk.say.send(VoiceDetected(at=0.0))
+        _ = await talk.played.receive()
+        await wait_all_tasks_blocked()
+    assert "synthesis 0 cancelled" in caplog.text
+
+
+async def test_the_first_audio_of_a_sentence_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        _ = await talk.played.receive()
+        await wait_all_tasks_blocked()
+    assert "first audio in 0.00 s: 'Bonjour.'" in caplog.text
+
+
+async def test_the_whole_voice_of_a_sentence_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO")
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Bonjour.",)))
+        _ = await talk.played.receive()
+        await wait_all_tasks_blocked()
+    assert "voice in 0.00 s for 0.1 s of speech: 'Bonjour.'" in caplog.text
