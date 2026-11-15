@@ -56,6 +56,7 @@ class Counted:
 class Understood:
     route: str | None
     ranking: tuple[tuple[str, float], ...] = ()
+    fallback: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

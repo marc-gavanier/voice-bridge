@@ -65,6 +65,14 @@ UNKNOWN = Forwarded(
     voice_end=1.5,
     at=2.0,
 )
+UNROUTED_QUESTION = Forwarded(
+    text="Les nouveaux seuils sont-ils activés ?",
+    interrupted=False,
+    understood=Understood(route=None, ranking=(("question", 0.55),), fallback="neutral_question"),
+    acknowledgement="Je regarde.",
+    voice_end=1.5,
+    at=2.0,
+)
 ACKNOWLEDGED = Acknowledged(sentence="Voyons.", words="Où en est-on ?", at=2.5)
 
 
@@ -234,6 +242,10 @@ def test_an_utterance_without_route_nor_acknowledgement_leaves_them_out(exported
         "voice_bridge.voice.end_time_unix_nano": round(1.5 * NANOSECONDS),
         "voice_bridge.route.ranking": ({"route": "idea", "score": 0.2},),
     }
+
+
+def test_an_utterance_of_no_route_tells_the_pool_it_fell_back_on(exported: Exported) -> None:
+    assert attributes_of(exported, UNROUTED_QUESTION)["voice_bridge.route.fallback"] == "neutral_question"
 
 
 def test_an_acknowledgement_played_is_one_event_at_the_time_it_played(exported: Exported) -> None:

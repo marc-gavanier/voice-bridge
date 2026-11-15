@@ -52,7 +52,7 @@ from voice_bridge.features.hearing.abilities.transcribe.implementation.transcrib
 )
 from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
-from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import pool_of
+from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import fallback, pool_of
 from voice_bridge.features.speaking.abilities.acknowledge.implementation.acknowledge import (
     Clips,
     record_acknowledgements,
@@ -236,8 +236,9 @@ def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
 def _interpreting(understanding: Understanding) -> Interpreter:
     def interpret(words: str) -> Understood:
         meaning = understanding(words)
-        route = None if meaning.route is None else understanding.routes[meaning.route].name
-        return Understood(route=route, ranking=meaning.ranking)
+        if meaning.route is None:
+            return Understood(route=None, ranking=meaning.ranking, fallback=fallback(words))
+        return Understood(route=understanding.routes[meaning.route].name, ranking=meaning.ranking)
 
     return interpret
 

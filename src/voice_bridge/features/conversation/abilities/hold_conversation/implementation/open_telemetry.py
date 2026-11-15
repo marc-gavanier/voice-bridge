@@ -60,6 +60,7 @@ def writing_to(
 def _forwarded_attributes(report: Forwarded, to_epoch: Callable[[float], int]) -> dict[str, AttributeValue]:
     understood = report.understood
     route = {} if understood.route is None else {"voice_bridge.route.name": understood.route}
+    fallback = {} if understood.fallback is None else {"voice_bridge.route.fallback": understood.fallback}
     acknowledgement = (
         {} if report.acknowledgement is None else {"voice_bridge.acknowledgement.sentence": report.acknowledgement}
     )
@@ -68,6 +69,7 @@ def _forwarded_attributes(report: Forwarded, to_epoch: Callable[[float], int]) -
         "voice_bridge.utterance.interrupted": report.interrupted,
         "voice_bridge.voice.end_time_unix_nano": to_epoch(report.voice_end),
         **route,
+        **fallback,
         "voice_bridge.route.ranking": [{"route": name, "score": score} for name, score in understood.ranking],
         **acknowledgement,
     }
