@@ -464,7 +464,7 @@ examples = [
   "Estaría bien tener música de espera.",
   "Siempre mirar si ya existe algo para eso.",
   "Me gustaría automatizarlo.",
-  "Creo que podemos hacerlo ahora.",
+  "Quizá podríamos hacerlo más sencillo.",
   "Parece una buena idea.",
   "Quiero que también funcione en el móvil.",
   "Podríamos hacer una regla.",
@@ -550,6 +550,7 @@ examples = [
   "Tira.",
   "Vamos a ello.",
   "Lánzate.",
+  "Creo que podemos hacerlo ahora.",
 ]
 sentences = [
   "Allá vamos.",

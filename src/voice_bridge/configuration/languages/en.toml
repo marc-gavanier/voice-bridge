@@ -490,7 +490,7 @@ examples = [
   "It would be nice to have hold music.",
   "Always check whether something already exists for that.",
   "I'd like this automated, but I don't know how.",
-  "I think we can do it now.",
+  "Maybe we could make it simpler.",
   "I think we just had small network hiccups.",
   "That sounds like a good idea.",
   "I want it to work on the phone too.",
@@ -576,6 +576,7 @@ examples = [
   "Just do it.",
   "Let's do it.",
   "Okay, let's begin with the stop feature.",
+  "I think we can do it now.",
 ]
 sentences = [
   "Here we go.",

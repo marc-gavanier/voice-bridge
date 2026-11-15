@@ -76,6 +76,11 @@ def test_french_knows_the_thanks_for_watching_hallucination() -> None:
         ("Et donc, qu'est-ce que c'est la suite ?", "question"),
         ("Non.", "no"),
         ("C'est exactement ça.", "yes"),
+        ("On peut lancer ça maintenant.", "go_ahead"),
+        (
+            "Oui, c'est plus clair. Si c'est faisable dans un temps raisonnable, on peut lancer ça maintenant.",
+            "go_ahead",
+        ),
         (
             said(
                 "Ouais ça me va, prépare ça maintenant et on verra ça demain quand je cours, quand j'irai courir.",

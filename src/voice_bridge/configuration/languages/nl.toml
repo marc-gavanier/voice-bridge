@@ -462,7 +462,7 @@ examples = [
   "Het zou fijn zijn om wachtmuziek te hebben.",
   "Altijd eerst kijken of er al iets voor bestaat.",
   "Ik zou het graag automatiseren.",
-  "Ik denk dat we het nu kunnen doen.",
+  "Misschien kunnen we het eenvoudiger maken.",
   "Dat klinkt als een goed idee.",
   "Ik wil dat het ook op de telefoon werkt.",
   "We zouden er een regel van kunnen maken.",
@@ -548,6 +548,7 @@ examples = [
   "Gaan met die banaan.",
   "Ja, daar gaan we.",
   "Oké, we beginnen met het deel over stoppen.",
+  "Ik denk dat we het nu kunnen doen.",
 ]
 sentences = [
   "Daar gaan we.",

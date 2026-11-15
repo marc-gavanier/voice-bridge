@@ -498,7 +498,6 @@ examples = [
   "Ce serait bien d'avoir une musique d'attente.",
   "Toujours regarder s'il n'existe pas un truc pour faire ça.",
   "J'aimerais bien ce truc automatisé, mais je ne sais pas comment faire.",
-  "Je pense qu'on peut le faire maintenant.",
   "Je pense qu'on a eu des petits accrocs de réseau tout simplement.",
   "Ça, ça me paraît être une bonne idée.",
   "C'était peut-être une idée que je me faisais.",
@@ -581,6 +580,7 @@ examples = [
   "Fonce.",
   "Oui, tu peux y aller.",
   "Vas-y, commence.",
+  "Je pense qu'on peut le faire maintenant.",
 ]
 sentences = [
   "C'est parti.",

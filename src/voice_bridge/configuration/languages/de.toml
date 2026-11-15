@@ -465,7 +465,7 @@ examples = [
   "Es wäre schön, Wartemusik zu haben.",
   "Immer erst prüfen, ob es dafür schon etwas gibt.",
   "Ich hätte das gern automatisiert.",
-  "Ich glaube, wir können das jetzt machen.",
+  "Vielleicht könnten wir es einfacher machen.",
   "Das klingt nach einer guten Idee.",
   "Ich möchte, dass es auch auf dem Handy funktioniert.",
   "Man könnte eine Regel daraus machen.",
@@ -551,6 +551,7 @@ examples = [
   "Leg einfach los.",
   "Ja, los geht's.",
   "Okay, wir beginnen mit dem Teil zum Stoppen.",
+  "Ich glaube, wir können das jetzt machen.",
 ]
 sentences = [
   "Los geht's.",
