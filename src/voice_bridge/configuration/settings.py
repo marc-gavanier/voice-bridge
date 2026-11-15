@@ -116,6 +116,7 @@ class ClipsSettings(Section):
 class ClaudeSettings(Section):
     model: ClaudeModel | None = None
     subagent_model: ClaudeModel | None = None
+    unanswered_after: PositiveFloat = 10.0
 
 
 class UnderstandingSettings(Section):

@@ -46,6 +46,10 @@ def test_every_language_tells_claude_to_play_audio_files_with_the_play_tool(lang
     assert " play " in language_pack(language).instructions
 
 
+def test_english_says_that_claude_code_does_not_answer_in_english() -> None:
+    assert language_pack("en").unanswered.startswith("Claude is not answering")
+
+
 def test_english_describes_the_end_of_session_tool_in_english() -> None:
     assert language_pack("en").end_tool_description.startswith("Say goodbye")
 
@@ -199,6 +203,7 @@ whisper_code = "en"
 voice = "neutral_female"
 stop_refusal = "Stopped."
 delegation_refusal = "Delegate."
+unanswered = "Claude is not answering."
 reply_tool_description = "Speak"
 reply_text_description = "Text"
 end_tool_description = "End"

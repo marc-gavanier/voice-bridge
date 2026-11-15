@@ -9,7 +9,9 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     ANNOUNCED_FROM,
     AgentsChanged,
     Announce,
+    AnswerLasted,
     Asked,
+    AwaitAnswer,
     AwaitHold,
     AwaitSilence,
     CancelSynthesis,
@@ -50,8 +52,10 @@ EVENTS: st.SearchStrategy[Event] = st.one_of(
     st.builds(SpeechEnded, at=MOMENTS),
     st.builds(SilenceLasted, ticket=TICKETS, at=MOMENTS),
     st.builds(HoldLasted, ticket=TICKETS),
+    st.builds(AnswerLasted, ticket=TICKETS),
     st.builds(AgentsChanged, at_work=st.integers(min_value=0, max_value=8)),
 )
+START = Conversation(unanswered=("Claude Code does not answer.",))
 FLAGS = [field.name for field in fields(Conversation) if field.default is False]
 
 
@@ -62,7 +66,7 @@ def commands_of(events: list[Event]) -> tuple[Command, ...]:
         state, commands = step(history[0], event)
         return state, (*history[1], *commands)
 
-    return reduce(advance, events, (Conversation(), ()))[1]
+    return reduce(advance, events, (START, ()))[1]
 
 
 def reused_tickets(commands: tuple[Command, ...]) -> list[int]:
@@ -92,11 +96,11 @@ def states_of(events: list[Event]) -> list[Conversation]:
     def advance(states: list[Conversation], event: Event) -> list[Conversation]:
         return [*states, step(states[-1], event)[0]]
 
-    return reduce(advance, events, [Conversation()])
+    return reduce(advance, events, [START])
 
 
 def wait_tickets(commands: tuple[Command, ...]) -> list[int]:
-    return [command.ticket for command in commands if isinstance(command, AwaitSilence | AwaitHold)]
+    return [command.ticket for command in commands if isinstance(command, AwaitSilence | AwaitHold | AwaitAnswer)]
 
 
 @given(st.lists(EVENTS, max_size=50))
@@ -143,7 +147,7 @@ def announced_while_heard(events: list[Event]) -> list[Announce]:
         heard = state.hearing or state.utterances > 0
         return state, [*history[1], *(command for command in commands if heard and isinstance(command, Announce))]
 
-    return reduce(advance, events, (Conversation(), list[Announce]()))[1]
+    return reduce(advance, events, (START, list[Announce]()))[1]
 
 
 @given(st.lists(EVENTS, max_size=50))
@@ -166,7 +170,7 @@ def played_after_their_cancel(events: list[Event]) -> list[int]:
         abandoned = {command.ticket for command in commands if isinstance(command, CancelSynthesis)}
         return later, cancelled | abandoned, [*played, *replayed(event, cancelled, commands)]
 
-    return reduce(advance, events, (Conversation(), frozenset[int](), list[int]()))[2]
+    return reduce(advance, events, (START, frozenset[int](), list[int]()))[2]
 
 
 @given(st.lists(EVENTS, max_size=50))
@@ -192,7 +196,7 @@ def dropped_without_cancel(events: list[Event]) -> list[int]:
         state, orphans = history
         return step(state, event)[0], [*orphans, *orphaned(state, event)]
 
-    return reduce(advance, events, (Conversation(), list[int]()))[1]
+    return reduce(advance, events, (START, list[int]()))[1]
 
 
 @given(st.lists(EVENTS, max_size=50))

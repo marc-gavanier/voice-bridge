@@ -1,7 +1,9 @@
 from functools import reduce
 
 from voice_bridge.features.conversation.domain.turn_taking import (
+    AnswerLasted,
     Asked,
+    AwaitAnswer,
     AwaitHold,
     AwaitSilence,
     CancelSynthesis,
@@ -620,3 +622,31 @@ def test_a_sentence_whose_voice_has_played_is_forgotten_when_the_next_one_starts
         piece(1, at=20.0),
         Synthesized(ticket=1, at=20.0),
     ) == [21.0]
+
+
+UNANSWERED = Conversation(unanswered=("Claude ne répond pas.",), unanswered_after=10.0)
+
+
+def unanswered_history(*events: Event) -> History:
+    return reduce(advance, events, (UNANSWERED, ()))
+
+
+def test_the_wait_for_an_answer_takes_the_ticket_after_the_hold_music() -> None:
+    assert unanswered_history(Transcribed(text="Où en est-on ?"), SilenceLasted(ticket=0, at=2.0))[1][-1] == (
+        AwaitAnswer(ticket=2, after=10.0)
+    )
+
+
+def test_words_said_after_a_wait_for_an_answer_take_the_next_ticket() -> None:
+    assert unanswered_history(
+        Transcribed(text="Où en est-on ?"), SilenceLasted(ticket=0, at=2.0), Transcribed(text="Et les logs.")
+    )[1][-1] == AwaitSilence(ticket=3, until=None, lasting=0.0)
+
+
+def test_a_claude_code_that_never_answered_is_no_longer_working() -> None:
+    assert (
+        unanswered_history(Transcribed(text="Où en est-on ?"), SilenceLasted(ticket=0, at=2.0), AnswerLasted(ticket=2))[
+            0
+        ].working
+        is False
+    )

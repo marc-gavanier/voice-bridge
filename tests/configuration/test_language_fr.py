@@ -180,6 +180,10 @@ def test_french_announces_more_than_five_tasks_in_progress_in_french() -> None:
     assert language_pack("fr").announcements.many_at_work == "Plus de cinq tâches en cours."
 
 
+def test_french_says_that_claude_code_does_not_answer_in_french() -> None:
+    assert language_pack("fr").unanswered.startswith("Claude ne répond pas")
+
+
 def test_french_describes_the_board_tool_in_french() -> None:
     assert language_pack("fr").board_tool_description.startswith("Lire le tableau des agents")
 

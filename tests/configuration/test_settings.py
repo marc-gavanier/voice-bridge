@@ -273,6 +273,15 @@ def test_the_models_of_claude_code_come_from_the_config_file(tmp_path: Path) -> 
     assert load_settings(path).claude == ClaudeSettings(model="sonnet", subagent_model="claude-opus-5-5")
 
 
+def test_claude_code_is_said_not_to_answer_after_ten_seconds_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).claude.unanswered_after == 10.0
+
+
+def test_the_wait_for_claude_code_to_answer_must_be_positive() -> None:
+    with pytest.raises(ValidationError, match="unanswered_after"):
+        _ = ClaudeSettings(unanswered_after=0)
+
+
 def test_a_model_with_a_longer_context_is_accepted() -> None:
     assert ClaudeSettings(model="opus[1m]").model == "opus[1m]"
 

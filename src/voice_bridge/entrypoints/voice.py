@@ -357,6 +357,8 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             settle=settings.hearing.settle,
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
+            unanswered=sentences_of(language.unanswered),
+            unanswered_after=settings.claude.unanswered_after,
             leave=partial(_end_claude_code, settings.claude_pid),
             telemetry=telemetry,
         )

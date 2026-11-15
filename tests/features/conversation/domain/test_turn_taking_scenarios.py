@@ -7,7 +7,9 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
     AgentsChanged,
     Announce,
+    AnswerLasted,
     Asked,
+    AwaitAnswer,
     AwaitHold,
     AwaitSilence,
     CancelSynthesis,
@@ -43,6 +45,7 @@ SPEAKING_AT = 1.0
 SILENT_AT = 5.0
 NO_SILENCE = -1
 RECORDED = b"recorded"
+UNANSWERED = "Claude Code waits for a confirmation on its screen."
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,7 @@ class Turn:
     commands: tuple[Command, ...] = ()
     silences: tuple[int, ...] = ()
     holds: tuple[int, ...] = ()
+    answers: tuple[int, ...] = ()
 
 
 def acknowledgements(commands: tuple[Command, ...]) -> tuple[Acknowledge, ...]:
@@ -61,7 +65,14 @@ def after(turn: Turn, event: Event) -> Turn:
     state, commands = step(turn.state, event)
     awaited = tuple(command.ticket for command in commands if isinstance(command, AwaitSilence))
     holds = tuple(command.ticket for command in commands if isinstance(command, AwaitHold))
-    return Turn(state=state, commands=commands, silences=(*turn.silences, *awaited), holds=(*turn.holds, *holds))
+    answers = tuple(command.ticket for command in commands if isinstance(command, AwaitAnswer))
+    return Turn(
+        state=state,
+        commands=commands,
+        silences=(*turn.silences, *awaited),
+        holds=(*turn.holds, *holds),
+        answers=(*turn.answers, *answers),
+    )
 
 
 def after_all(turn: Turn, *events: Event) -> Turn:
@@ -92,6 +103,49 @@ def recording(name: str) -> Recording:
 @given("Claude is silent", target_fixture="turn")
 def claude_is_silent() -> Turn:
     return Turn(state=Conversation())
+
+
+@given("Claude Code has not answered since the bridge started", target_fixture="turn")
+def claude_code_has_not_answered() -> Turn:
+    return Turn(state=Conversation(unanswered=(UNANSWERED,), unanswered_after=10.0))
+
+
+def unanswered_words(state: Conversation) -> Turn:
+    said = after(Turn(state=state), Transcribed(text="Where are we?"))
+    return after(said, SilenceLasted(ticket=latest_silence(said), at=SILENT_AT))
+
+
+@given("the speaker's words reached a Claude Code that never answered", target_fixture="turn")
+def words_reached_a_claude_code_that_never_answered() -> Turn:
+    return unanswered_words(Conversation(unanswered=(UNANSWERED,), unanswered_after=10.0))
+
+
+@given(
+    "the speaker's words reached a Claude Code that never answered, with a long wait for the music",
+    target_fixture="turn",
+)
+def words_reached_a_claude_code_that_never_answered_with_a_long_wait() -> Turn:
+    return unanswered_words(Conversation(unanswered=(UNANSWERED,), unanswered_after=10.0, hold_music_delay=60.0))
+
+
+@given("Claude Code told the bridge it works", target_fixture="turn")
+def claude_code_told_the_bridge_it_works(turn: Turn) -> Turn:
+    return after(turn, ClaudeBusy(at=SILENT_AT))
+
+
+@given("the wait for an answer went on", target_fixture="turn")
+def the_wait_for_an_answer_went_on(turn: Turn) -> Turn:
+    return after(turn, AnswerLasted(ticket=turn.answers[-1]))
+
+
+@when("the wait for an answer goes on", target_fixture="turn")
+def the_wait_for_an_answer_goes_on(turn: Turn) -> Turn:
+    return after(turn, AnswerLasted(ticket=turn.answers[-1]))
+
+
+@when("the wait for the earlier words goes on", target_fixture="turn")
+def the_wait_for_the_earlier_words_goes_on(turn: Turn) -> Turn:
+    return after(turn, AnswerLasted(ticket=turn.answers[0]))
 
 
 @given(parsers.parse('Claude is replying "{first}" then "{second}"'), target_fixture="turn")
@@ -457,6 +511,26 @@ def claude_starts_saying(turn: Turn, sentence: str) -> None:
 @then("the hold music waits for the end of that voice")
 def the_hold_music_waits_for_the_end_of_that_voice(turn: Turn) -> None:
     assert [command.after for command in turn.commands if isinstance(command, AwaitHold)] == [1.0]
+
+
+@then("the bridge waits for Claude Code to answer")
+def the_bridge_waits_for_claude_code_to_answer(turn: Turn) -> None:
+    assert [command.after for command in turn.commands if isinstance(command, AwaitAnswer)] == [10.0]
+
+
+@then("the bridge does not wait for Claude Code to answer")
+def the_bridge_does_not_wait_for_claude_code_to_answer(turn: Turn) -> None:
+    assert not any(isinstance(command, AwaitAnswer) for command in turn.commands)
+
+
+@then("the bridge says that Claude Code does not answer")
+def the_bridge_says_that_claude_code_does_not_answer(turn: Turn) -> None:
+    assert any(isinstance(command, Synthesize) and command.sentence == UNANSWERED for command in turn.commands)
+
+
+@then("Claude no longer counts as working")
+def claude_no_longer_counts_as_working(turn: Turn) -> None:
+    assert not turn.state.working
 
 
 @then("the bridge waits for the hold music")

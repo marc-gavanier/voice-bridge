@@ -78,6 +78,11 @@ class HoldLasted:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class AnswerLasted:
+    ticket: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ClaudeBusy:
     at: float
 
@@ -104,6 +109,7 @@ type Event = (
     | SpeechEnded
     | SilenceLasted
     | HoldLasted
+    | AnswerLasted
     | ClaudeBusy
     | ClaudeIdle
     | AgentsChanged
@@ -158,6 +164,12 @@ class AwaitHold:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class AwaitAnswer:
+    ticket: int
+    after: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class StartHoldMusic:
     pass
 
@@ -186,6 +198,7 @@ type Command = (
     | Acknowledge
     | AwaitSilence
     | AwaitHold
+    | AwaitAnswer
     | StartHoldMusic
     | StopHoldMusic
     | Leave
@@ -229,10 +242,14 @@ class Conversation:
     awaiting_hold: int | None = None
     holding: bool = False
     working: bool = False
+    heard_from_claude_code: bool = False
+    awaiting_answer: int | None = None
     ending: bool = False
     announcing: Announce | None = None
     settle: float = 0.0
     hold_music_delay: float = 0.0
+    unanswered: tuple[Said, ...] = ()
+    unanswered_after: float = 0.0
 
 
 type Step = tuple[Conversation, tuple[Command, ...]]
@@ -272,6 +289,21 @@ def _hold(state: Conversation, ticket: int) -> Step:
     if state.awaiting_hold != ticket:
         return state, ()
     return replace(state, awaiting_hold=None, holding=True), (StartHoldMusic(),)
+
+
+def _await_answer(state: Conversation, commands: tuple[Command, ...]) -> Step:
+    if state.heard_from_claude_code or not state.unanswered:
+        return state, commands
+    ticket = state.next_silence
+    awaiting = replace(state, awaiting_answer=ticket, next_silence=ticket + 1)
+    return awaiting, (*commands, AwaitAnswer(ticket=ticket, after=state.unanswered_after))
+
+
+def _unanswered(state: Conversation, ticket: int) -> Step:
+    if state.awaiting_answer != ticket or state.heard_from_claude_code:
+        return state, ()
+    told = replace(state, working=False, awaiting_hold=None, waiting=(*state.waiting, *state.unanswered))
+    return _synthesize_next(told)
 
 
 def _is_quiet(state: Conversation) -> bool:
@@ -445,7 +477,7 @@ def _forward(state: Conversation, ticket: int, at: float) -> Step:
         working=state.working or not answered,
     )
     commands = (forward, Acknowledge(words=text)) if acknowledging else (forward,)
-    return _await_hold_after_voice(*_synthesize_next(forwarded, commands), at)
+    return _await_answer(*_await_hold_after_voice(*_synthesize_next(forwarded, commands), at))
 
 
 def _on_claude(state: Conversation, event: Asked | Voiced | Synthesized | SynthesisFailed) -> Step:
@@ -490,12 +522,14 @@ def _on_speaker(
             assert_never(event)
 
 
-def _on_wait(state: Conversation, event: SilenceLasted | HoldLasted) -> Step:
+def _on_wait(state: Conversation, event: SilenceLasted | HoldLasted | AnswerLasted) -> Step:
     match event:
         case SilenceLasted(ticket=ticket, at=at):
             return _forward(state, ticket, at)
         case HoldLasted(ticket=ticket):
             return _hold(state, ticket)
+        case AnswerLasted(ticket=ticket):
+            return _unanswered(state, ticket)
         case _:
             assert_never(event)
 
@@ -503,10 +537,10 @@ def _on_wait(state: Conversation, event: SilenceLasted | HoldLasted) -> Step:
 def _on_activity(state: Conversation, event: ClaudeBusy | ClaudeIdle) -> Step:
     match event:
         case ClaudeBusy(at=at):
-            busy = replace(state, working=True)
+            busy = replace(state, working=True, heard_from_claude_code=True)
             return (busy, ()) if busy.hearing else _await_hold_after_voice(busy, (), at)
         case ClaudeIdle():
-            return _stop_holding(replace(state, working=False, awaiting_hold=None))
+            return _stop_holding(replace(state, working=False, awaiting_hold=None, heard_from_claude_code=True))
         case _:
             assert_never(event)
 
@@ -523,7 +557,7 @@ def step(state: Conversation, event: Event) -> Step:
             return _on_claude(state, event)
         case VoiceDetected() | Transcribed() | SoundDismissed() | SpeechStarted() | SpeechEnded():
             return _on_speaker(state, event)
-        case SilenceLasted() | HoldLasted():
+        case SilenceLasted() | HoldLasted() | AnswerLasted():
             return _on_wait(state, event)
         case ClaudeBusy() | ClaudeIdle():
             return _on_activity(state, event)

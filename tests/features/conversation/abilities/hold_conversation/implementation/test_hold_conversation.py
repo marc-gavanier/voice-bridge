@@ -10,7 +10,6 @@ from anyio.streams.memory import MemoryObjectSendStream
 
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
     Acknowledgement,
-    Announcement,
     Voice,
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
@@ -145,8 +144,8 @@ async def talking(
     *,
     music: bool = True,
     settle: float = 0.0,
-    announcement: Announcement = announced,
     voice: Voice = voiced,
+    unanswered: tuple[str, ...] = (),
 ) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
@@ -171,10 +170,12 @@ async def talking(
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
         understood=understood,
-        announcement=announcement,
+        announcement=announced,
         settle=settle,
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
+        unanswered=unanswered,
+        unanswered_after=0.0,
         leave=leave,
         telemetry=reports.append,
     )
@@ -321,6 +322,14 @@ async def test_the_reply_stops_the_hold_music_before_it_plays() -> None:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = [await talk.played.receive(), await talk.played.receive(), await talk.played.receive()]
     assert played == [b"", FADE, SOUND]
+
+
+async def test_words_claude_code_never_answered_are_told_it_does_not_answer() -> None:
+    async with talking(NOT_READY, music=False, unanswered=("Claude Code ne répond pas.",)) as talk:
+        await talk.say.send(Transcribed(text="Tu en es où ?"))
+        await talk.say.send(SilenceLasted(ticket=0, at=0.0))
+        played = await talk.played.receive()
+    assert played == SOUND
 
 
 async def test_a_second_agent_starting_is_announced() -> None:

@@ -7,6 +7,8 @@ import anyio
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
     Announce,
+    AnswerLasted,
+    AwaitAnswer,
     AwaitHold,
     AwaitSilence,
     CancelSynthesis,
@@ -65,6 +67,8 @@ class Mouth:
     settle: float
     hold_music: HoldMusic | None
     hold_music_delay: float
+    unanswered: tuple[str, ...]
+    unanswered_after: float
     leave: Callable[[], Awaitable[None]]
     telemetry: Telemetry
 
@@ -173,6 +177,11 @@ async def _await_hold(emit: ObjectSendStream[Event], order: AwaitHold) -> None:
     await emit.send(HoldLasted(ticket=order.ticket))
 
 
+async def _await_answer(emit: ObjectSendStream[Event], order: AwaitAnswer) -> None:
+    await anyio.sleep(order.after)
+    await emit.send(AnswerLasted(ticket=order.ticket))
+
+
 async def _leave(mouth: Mouth, order: Leave) -> None:
     await anyio.sleep(max(0.0, order.until - mouth.clock()))
     logger.info("leaving: the goodbye has been said")
@@ -202,12 +211,16 @@ def _stop_music(mouth: Mouth, shell: _Shell) -> None:
     logger.info("hold music stopped")
 
 
-async def _later(mouth: Mouth, emit: ObjectSendStream[Event], command: AwaitSilence | AwaitHold | Leave) -> None:
+async def _later(
+    mouth: Mouth, emit: ObjectSendStream[Event], command: AwaitSilence | AwaitHold | AwaitAnswer | Leave
+) -> None:
     match command:
         case AwaitSilence():
             await _await_silence(mouth, emit, command)
         case AwaitHold():
             await _await_hold(emit, command)
+        case AwaitAnswer():
+            await _await_answer(emit, command)
         case Leave():
             await _leave(mouth, command)
         case _:
@@ -243,7 +256,7 @@ async def _execute(
     match command:
         case Synthesize() | CancelSynthesis() | Play() | StopPlaying():
             _voice(mouth, emit, tasks, shell, command)
-        case AwaitSilence() | AwaitHold() | Leave():
+        case AwaitSilence() | AwaitHold() | AwaitAnswer() | Leave():
             _ = tasks.start_soon(_later, mouth, emit, command)
         case Acknowledge():
             _acknowledge(mouth, shell, command)
@@ -270,7 +283,12 @@ def _observe(mouth: Mouth, shell: _Shell, item: Event | Command) -> None:
 
 
 async def hold_conversation(mouth: Mouth, events: AsyncIterable[Event], emit: ObjectSendStream[Event]) -> None:
-    state = Conversation(settle=mouth.settle, hold_music_delay=mouth.hold_music_delay)
+    state = Conversation(
+        settle=mouth.settle,
+        hold_music_delay=mouth.hold_music_delay,
+        unanswered=mouth.unanswered,
+        unanswered_after=mouth.unanswered_after,
+    )
     shell = _Shell()
     try:
         async with anyio.create_task_group() as tasks:

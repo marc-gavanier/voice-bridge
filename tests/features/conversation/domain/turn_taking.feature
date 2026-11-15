@@ -485,6 +485,67 @@ Feature: Turn taking
       When the wait goes on
       Then the hold music starts
 
+  Rule: The bridge says that Claude Code does not answer when it never has
+    Claude Code may wait on its screen, before its first turn, for a confirmation nobody can
+    give without a screen, such as the warning about development channels. Its hooks then never
+    tell the bridge anything, and the hold music would play forever. Once Claude Code has told
+    the bridge it works or is done, words it does not take at once are only queued behind its turn.
+
+    Scenario: Words given to a Claude Code never heard from wait for its answer
+      Given Claude Code has not answered since the bridge started
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the bridge waits for Claude Code to answer
+
+    Scenario: Words given to a Claude Code heard from do not wait for its answer
+      Given Claude Code has not answered since the bridge started
+      And Claude Code told the bridge it works
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the bridge does not wait for Claude Code to answer
+
+    Scenario: Words given to a Claude Code done before do not wait for its answer
+      Given Claude Code has not answered since the bridge started
+      And Claude is done
+      And the speaker said "Where are we?"
+      When the speaker stays silent
+      Then the bridge does not wait for Claude Code to answer
+
+    Scenario: A Claude Code that never answers is said to wait on its screen
+      Given the speaker's words reached a Claude Code that never answered
+      When the wait for an answer goes on
+      Then the bridge says that Claude Code does not answer
+
+    Scenario: A Claude Code that never answers no longer counts as working
+      Given the speaker's words reached a Claude Code that never answered
+      When the wait for an answer goes on
+      Then Claude no longer counts as working
+
+    Scenario: A Claude Code that starts working before the end of the wait is not said to wait
+      Given the speaker's words reached a Claude Code that never answered
+      And Claude Code told the bridge it works
+      When the wait for an answer goes on
+      Then nothing happens
+
+    Scenario: A Claude Code done before the end of the wait is not said to wait
+      Given the speaker's words reached a Claude Code that never answered
+      And Claude is done
+      When the wait for an answer goes on
+      Then nothing happens
+
+    Scenario: Only the wait for the latest words counts
+      Given the speaker's words reached a Claude Code that never answered
+      And the speaker said "And the logs too."
+      And the speaker stayed silent
+      When the wait for the earlier words goes on
+      Then nothing happens
+
+    Scenario: The hold music does not start after Claude Code was said not to answer
+      Given the speaker's words reached a Claude Code that never answered, with a long wait for the music
+      And the wait for an answer went on
+      When the wait goes on
+      Then nothing happens
+
   Rule: A recording Claude plays takes its turn like a sentence of its reply
     Claude can have the bridge play an audio file to the speaker. It is heard after what Claude
     still has to say, stops the hold music as a sentence does, and speaking over it cuts it
