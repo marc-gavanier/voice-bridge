@@ -1,7 +1,7 @@
 # ADR-023 — The first sentence is voiced from its first clause
 
 **Date**: 2026-11-14
-**Status**: accepted
+**Status**: accepted, amended by [ADR-029](ADR-029-the-bridge-plays-the-voice-as-the-speech-server-streams-it.md), which streams the voice it set aside
 
 ## Context
 
