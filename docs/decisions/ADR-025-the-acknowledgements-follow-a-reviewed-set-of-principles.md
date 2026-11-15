@@ -1,7 +1,7 @@
 # ADR-025 — The acknowledgements follow a reviewed set of principles
 
 **Date**: 2026-11-14
-**Status**: accepted, revises the routes of [ADR-010](ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md)
+**Status**: accepted, revises the routes of [ADR-010](ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md); its neutral pool is revised by [ADR-032](ADR-032-a-question-no-route-understands-gets-a-neutral-acknowledgement-of-its-own.md)
 
 ## Context
 
