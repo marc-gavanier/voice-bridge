@@ -59,6 +59,8 @@ from voice_bridge.features.speaking.abilities.announce.implementation.announce i
     record_announcements,
 )
 from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic, track_of
+from voice_bridge.features.speaking.abilities.mix.domain.mixing import Layer
+from voice_bridge.features.speaking.abilities.mix.implementation.player import Channel, Player
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech
 from voice_bridge.features.speaking.abilities.speak.implementation.speak import (
     sentences_of,
@@ -197,18 +199,18 @@ async def _route(
             assert_never(each)
 
 
-async def _hold_music(settings: Settings, speaker: Transport) -> HoldMusic | None:
+async def _hold_music(settings: Settings, rate: int, speaker: Channel) -> HoldMusic | None:
     hold_music = settings.hold_music
     if hold_music.file is None:
         return None
     track = await anyio.to_thread.run_sync(
-        partial(track_of, hold_music.file, decode=decode_audio, rate=speaker.rate, volume=hold_music.volume)
+        partial(track_of, hold_music.file, decode=decode_audio, rate=rate, volume=hold_music.volume)
     )
-    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / speaker.rate)
+    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / rate)
     return HoldMusic(
         track=track,
         speaker=speaker,
-        rate=speaker.rate,
+        rate=rate,
         fade_in=hold_music.fade_in,
         fade_out=hold_music.fade_out,
     )
@@ -274,7 +276,8 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
     frames_in, frames_out = anyio.create_memory_object_stream[Frame](math.inf)
     utterances_in, utterances_out = anyio.create_memory_object_stream[bytes](math.inf)
     transcription = await _transcription(settings, language, transport.rate)
-    hold_music = await _hold_music(settings, transport)
+    player = Player(clock=anyio.current_time)
+    hold_music = await _hold_music(settings, transport.rate, player.channel(Layer.MUSIC))
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     speech_settings = settings.speech
     telemetry = chosen_telemetry(
@@ -337,7 +340,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
             voice=partial(voice_streamed, engine),
-            speaker=transport,
+            speaker=player.channel(Layer.VOICE),
             assistant=_FollowingStops(
                 assistant=side.assistant, understanding=understanding, flag=StopFlag(settings.understanding.stop_flag)
             ),
@@ -379,7 +382,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             await record_announcements(announcements, announcing)
             await announcing.prune()
 
-        _ = tasks.start_soon(carry, transport, frames_in.send, stalled)
+        _ = tasks.start_soon(carry, transport, player, frames_in.send, stalled)
         _ = tasks.start_soon(
             listen, _ears(settings, transport.rate), with_pauses(frames_out, PATIENCE), heard, anyio.current_time
         )

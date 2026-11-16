@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import anyio
 import pytest
 
-from voice_bridge.features.transport.abilities.carry.domain.ports import Transport
+from voice_bridge.features.transport.abilities.carry.domain.ports import Outgoing, Transport
 from voice_bridge.features.transport.abilities.carry.domain.received import (
     Disconnected,
     Frame,
@@ -26,17 +26,16 @@ FRAME = Frame(pcm=TWENTY_MS, at=1.0, frame_number=0, last=False)
 class FakeTransport:
     received: tuple[Received, ...]
     rate: int = 48000
-    played: list[bytes] = field(default_factory=list[bytes])
+    sent: list[bytes] = field(default_factory=list[bytes])
 
-    def play(self, pcm: bytes) -> None:
-        self.played.append(pcm)
-
-    def stop(self) -> None:
-        pass
-
-    async def carry(self, receive: Callable[[Received], Awaitable[None]], /) -> None:
+    async def carry(self, receive: Callable[[Received], Awaitable[None]], outgoing: Outgoing, /) -> None:
+        self.sent.append(outgoing(len(TWENTY_MS)))
         for each in self.received:
             await receive(each)
+
+
+def outgoing_audio(size: int, /) -> bytes:
+    return b"\x01" * size
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,8 +50,14 @@ class Delivered:
 async def delivered(*received: Received) -> Delivered:
     delivery = Delivered()
     transport: Transport = FakeTransport(received=received)
-    await carry(transport, delivery.frame, delivery.stalls.append)
+    await carry(transport, outgoing_audio, delivery.frame, delivery.stalls.append)
     return delivery
+
+
+async def test_the_transport_sends_what_the_outgoing_audio_gives() -> None:
+    transport = FakeTransport(received=())
+    await carry(transport, outgoing_audio, Delivered().frame, Delivered().stalls.append)
+    assert transport.sent == [outgoing_audio(len(TWENTY_MS))]
 
 
 async def test_the_speakers_frames_are_passed_on() -> None:

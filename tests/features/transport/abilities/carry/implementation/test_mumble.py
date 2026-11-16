@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 import pytest
 from pymumble_rev import ServerState, User, events, opus
-from pymumble_rev.audio import PcmBuffer
+from pymumble_rev.audio import AudioSource
 
 from voice_bridge.features.transport.abilities.carry.domain.received import (
     Disconnected,
@@ -75,13 +75,13 @@ class FakeClient:
     received: tuple[events.Event, ...] = ()
     state: ServerState = field(default_factory=lambda: ServerState(session=3, users=USERS))
     close_reason: str | None = "server shut down"
-    playing: list[PcmBuffer] = field(default_factory=list[PcmBuffer])
+    playing: list[AudioSource] = field(default_factory=list[AudioSource])
 
     async def events(self) -> AsyncIterator[events.Event]:
         for event in self.received:
             yield event
 
-    def play(self, source: PcmBuffer, /) -> None:
+    def play(self, source: AudioSource, /) -> None:
         self.playing.append(source)
 
 
@@ -304,8 +304,12 @@ async def carried_by(mumble: Mumble) -> list[Received]:
     async def receive(each: Received) -> None:
         carried.append(each)
 
-    await mumble.carry(receive)
+    await mumble.carry(receive, outgoing_audio)
     return carried
+
+
+def outgoing_audio(size: int, /) -> bytes:
+    return bytes(size // 2)
 
 
 def mumble_over(*clients: FakeClient) -> Mumble:
@@ -316,11 +320,14 @@ def test_mumble_carries_audio_at_its_opus_rate() -> None:
     assert mumble_over().rate == MUMBLE_RATE
 
 
-async def test_each_connection_plays_the_same_buffer() -> None:
-    first, second = FakeClient(), FakeClient()
-    mumble = mumble_over(first, second)
-    _ = await carried_by(mumble)
-    assert [*first.playing, *second.playing] == [mumble.buffer, mumble.buffer]
+def sent(clients: tuple[FakeClient, ...]) -> list[bytes | None]:
+    return [source.read(len(TWENTY_MS)) for client in clients for source in client.playing]
+
+
+async def test_each_connection_sends_the_outgoing_audio() -> None:
+    clients = (FakeClient(), FakeClient())
+    _ = await carried_by(mumble_over(*clients))
+    assert sent(clients) == [bytes(len(TWENTY_MS) // 2)] * 2
 
 
 async def test_the_speakers_audio_is_carried_from_the_connection() -> None:
@@ -340,29 +347,3 @@ async def test_a_connection_after_the_first_is_carried_as_a_reconnection() -> No
         Reconnected(),
         Disconnected(reason="server shut down"),
     ]
-
-
-def test_playing_queues_the_audio() -> None:
-    mumble = mumble_over()
-    mumble.play(TWENTY_MS)
-    assert mumble.buffer.buffered > 0
-
-
-def test_playing_while_audio_is_queued_adds_to_it() -> None:
-    mumble = mumble_over()
-    mumble.play(TWENTY_MS)
-    mumble.play(TWENTY_MS)
-    assert mumble.buffer.buffered == pytest.approx(0.04)
-
-
-def test_stopping_drops_the_queued_audio() -> None:
-    mumble = mumble_over()
-    mumble.play(TWENTY_MS)
-    mumble.stop()
-    assert mumble.buffer.buffered == 0
-
-
-def test_the_first_audio_played_is_logged(caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level("INFO")
-    mumble_over().play(TWENTY_MS)
-    assert "playback starts, first packet within one 20 ms frame" in caplog.text

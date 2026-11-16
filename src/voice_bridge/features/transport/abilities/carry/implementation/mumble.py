@@ -1,10 +1,9 @@
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import count
 from typing import TYPE_CHECKING, Final, Protocol
 
 from pymumble_rev import events, opus
-from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.features.transport.abilities.carry.domain.received import (
     Disconnected,
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
 
     from pymumble_rev import ServerState, User
 
+    from voice_bridge.features.transport.abilities.carry.domain.ports import Outgoing
     from voice_bridge.features.transport.abilities.carry.domain.received import Received
 
 
@@ -30,7 +30,6 @@ STALL_THRESHOLD: Final = 0.1
 RECOVERY_WINDOW: Final = 0.2
 FRAME_DURATION: Final = 0.01
 MUMBLE_RATE: Final = opus.SAMPLE_RATE
-PLAYBACK_CAPACITY: Final = 600.0
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -80,13 +79,21 @@ def _log_recovery(recovery: Recovery | None) -> None:
         )
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Sent:
+    outgoing: Outgoing
+
+    def read(self, size: int) -> bytes:
+        return self.outgoing(size)
+
+
 class Client(Protocol):
     @property
     def state(self) -> ServerState: ...
     @property
     def close_reason(self) -> str | None: ...
     def events(self) -> AsyncIterator[events.Event]: ...
-    def play(self, source: PcmBuffer, /) -> object: ...
+    def play(self, source: Sent, /) -> object: ...
 
 
 type Listened = Callable[[User], bool]
@@ -189,36 +196,23 @@ async def pump(
             previous = frame
 
 
-def _playback() -> PcmBuffer:
-    return PcmBuffer(channels=1, capacity=PLAYBACK_CAPACITY)
-
-
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Mumble:
     connection: Connection
     listened: Listened
     clock: Callable[[], float]
-    buffer: PcmBuffer = field(default_factory=_playback)
 
     @property
     def rate(self) -> int:
         return MUMBLE_RATE
 
-    def play(self, pcm: bytes) -> None:
-        if self.buffer.buffered == 0:
-            logger.info("playback starts, first packet within one 20 ms frame")
-        _ = self.buffer.write(pcm, timeout=0)
-
-    def stop(self) -> None:
-        self.buffer.clear()
-
-    async def carry(self, receive: Callable[[Received], Awaitable[None]], /) -> None:
+    async def carry(self, receive: Callable[[Received], Awaitable[None]], outgoing: Outgoing, /) -> None:
         connections = count()
 
         async def session(client: Client) -> None:
             if next(connections):
                 await receive(Reconnected())
-            _ = client.play(self.buffer)
+            _ = client.play(Sent(outgoing=outgoing))
             await pump(client, self.listened, receive, self.clock)
             await receive(Disconnected(reason=client.close_reason))
 

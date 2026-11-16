@@ -34,8 +34,11 @@ async def record_bridge(settings: Settings) -> None:
     def unmeasured(_waited: float) -> None:
         return None
 
+    def silent(_size: int, /) -> bytes:
+        return b""
+
     async with frames_in, frames_out, anyio.create_task_group() as tasks:
-        _ = tasks.start_soon(carry, transport, frames_in.send, unmeasured)
+        _ = tasks.start_soon(carry, transport, silent, frames_in.send, unmeasured)
         await record(recorder, with_pauses(frames_out, PATIENCE), time.time)
 
 

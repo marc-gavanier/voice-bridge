@@ -18,13 +18,16 @@ if TYPE_CHECKING:
 
     from anyio.abc import ObjectReceiveStream
 
-    from voice_bridge.features.transport.abilities.carry.domain.ports import Transport
+    from voice_bridge.features.transport.abilities.carry.domain.ports import Outgoing, Transport
 
 logger = logging.getLogger(__name__)
 
 
 async def carry(
-    transport: Transport, frames: Callable[[Frame], Awaitable[None]], stalled: Callable[[float], None]
+    transport: Transport,
+    outgoing: Outgoing,
+    frames: Callable[[Frame], Awaitable[None]],
+    stalled: Callable[[float], None],
 ) -> None:
     async def receive(each: Received) -> None:
         match each:
@@ -41,7 +44,7 @@ async def carry(
             case _:
                 assert_never(each)
 
-    await transport.carry(receive)
+    await transport.carry(receive, outgoing)
 
 
 async def _receive_or_none(frames: ObjectReceiveStream[Frame], patience: float) -> Frame | None:
