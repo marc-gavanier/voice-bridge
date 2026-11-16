@@ -2368,8 +2368,6 @@ dependencies = [
     { name = "huggingface-hub" },
     { name = "mcp" },
     { name = "numpy" },
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cudnn-cu12" },
     { name = "onnxruntime" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-json-file" },
@@ -2386,6 +2384,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+cuda = [
+    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cudnn-cu12" },
+]
 otel = [
     { name = "opentelemetry-distro" },
     { name = "opentelemetry-exporter-otlp" },
@@ -2432,8 +2434,8 @@ requires-dist = [
     { name = "huggingface-hub", specifier = ">=2.4.0" },
     { name = "mcp", specifier = ">=2.3.0" },
     { name = "numpy", specifier = ">=2.4.6" },
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cudnn-cu12" },
+    { name = "nvidia-cublas-cu12", marker = "extra == 'cuda'" },
+    { name = "nvidia-cudnn-cu12", marker = "extra == 'cuda'" },
     { name = "onnxruntime", specifier = ">=1.26.0" },
     { name = "opentelemetry-api", specifier = ">=1.45.2" },
     { name = "opentelemetry-distro", marker = "extra == 'otel'", specifier = ">=0.66b2" },
@@ -2454,7 +2456,7 @@ requires-dist = [
     { name = "tokenizers", specifier = ">=0.23.3" },
     { name = "transformers", specifier = ">=5.22.2" },
 ]
-provides-extras = ["otel", "sentry"]
+provides-extras = ["cuda", "otel", "sentry"]
 
 [package.metadata.requires-dev]
 dev = [

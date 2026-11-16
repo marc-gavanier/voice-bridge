@@ -27,7 +27,7 @@ jq --null-input --arg project "$project" --arg pid "$$" --argjson environment "$
       mcpServers: {
         voice: {
           command: ($project + "/scripts/with-cuda.sh"),
-          args: (["uv", "run", "--project", $project, "--frozen", "--quiet"]
+          args: (["uv", "run", "--project", $project, "--frozen", "--quiet", "--extra", "cuda"]
             + (if $otel then ["--extra", "otel"] else [] end)
             + (if $sentry then ["--extra", "sentry"] else [] end)
             + (if $otel then ["opentelemetry-instrument"] else [] end)
