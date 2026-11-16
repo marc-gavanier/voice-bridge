@@ -5,17 +5,9 @@ from dataclasses import dataclass, field
 import httpx
 import numpy as np
 import pytest
-import stamina
 
-from voice_bridge.features.speaking.abilities.speak.domain.ports import Pace, Pacing
-from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import (
-    SpeechEngine,
-    SynthesisError,
-    is_ready,
-    stream,
-    synthesize,
-    wait_until_ready,
-)
+from voice_bridge.features.speaking.abilities.speak.domain.ports import Pace, Pacing, Synthesis, SynthesisError
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech
 from voice_bridge.libraries.audio.wav import encode
 
 pytestmark = pytest.mark.anyio
@@ -80,8 +72,8 @@ def engine(
     health: str = "/health",
     speed: float = 1.0,
     pacing: Pacing = unchanged,
-) -> SpeechEngine:
-    return SpeechEngine(
+) -> OpenAICompatibleSpeech:
+    return OpenAICompatibleSpeech(
         client=httpx.AsyncClient(transport=handler, base_url="http://speech"),
         model="mistralai/Voxtral-4B-TTS-2603",
         voice="fr_female",
@@ -127,45 +119,45 @@ def healthy(request: httpx.Request) -> httpx.Response:
 
 
 async def test_synthesis_returns_the_audio_of_the_sentence() -> None:
-    assert await synthesize(engine(httpx.MockTransport(answering_wav)), "Bonjour.") == SAMPLES
+    assert await engine(httpx.MockTransport(answering_wav)).whole("Bonjour.") == SAMPLES
 
 
 async def test_synthesis_applies_the_gain() -> None:
-    assert await synthesize(engine(httpx.MockTransport(answering_wav), gain=2.0), "Bonjour.") != SAMPLES
+    assert await engine(httpx.MockTransport(answering_wav), gain=2.0).whole("Bonjour.") != SAMPLES
 
 
 async def test_synthesis_asks_the_openai_compatible_speech_endpoint() -> None:
-    assert await synthesize(engine(httpx.MockTransport(answering_only_the_speech_request)), "Bonjour.") == SAMPLES
+    assert await engine(httpx.MockTransport(answering_only_the_speech_request)).whole("Bonjour.") == SAMPLES
 
 
 async def test_synthesis_leaves_the_pace_to_the_bridge_instead_of_the_server() -> None:
     faster = engine(httpx.MockTransport(answering_only_the_speech_request), speed=1.2)
-    assert await synthesize(faster, "Bonjour.") == SAMPLES
+    assert await faster.whole("Bonjour.") == SAMPLES
 
 
 async def test_synthesis_stretches_the_audio_at_the_rate_of_the_server_by_the_speed() -> None:
     pacing = WatchedPacing()
-    _ = await synthesize(engine(httpx.MockTransport(answering_at_24_khz), speed=1.2, pacing=pacing), "Bonjour.")
+    _ = await engine(httpx.MockTransport(answering_at_24_khz), speed=1.2, pacing=pacing).whole("Bonjour.")
     assert pacing.asked == [(24000, 1.2)]
 
 
 async def test_synthesis_resamples_the_stretched_audio_to_the_rate_of_the_engine() -> None:
-    pcm = await synthesize(engine(httpx.MockTransport(answering_at_24_khz), pacing=halved), "Bonjour.")
+    pcm = await engine(httpx.MockTransport(answering_at_24_khz), pacing=halved).whole("Bonjour.")
     assert len(pcm) == len(TENTH_OF_A_SECOND_AT_24_KHZ)
 
 
 async def test_a_server_error_is_a_synthesis_error() -> None:
     with pytest.raises(SynthesisError):
-        _ = await synthesize(engine(httpx.MockTransport(failing)), "Bonjour.")
+        _ = await engine(httpx.MockTransport(failing)).whole("Bonjour.")
 
 
 async def test_an_unreachable_server_is_a_synthesis_error() -> None:
     with pytest.raises(SynthesisError):
-        _ = await synthesize(engine(httpx.MockTransport(refusing)), "Bonjour.")
+        _ = await engine(httpx.MockTransport(refusing)).whole("Bonjour.")
 
 
 async def test_synthesis_keeps_the_audio_the_pace_gives_back_at_its_end() -> None:
-    assert await synthesize(engine(httpx.MockTransport(answering_wav), pacing=tailed), "Bonjour.") == SAMPLES * 2
+    assert await engine(httpx.MockTransport(answering_wav), pacing=tailed).whole("Bonjour.") == SAMPLES * 2
 
 
 async def pieces(*chunks: bytes) -> AsyncIterator[bytes]:
@@ -206,9 +198,9 @@ class Ear:
         self.heard.append(pcm)
 
 
-async def heard_from(speech: SpeechEngine) -> list[bytes]:
+async def heard_from(speech: OpenAICompatibleSpeech) -> list[bytes]:
     ear = Ear()
-    await stream(speech, "Bonjour.", ear)
+    await speech.stream("Bonjour.", ear)
     return ear.heard
 
 
@@ -258,30 +250,16 @@ async def test_a_rate_that_is_not_a_number_is_a_synthesis_error() -> None:
 async def test_a_stream_broken_midway_is_a_synthesis_error_after_the_voice_already_heard() -> None:
     ear = Ear()
     with pytest.raises(SynthesisError):
-        await stream(engine(breaking_after(SAMPLES)), "Bonjour.", ear)
+        await engine(breaking_after(SAMPLES)).stream("Bonjour.", ear)
     assert ear.heard == [SAMPLES]
 
 
 async def test_the_server_is_ready_when_its_health_answers() -> None:
-    assert await is_ready(engine(httpx.MockTransport(healthy)))
+    assert await engine(httpx.MockTransport(healthy)).ready()
 
 
 async def test_the_server_is_not_ready_when_unreachable() -> None:
-    assert not await is_ready(engine(httpx.MockTransport(refusing)))
-
-
-async def test_waiting_for_a_ready_server_returns_at_once() -> None:
-    assert await wait_until_ready(engine(httpx.MockTransport(healthy))) is None
-
-
-def ready_on_second_call() -> httpx.MockTransport:
-    answers = iter([httpx.Response(503), httpx.Response(200)])
-    return httpx.MockTransport(lambda _request: next(answers))
-
-
-async def test_waiting_retries_until_the_server_is_ready() -> None:
-    with stamina.set_testing(True, attempts=2):
-        assert await wait_until_ready(engine(ready_on_second_call())) is None
+    assert not await engine(httpx.MockTransport(refusing)).ready()
 
 
 def answering_on(path: str) -> httpx.MockTransport:
@@ -289,8 +267,13 @@ def answering_on(path: str) -> httpx.MockTransport:
 
 
 async def test_the_health_route_can_be_set_for_another_engine() -> None:
-    assert await is_ready(engine(answering_on("/v1/models"), health="/v1/models"))
+    assert await engine(answering_on("/v1/models"), health="/v1/models").ready()
 
 
 async def test_an_engine_without_a_health_route_is_ready_at_once() -> None:
-    assert await is_ready(engine(httpx.MockTransport(refusing), health=""))
+    assert await engine(httpx.MockTransport(refusing), health="").ready()
+
+
+async def test_the_openai_compatible_client_is_a_synthesis() -> None:
+    synthesis: Synthesis = engine(httpx.MockTransport(answering_wav))
+    assert await synthesis.whole("Bonjour.") == SAMPLES

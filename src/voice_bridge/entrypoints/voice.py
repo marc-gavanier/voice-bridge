@@ -59,11 +59,12 @@ from voice_bridge.features.speaking.abilities.announce.implementation.announce i
     record_announcements,
 )
 from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic, track_of
-from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import SpeechEngine, wait_until_ready
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech
 from voice_bridge.features.speaking.abilities.speak.implementation.speak import (
     sentences_of,
     voice_of,
     voice_streamed,
+    wait_until_ready,
 )
 from voice_bridge.features.transport.abilities.carry.domain.received import Frame
 from voice_bridge.features.transport.abilities.carry.implementation.carry import carry, with_pauses
@@ -317,7 +318,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         httpx.AsyncClient(base_url=str(speech_settings.url), timeout=speech_settings.timeout) as http,
         anyio.create_task_group() as tasks,
     ):
-        engine = SpeechEngine(
+        engine = OpenAICompatibleSpeech(
             client=http,
             model=speech_settings.model,
             voice=speech_settings.voice or language.voice,

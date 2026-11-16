@@ -1,4 +1,11 @@
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+
+class SynthesisError(Exception):
+    pass
 
 
 class Pace(Protocol):
@@ -8,3 +15,9 @@ class Pace(Protocol):
 
 class Pacing(Protocol):
     def __call__(self, rate: int, factor: float, /) -> Pace: ...
+
+
+class Synthesis(Protocol):
+    async def whole(self, sentence: str, /) -> bytes: ...
+    async def stream(self, sentence: str, hear: Callable[[bytes], Awaitable[None]], /) -> None: ...
+    async def ready(self) -> bool: ...
