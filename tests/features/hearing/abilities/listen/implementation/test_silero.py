@@ -3,9 +3,14 @@ from itertools import accumulate
 from pathlib import Path
 
 import numpy as np
-from faster_whisper.vad import get_vad_model
 
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Silero, Voicing, is_voiced, listen
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import (
+    Silero,
+    Voicing,
+    is_voiced,
+    listen,
+    load_silero,
+)
 from voice_bridge.libraries.audio.pcm import from_float
 
 RATE = 48000
@@ -19,7 +24,7 @@ def packets(pcm: bytes) -> list[bytes]:
 
 
 def states(pcm: bytes) -> list[Silero]:
-    session = get_vad_model().session
+    session = load_silero()
     return list(accumulate(packets(pcm), lambda state, packet: listen(session, state, packet, RATE), initial=Silero()))[
         1:
     ]
@@ -63,3 +68,7 @@ def test_speech_is_voice() -> None:
 
 def test_quiet_speech_is_not_voice() -> None:
     assert not any(decisions(speech(), Voicing(volume_threshold=1e9, probability=0.5)))
+
+
+def test_silero_v6_hears_voice_in_96_of_the_131_packets_of_the_recording() -> None:
+    assert sum(decisions(speech())) == 96

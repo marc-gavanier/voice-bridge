@@ -5,7 +5,6 @@ from pathlib import Path
 
 import anyio
 import pytest
-from faster_whisper.vad import get_vad_model
 
 from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Heard,
@@ -16,7 +15,7 @@ from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     VoiceStarted,
 )
 from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, Hearing, advance, listen
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing, load_silero
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.libraries.mumble.audio import Packet
 
@@ -24,7 +23,7 @@ RATE = 48000
 PACKET_BYTES = 1920
 SPEECH = Path(__file__).parents[5] / "fixtures" / "speech.wav"
 EARS = Ears(
-    session=get_vad_model().session,
+    session=load_silero(),
     voicing=Voicing(volume_threshold=0.0, probability=0.5),
     rules=UtteranceRules(),
     rate=RATE,
@@ -50,7 +49,7 @@ def silence_ticks(count: int) -> list[Tick]:
 
 
 EARS_FOR_EVERYTHING = Ears(
-    session=get_vad_model().session,
+    session=load_silero(),
     voicing=Voicing(volume_threshold=0.0, probability=0.0),
     rules=UtteranceRules(),
     rate=RATE,
@@ -108,7 +107,7 @@ def test_a_sound_too_short_to_be_an_utterance_is_reported_as_dismissed() -> None
 
 def ears_judging(probability: float) -> Ears:
     return Ears(
-        session=get_vad_model().session,
+        session=load_silero(),
         voicing=Voicing(volume_threshold=0.0, probability=0.0),
         rules=UtteranceRules(short_pause=0.2),
         rate=RATE,

@@ -15,6 +15,8 @@ class SessionOptions:
     inter_op_num_threads: int
     intra_op_num_threads: int
     graph_optimization_level: GraphOptimizationLevel
+    enable_cpu_mem_arena: bool
+    log_severity_level: int
 
 class InferenceSession:
     def __init__(
