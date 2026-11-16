@@ -30,7 +30,7 @@ class AgentAnnouncements(_Strict):
 
 
 class LanguagePack(_Strict):
-    whisper_code: str
+    code: str
     voice: str
     acknowledgements: tuple[AcknowledgementRoute, ...]
     neutral_acknowledgements: tuple[str, ...]

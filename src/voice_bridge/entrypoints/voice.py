@@ -176,7 +176,7 @@ async def _transcription(settings: Settings, language: LanguagePack) -> Transcri
     )
     hallucinations = Hallucinations(texts=language.hallucinations, prefixes=language.hallucination_prefixes)
     return Transcription(
-        recognizer=FasterWhisper(model), rate=MUMBLE_RATE, language=language.whisper_code, hallucinations=hallucinations
+        recognizer=FasterWhisper(model), rate=MUMBLE_RATE, language=language.code, hallucinations=hallucinations
     )
 
 
