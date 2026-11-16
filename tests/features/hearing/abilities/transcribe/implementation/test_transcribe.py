@@ -1,13 +1,12 @@
-from collections.abc import AsyncIterator, Iterable
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 import anyio
-import numpy as np
-import numpy.typing as npt
 import pytest
 from anyio.abc import ObjectSendStream
 
-from voice_bridge.features.hearing.abilities.transcribe.domain.ports import Report
+from voice_bridge.features.hearing.abilities.transcribe.domain.ports import Report, SpeechRecognizer
+from voice_bridge.features.hearing.abilities.transcribe.domain.transcript import Transcript
 from voice_bridge.features.hearing.abilities.transcribe.implementation.transcribe import (
     Transcription,
     transcribe_utterances,
@@ -18,23 +17,26 @@ pytestmark = pytest.mark.anyio
 
 
 @dataclass(frozen=True)
-class Said:
-    text: str
-    no_speech_prob: float = 0.0
-    avg_logprob: float = 0.0
+class SayingRecognizer:
+    words: str
+
+    async def recognize(self, pcm: bytes, *, rate: int, language: str) -> Transcript:
+        return Transcript(text=self.words, scores=f"{len(pcm)} bytes at {rate} Hz in {language}")
 
 
 @dataclass(frozen=True)
-class SayingModel:
-    words: str
-
-    def transcribe(self, audio: npt.NDArray[np.float32], **options: object) -> tuple[Iterable[Said], object]:
-        return iter((Said(self.words),)), (audio.size, options)
+class EchoingRecognizer:
+    async def recognize(self, pcm: bytes, *, rate: int, language: str) -> Transcript:
+        return Transcript(text=f"{len(pcm)} {rate} {language}", scores="")
 
 
 def transcription(words: str) -> Transcription:
+    return transcription_by(SayingRecognizer(words))
+
+
+def transcription_by(recognizer: SpeechRecognizer) -> Transcription:
     return Transcription(
-        model=SayingModel(words),
+        recognizer=recognizer,
         rate=48000,
         language="fr",
         hallucinations=Hallucinations(texts=frozenset({"merci"}), prefixes=()),
@@ -52,16 +54,24 @@ def reporting_to(sent: ObjectSendStream[tuple[str, bool]]) -> Report:
     return report
 
 
-async def reported(words: str) -> tuple[str, bool]:
+async def reported_by(transcribing: Transcription) -> tuple[str, bool]:
     sent, received = anyio.create_memory_object_stream[tuple[str, bool]](1)
     async with sent, received:
-        await transcribe_utterances(transcription(words), one_utterance(), reporting_to(sent))
+        await transcribe_utterances(transcribing, one_utterance(), reporting_to(sent))
         return received.receive_nowait()
 
 
+async def reported(words: str) -> tuple[str, bool]:
+    return await reported_by(transcription(words))
+
+
 async def test_an_utterance_is_reported_as_its_text() -> None:
-    assert await reported(" Tu en es où ?") == ("Tu en es où ?", False)
+    assert await reported("Tu en es où ?") == ("Tu en es où ?", False)
 
 
 async def test_a_hallucination_is_reported_as_noise() -> None:
-    assert await reported(" Merci.") == ("Merci.", True)
+    assert await reported("Merci.") == ("Merci.", True)
+
+
+async def test_the_recognizer_hears_the_utterance_at_its_rate_in_the_language() -> None:
+    assert await reported_by(transcription_by(EchoingRecognizer())) == ("96000 48000 fr", False)
