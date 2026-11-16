@@ -1,10 +1,14 @@
-from dataclasses import dataclass
+import secrets
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
 from voice_bridge.features.speaking.domain.audio import Audio, AudioRefusedError
+from voice_bridge.features.speaking.domain.shuffle import next_pass
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from voice_bridge.features.speaking.domain.ports import Decoder
 
 AUDIO_SUFFIXES: Final = (".aac", ".flac", ".m4a", ".mp3", ".ogg", ".opus", ".wav")
@@ -14,12 +18,19 @@ def _refuse(reason: str) -> NoReturn:
     raise AudioRefusedError(reason)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+def _at_random(files: tuple[Path, ...], /) -> tuple[Path, ...]:
+    return tuple(secrets.SystemRandom().sample(files, len(files)))
+
+
+@dataclass(slots=True, kw_only=True)
 class AudioFolder:
     directory: Path
     largest: int
     decode: Decoder
     rate: int
+    draw: Callable[[tuple[Path, ...]], tuple[Path, ...]] = _at_random
+    queue: tuple[Path, ...] = field(default=(), init=False)
+    last: Path | None = field(default=None, init=False)
 
     def _allowed(self, asked: str) -> Path:
         path = Path(asked)
@@ -41,3 +52,18 @@ class AudioFolder:
 
     def find(self, asked: str, /) -> Audio:
         return self._audio(self._allowed(asked))
+
+    def _tracks(self) -> tuple[Path, ...]:
+        found = sorted(
+            path for path in self.directory.rglob("*") if path.suffix.lower() in AUDIO_SUFFIXES and path.is_file()
+        )
+        if not found:
+            _refuse(f"{self.directory} holds no audio file")
+        return tuple(found)
+
+    def pick(self) -> Audio:
+        if not self.queue:
+            self.queue = next_pass(self.draw(self._tracks()), last=self.last)
+        self.last, *rest = self.queue
+        self.queue = tuple(rest)
+        return self._audio(self.last)

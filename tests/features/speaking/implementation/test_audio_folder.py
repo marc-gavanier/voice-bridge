@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from voice_bridge.features.speaking.domain.audio import AudioRefusedError
+from voice_bridge.features.speaking.domain.ports import AudioSource
 from voice_bridge.features.speaking.implementation.audio_folder import AudioFolder
 
 RATE = 48000
@@ -35,7 +36,7 @@ def folder(tmp_path: Path) -> Path:
     return tmp_path / "clips"
 
 
-def source(directory: Path, decoder: RecordingDecoder | None = None) -> AudioFolder:
+def source(directory: Path, decoder: RecordingDecoder | None = None) -> AudioSource:
     return AudioFolder(directory=directory, largest=LARGEST, decode=decoder or RecordingDecoder(), rate=RATE)
 
 
@@ -110,3 +111,71 @@ def test_a_missing_file_is_refused(tmp_path: Path) -> None:
 def test_a_file_larger_than_allowed_is_refused(tmp_path: Path) -> None:
     clip = written(folder(tmp_path) / "sample.wav", 11.0)
     assert refusal(clip, folder(tmp_path)) == f"{clip} weighs over {LARGEST} bytes"
+
+
+@dataclass
+class Draws:
+    orders: list[tuple[str, ...]]
+
+    def __call__(self, files: tuple[Path, ...], /) -> tuple[Path, ...]:
+        by_name = {path.name: path for path in files}
+        return tuple(by_name[name] for name in self.orders.pop(0))
+
+
+def shuffled(directory: Path, draws: Draws) -> AudioFolder:
+    return AudioFolder(directory=directory, largest=LARGEST, decode=RecordingDecoder(), rate=RATE, draw=draws)
+
+
+def tracks(directory: Path, *names: str) -> Path:
+    for name in names:
+        _ = written(directory / name, 0.1)
+    return directory
+
+
+def names_of_picks(source: AudioSource, count: int) -> list[str]:
+    return [source.pick().name for _ in range(count)]
+
+
+def test_the_tracks_of_a_folder_are_picked_in_the_order_drawn(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "a.wav", "b.wav", "c.wav")
+    assert names_of_picks(shuffled(directory, Draws([("b.wav", "c.wav", "a.wav")])), 3) == ["b.wav", "c.wav", "a.wav"]
+
+
+def test_the_tracks_are_drawn_again_after_a_full_pass(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "a.wav", "b.wav", "c.wav")
+    draws = Draws([("a.wav", "b.wav", "c.wav"), ("b.wav", "a.wav", "c.wav")])
+    assert names_of_picks(shuffled(directory, draws), 4) == ["a.wav", "b.wav", "c.wav", "b.wav"]
+
+
+def test_a_new_pass_never_starts_with_the_track_that_just_played(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "a.wav", "b.wav")
+    draws = Draws([("a.wav", "b.wav"), ("b.wav", "a.wav")])
+    assert names_of_picks(shuffled(directory, draws), 3) == ["a.wav", "b.wav", "a.wav"]
+
+
+def test_the_tracks_of_subfolders_are_drawn_and_other_files_are_not(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "a.wav", "jazz/b.FLAC", "notes.txt")
+    assert names_of_picks(shuffled(directory, Draws([("a.wav", "b.FLAC")])), 2) == ["a.wav", "b.FLAC"]
+
+
+def test_a_track_picked_is_decoded_at_the_rate_of_the_source(tmp_path: Path) -> None:
+    track = written(folder(tmp_path) / "a.wav", 0.1)
+    decoder = RecordingDecoder()
+    _ = source(folder(tmp_path), decoder).pick()
+    assert decoder.asked == [(str(track), RATE)]
+
+
+def test_every_track_is_picked_once_in_a_pass_drawn_at_random(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "a.wav", "b.wav", "c.wav")
+    assert sorted(names_of_picks(source(directory), 3)) == ["a.wav", "b.wav", "c.wav"]
+
+
+def test_a_folder_named_like_a_track_is_not_drawn(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "a.wav", "b.wav/c.txt")
+    assert names_of_picks(shuffled(directory, Draws([("a.wav",), ("a.wav",)])), 2) == ["a.wav", "a.wav"]
+
+
+def test_a_folder_without_a_track_is_refused(tmp_path: Path) -> None:
+    directory = tracks(folder(tmp_path), "notes.txt")
+    with pytest.raises(AudioRefusedError, match=r"holds no audio file$"):
+        _ = source(directory).pick()

@@ -30,6 +30,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import ClipRules, read_clip
+from voice_bridge.features.speaking.implementation.audio_folder import AudioFolder
 from voice_bridge.libraries.audio.file import decode_audio
 
 if TYPE_CHECKING:
@@ -45,10 +46,11 @@ def now() -> datetime:
 
 def _play_tool(settings: Settings, language: LanguagePack, rate: int) -> PlayTool:
     clips = settings.clips
-    rules = ClipRules(directory=clips.directory, largest=clips.largest, longest=clips.longest, volume=clips.volume)
+    rules = ClipRules(longest=clips.longest, volume=clips.volume)
+    source = AudioFolder(directory=clips.directory, largest=clips.largest, decode=decode_audio, rate=rate)
 
     async def read(path: str) -> bytes:
-        return await anyio.to_thread.run_sync(partial(read_clip, path, rules=rules, rate=rate, decode=decode_audio))
+        return await anyio.to_thread.run_sync(partial(read_clip, path, source=source, rules=rules, rate=rate))
 
     return PlayTool(
         description=language.play_tool_description,
