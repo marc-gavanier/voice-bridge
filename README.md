@@ -376,7 +376,7 @@ scripts/voxtral.sh stop
 
 ## Diagnose
 
-The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, which acknowledgement was played, when its reply arrived, how long each sentence took to its first audio and to its whole voice, when playback started, which synthesis an interruption cancelled, how fast an interruption stopped it, every stall of more than 100 ms in the audio reaching the bridge with how much audio arrived in the 200 ms after it, about 1x real time after a pause of the client and well above after a network stall, and every user joining, leaving or changing channel on the Mumble server with their session, the speaker marked as such: a disconnection and a reconnection of the speaker leave two lines, the second with a new session.
+The log tells every step of a turn, timestamped to the millisecond: what was heard with Whisper's scores per segment, each end-of-turn decision of Smart Turn with its probability and the time it saved, what was forwarded to Claude, which acknowledgement was played, when its reply arrived, how long each sentence took to its first audio and to its whole voice, when playback started, which synthesis an interruption cancelled, how fast an interruption stopped it, every stall of more than 100 ms in the audio reaching the bridge with how much audio arrived in the 200 ms after it, about 1x real time after a pause of the client and well above after a network stall, and every user joining, leaving or changing channel on the Mumble server with their session, the speaker marked as such: a disconnection and a reconnection of the speaker leave two lines, the second with a new session. A connection of the bridge that drops logs `disconnected from the transport` with its reason, and `reconnected to the transport` once it is back.
 
 ```bash
 tail -f ~/.local/state/voice-bridge/log/voice-bridge.log
@@ -424,7 +424,7 @@ Inside the bridge, one task per stage passes events along; turn taking decides, 
 flowchart LR
     mumble["Mumble server"]
     subgraph bridge["voice-bridge"]
-        connection["Connection<br/>pinned certificate, one speaker"]
+        transport["Transport<br/>Mumble: pinned certificate, one speaker,<br/>playback buffer, reconnection"]
         ears["Ears<br/>loudness, Silero VAD,<br/>Smart Turn"]
         whisper["Transcription<br/>faster-whisper"]
         turns["Turn taking<br/>pure state machine"]
@@ -432,7 +432,6 @@ flowchart LR
         channel["Channel<br/>MCP server"]
         board["Work board<br/>agents at work and finished"]
         mouth["Voice<br/>sentences for the ear"]
-        loudspeaker["Loudspeaker<br/>playback buffer"]
         telemetry["Telemetry<br/>OpenTelemetry"]
     end
     claude["Claude Code"]
@@ -440,7 +439,7 @@ flowchart LR
     files["traces.jsonl, metrics.jsonl, logs.jsonl<br/>by default"]
     collector["OTLP collector<br/>when an endpoint is set"]
 
-    mumble -->|"speaker's audio"| connection --> ears
+    mumble -->|"speaker's audio"| transport -->|"frames at the transport's rate"| ears
     ears -->|"utterance"| whisper
     ears -->|"voice detected"| turns
     whisper -->|"text, or noise"| turns
@@ -451,9 +450,9 @@ flowchart LR
     claude -->|"play tool"| channel -->|"recording"| turns
     turns -->|"synthesize"| mouth <-->|"HTTP"| voxtral
     mouth -->|"speech"| turns
-    turns -->|"play, announce, stop"| loudspeaker -->|"bridge's audio"| mumble
+    turns -->|"play, announce, stop"| transport -->|"bridge's audio"| mumble
     turns -.->|"turns, counts"| telemetry
-    connection -.->|"stalls"| telemetry
+    transport -.->|"stalls"| telemetry
     telemetry -.->|"OTLP JSON Lines"| files
     telemetry -.->|"OTLP"| collector
 ```
@@ -468,9 +467,9 @@ src/voice_bridge/
     conversation/  turn taking, interruptions, turn traces and events, the board of agents, the Claude channel (MCP), delegation by the main agent
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
+    transport/     the transport port: audio in and out at the transport's rate, the speaker's frames, stalls and reconnections; Mumble its first adapter, with the pinned connection and the speaker's certificate (pymumble-rev)
   libraries/
     audio/         PCM and WAV with numpy and soxr, audio files decoded and speech paced with FFmpeg (PyAV)
-    mumble/        pinned connection, speaker audio, loudspeaker (pymumble-rev)
     claude_code/   the input and the refusal of Claude Code's PreToolUse hook, and the settings that register the hooks and choose the models
     rotation/      files rotated daily into gzip copies, kept a number of days (logging's TimedRotatingFileHandler)
   configuration/   settings (pydantic-settings), languages, default instructions
