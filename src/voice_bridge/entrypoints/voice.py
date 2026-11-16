@@ -33,7 +33,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     VoiceDetected,
 )
-from voice_bridge.features.conversation.domain.turn_trace import Understood
+from voice_bridge.features.conversation.domain.turn_trace import AudioStalled, Understood
 from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Heard,
     Speaking,
@@ -284,7 +284,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
     hold_music = await _hold_music(settings, speaker)
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     speech_settings = settings.speech
-    telemetry, stalled_for = chosen_telemetry(
+    telemetry = chosen_telemetry(
         anyio.current_time,
         settings.telemetry_directory,
         kept_days(settings.telemetry_retention),
@@ -298,7 +298,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             holds_certificate(settings.mumble.speaker_certificate_hash),
             packets_in,
             anyio.current_time,
-            stalled_for,
+            lambda waited: telemetry(AudioStalled(waited=waited)),
         )
 
     async def heard(each: Heard) -> None:

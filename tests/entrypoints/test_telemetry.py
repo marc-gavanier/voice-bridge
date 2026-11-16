@@ -28,7 +28,7 @@ def without_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_without_an_endpoint_the_telemetry_is_written_to_files(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     without_endpoint(monkeypatch)
-    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})[0], OpenTelemetry)
+    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {}), OpenTelemetry)
 
 
 def test_without_an_endpoint_the_traces_metrics_and_events_have_their_own_files(
@@ -51,7 +51,7 @@ def test_with_an_endpoint_no_file_is_written(monkeypatch: pytest.MonkeyPatch, tm
 
 def test_with_an_endpoint_the_telemetry_is_exported(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4317")
-    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {})[0], OpenTelemetry)
+    assert isinstance(chosen_telemetry(lambda: 0.0, tmp_path / "telemetry", 30, {}), OpenTelemetry)
 
 
 class CapturedTransport(Transport):
