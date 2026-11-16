@@ -9,7 +9,7 @@ voice-bridge lets a person talk to a Claude Code session over Mumble. The [READM
 - Every tool comes from the dev dependencies and runs through `uv run`, except actionlint, whose author publishes no Python package: prek builds it from its official hook, with a Go toolchain it downloads on first use ([ADR-008](docs/decisions/ADR-008-dev-tools-from-uv-and-official-hooks-pinned-with-their-version.md)).
 - uv refuses package versions younger than ten days (`exclude-newer` in `pyproject.toml`), and Renovate waits as long. Do not lift the delay without a reason given in the commit, as was done for pytest-bdd.
 - `pymumble-rev` is pinned to an exact version on purpose ([ADR-001](docs/decisions/ADR-001-pymumble-rev-as-the-mumble-client.md)).
-- Anything that runs Whisper on the GPU goes through `scripts/with-cuda.sh` ([ADR-004](docs/decisions/ADR-004-cuda-libraries-from-pip.md)). The tests do not need it.
+- The CUDA libraries are in the `cuda` extra, which `uv sync` leaves out. Anything that runs Whisper on the GPU goes through `scripts/with-cuda.sh`, which adds the extra ([ADR-004](docs/decisions/ADR-004-cuda-libraries-from-pip.md), [ADR-039](docs/decisions/ADR-039-published-on-pypi-by-trusted-publishing-with-cuda-as-an-extra.md)). The tests do not need it.
 
 ## Checks
 
