@@ -50,6 +50,7 @@ from voice_bridge.features.hearing.abilities.transcribe.implementation.transcrib
     Transcription,
     transcribe_utterances,
 )
+from voice_bridge.features.hearing.abilities.transcribe.implementation.whisper import FasterWhisper
 from voice_bridge.features.hearing.domain.noise import Hallucinations
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import fallback, pool_of
@@ -174,7 +175,9 @@ async def _transcription(settings: Settings, language: LanguagePack) -> Transcri
         partial(WhisperModel, whisper.model, device=whisper.device, compute_type=whisper.compute_type)
     )
     hallucinations = Hallucinations(texts=language.hallucinations, prefixes=language.hallucination_prefixes)
-    return Transcription(model=model, rate=MUMBLE_RATE, language=language.whisper_code, hallucinations=hallucinations)
+    return Transcription(
+        recognizer=FasterWhisper(model), rate=MUMBLE_RATE, language=language.whisper_code, hallucinations=hallucinations
+    )
 
 
 async def _route(

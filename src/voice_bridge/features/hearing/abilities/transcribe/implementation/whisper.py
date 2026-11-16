@@ -1,6 +1,10 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Final, Protocol
 
+import anyio
+
+from voice_bridge.features.hearing.abilities.transcribe.domain.transcript import Transcript
 from voice_bridge.libraries.audio.pcm import resample, to_float
 
 if TYPE_CHECKING:
@@ -21,7 +25,7 @@ class Segment(Protocol):
     def avg_logprob(self) -> float: ...
 
 
-class SpeechModel(Protocol):
+class WhisperModel(Protocol):
     def transcribe(
         self,
         audio: npt.NDArray[np.float32],
@@ -33,17 +37,11 @@ class SpeechModel(Protocol):
     ) -> tuple[Iterable[Segment], object]: ...
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Transcript:
-    text: str
-    scores: str
-
-
 def _describe(segment: Segment) -> str:
     return f"« {segment.text.strip()} » no speech {segment.no_speech_prob:.2f}, confidence {segment.avg_logprob:.2f}"
 
 
-def transcribe(model: SpeechModel, pcm: bytes, rate: int, language: str) -> Transcript:
+def _transcribe(model: WhisperModel, pcm: bytes, rate: int, language: str) -> Transcript:
     samples = to_float(resample(pcm, from_rate=rate, to_rate=WHISPER_RATE))
     segments, _ = model.transcribe(
         samples, language=language, beam_size=1, vad_filter=True, condition_on_previous_text=False
@@ -53,3 +51,11 @@ def transcribe(model: SpeechModel, pcm: bytes, rate: int, language: str) -> Tran
         text=" ".join(segment.text.strip() for segment in heard).strip(),
         scores=" | ".join(map(_describe, heard)) or "no segment",
     )
+
+
+@dataclass(frozen=True, slots=True)
+class FasterWhisper:
+    model: WhisperModel
+
+    async def recognize(self, pcm: bytes, *, rate: int, language: str) -> Transcript:
+        return await anyio.to_thread.run_sync(partial(_transcribe, self.model, pcm, rate, language))
