@@ -16,7 +16,6 @@ from voice_bridge.configuration.log_config import kept_days
 from voice_bridge.configuration.telemetry import run_attributes
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
-    News,
     listen_to_claude,
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
@@ -88,6 +87,7 @@ if TYPE_CHECKING:
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Activity
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude, Interpreter
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
@@ -304,8 +304,8 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None, answered=answered)
         )
 
-    async def claude_is(news: News) -> None:
-        for event in side.board.events_of(news, anyio.current_time()):
+    async def claude_is(activity: Activity) -> None:
+        for event in side.board.events_of(activity, anyio.current_time()):
             await events_in.send(event)
 
     async def relay_replies() -> None:

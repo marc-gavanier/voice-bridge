@@ -11,10 +11,12 @@ import pytest
 from anyio.streams.memory import MemoryObjectReceiveStream
 
 from voice_bridge.configuration.language import language_pack
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import (
+    Activity,
+    ToolCallUpdate,
+    TurnStarted,
+)
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
-    AgentActed,
-    Busy,
-    News,
     listen_to_claude,
 )
 
@@ -47,8 +49,8 @@ async def run_hook(name: str, arguments: list[str], event: bytes, environment: d
 
 
 @asynccontextmanager
-async def listening(socket: Path) -> AsyncGenerator[MemoryObjectReceiveStream[News]]:
-    heard_in, heard_out = anyio.create_memory_object_stream[News](1)
+async def listening(socket: Path) -> AsyncGenerator[MemoryObjectReceiveStream[Activity]]:
+    heard_in, heard_out = anyio.create_memory_object_stream[Activity](1)
     async with heard_in, heard_out, anyio.create_task_group() as tasks:
         _ = tasks.start_soon(listen_to_claude, socket, heard_in.send)
         await anyio.wait_all_tasks_blocked()
@@ -56,7 +58,7 @@ async def listening(socket: Path) -> AsyncGenerator[MemoryObjectReceiveStream[Ne
         tasks.cancel_scope.cancel()
 
 
-async def heard_from_the_hook(home: Path, socket: Path, event: bytes = PROMPT) -> News:
+async def heard_from_the_hook(home: Path, socket: Path, event: bytes = PROMPT) -> Activity:
     async with listening(socket) as heard:
         arguments = ["--socket", str(socket), "--log-file", str(home / "bridge.log")]
         _ = await run_hook("voice-bridge-activity-hook", arguments, event, configured_with_an_unknown_key(home))
@@ -65,14 +67,14 @@ async def heard_from_the_hook(home: Path, socket: Path, event: bytes = PROMPT) -
 
 @pytest.mark.anyio
 async def test_the_activity_hook_ignores_a_config_file_it_cannot_read(tmp_path: Path) -> None:
-    assert await heard_from_the_hook(tmp_path, tmp_path / "a.sock") == Busy()
+    assert await heard_from_the_hook(tmp_path, tmp_path / "a.sock") == TurnStarted()
 
 
 async def action_told_in_time(home: Path) -> tuple[str, bool]:
     before = datetime.now().astimezone()
     heard = await heard_from_the_hook(home, home / "a.sock", AGENT_COMMAND)
     after = datetime.now().astimezone()
-    return (heard.action, before <= heard.at <= after) if isinstance(heard, AgentActed) else ("", False)
+    return (heard.title, before <= heard.at <= after) if isinstance(heard, ToolCallUpdate) else ("", False)
 
 
 @pytest.mark.anyio

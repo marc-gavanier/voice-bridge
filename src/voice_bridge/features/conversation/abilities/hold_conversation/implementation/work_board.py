@@ -3,16 +3,13 @@ import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final, assert_never
 
-from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
-    AgentActed,
-    AgentFinished,
-    AgentStarted,
-    Busy,
-    Idle,
-    News,
-)
-from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
-    Task as TaskMessage,
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import (
+    Activity,
+    ToolCall,
+    ToolCallCompleted,
+    ToolCallUpdate,
+    TurnEnded,
+    TurnStarted,
 )
 from voice_bridge.features.conversation.domain.board import (
     Agent,
@@ -36,20 +33,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-AGENT_TASK: Final = "subagent"
 UNRELIABLE: Final = (
     "No news from Claude Code's hooks for a message forwarded at {since}: agents may be missing from the board, "
     "or still listed at work after they finished, until Claude Code next stops and lists its tasks. "
     "The bridge's log tells whether the hooks failed."
 )
-
-
-def _running(tasks: tuple[TaskMessage, ...]) -> tuple[Task, ...]:
-    return tuple(
-        Task(id=task.id, description=task.description, kind=task.agent_type)
-        for task in tasks
-        if task.type == AGENT_TASK
-    )
 
 
 def _time(moment: datetime | None) -> str | None:
@@ -88,10 +76,10 @@ class WorkBoard:
         self.board = board
         return () if len(board.at_work) == before else (AgentsChanged(at_work=len(board.at_work)),)
 
-    def _reconciled(self, tasks: tuple[TaskMessage, ...] | None, leaving: str = "") -> Board:
-        if tasks is None:
+    def _reconciled(self, agents: tuple[Task, ...] | None, leaving: str = "") -> Board:
+        if agents is None:
             return self.board
-        return reconcile(self.board, _running(tasks), at=self.clock(), leaving=leaving)[0]
+        return reconcile(self.board, agents, at=self.clock(), leaving=leaving)[0]
 
     def forwarded(self) -> None:
         self.board = forwarded(self.board, at=self.clock())
@@ -103,25 +91,28 @@ class WorkBoard:
             logger.warning("no news from Claude Code's hooks from %s to %s", _time(late.gap_since), _time(now))
         self.board = late
 
-    def events_of(self, news: News, at: float) -> tuple[Event, ...]:
-        match news:
-            case Busy(tasks=tasks):
+    def events_of(self, activity: Activity, at: float) -> tuple[Event, ...]:
+        match activity:
+            case TurnStarted():
                 self._heard()
-                return (ClaudeBusy(at=at), *self._counted(self._reconciled(tasks)))
-            case Idle(tasks=tasks):
-                return (ClaudeIdle(), *self._counted(self._reconciled(tasks)))
-            case AgentStarted(agent_id=agent_id, agent_type=kind):
+                return (ClaudeBusy(at=at),)
+            case TurnEnded(working=True, agents=agents):
+                self._heard()
+                return (ClaudeBusy(at=at), *self._counted(self._reconciled(agents)))
+            case TurnEnded(agents=agents):
+                return (ClaudeIdle(), *self._counted(self._reconciled(agents)))
+            case ToolCall(tool_call_id=agent_id, title=kind):
                 return self._counted(start(self.board, agent_id=agent_id, kind=kind, at=self.clock())[0])
-            case AgentFinished(agent_id=agent_id, last_message=last_message, tasks=tasks):
-                reconciled = self._reconciled(tasks, leaving=agent_id)
+            case ToolCallCompleted(tool_call_id=agent_id, content=last_message, agents=agents):
+                reconciled = self._reconciled(agents, leaving=agent_id)
                 return self._counted(
                     finish(reconciled, agent_id=agent_id, last_message=last_message, at=self.clock())[0]
                 )
-            case AgentActed(agent_id=agent_id, action=action, at=moment):
+            case ToolCallUpdate(tool_call_id=agent_id, title=action, at=moment):
                 self.board = act(self.board, agent_id=agent_id, action=action, at=moment)
                 return ()
             case _:
-                assert_never(news)
+                assert_never(activity)
 
     def _reliability(self) -> dict[str, str | bool]:
         since = unreliable_since(self.board, now=self.clock())
