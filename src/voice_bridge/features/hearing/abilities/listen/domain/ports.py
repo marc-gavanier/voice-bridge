@@ -7,3 +7,10 @@ class Judge(Protocol):
 
 class VoiceDetector(Protocol):
     def __call__(self, pcm: bytes, /) -> float: ...
+
+
+class Sound(Protocol):
+    @property
+    def pcm(self) -> bytes: ...
+    @property
+    def at(self) -> float: ...

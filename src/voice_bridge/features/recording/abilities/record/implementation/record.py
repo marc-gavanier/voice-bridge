@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterable, Callable
     from pathlib import Path
 
-    from voice_bridge.libraries.mumble.audio import Packet
+    from voice_bridge.features.recording.abilities.record.domain.ports import Sound
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ class Recorder:
     silence: float = 1.5
 
 
-def _heard(recorder: Recorder, packet: Packet) -> Heard:
+def _heard(recorder: Recorder, sound: Sound) -> Heard:
     return Heard(
-        pcm=packet.pcm, at=packet.at, frame_number=packet.frame_number, duration=duration(packet.pcm, recorder.rate)
+        pcm=sound.pcm, at=sound.at, frame_number=sound.frame_number, duration=duration(sound.pcm, recorder.rate)
     )
 
 
@@ -38,7 +38,7 @@ async def save(recorder: Recorder, take: Take) -> Path:
     return path
 
 
-async def record(recorder: Recorder, ticks: AsyncIterable[Packet | None], clock: Callable[[], float]) -> None:
+async def record(recorder: Recorder, ticks: AsyncIterable[Sound | None], clock: Callable[[], float]) -> None:
     take: Take | None = None
     async for tick in ticks:
         heard = None if tick is None else _heard(recorder, tick)

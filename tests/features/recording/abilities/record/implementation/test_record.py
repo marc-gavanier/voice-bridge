@@ -1,19 +1,27 @@
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from pathlib import Path
 
 import anyio
 import pytest
 
+from voice_bridge.features.recording.abilities.record.domain.ports import Sound
 from voice_bridge.features.recording.abilities.record.implementation.record import Recorder, record, save
 from voice_bridge.features.recording.domain.take import Heard, Take, begin, file_name
 from voice_bridge.libraries.audio.wav import decode
-from voice_bridge.libraries.mumble.audio import Packet
 
 TWENTY_MS = b"\x01\x00" * 960
 
 
-def packet(at: float) -> Packet:
-    return Packet(pcm=TWENTY_MS, at=at, frame_number=round(at * 100))
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Received:
+    pcm: bytes
+    at: float
+    frame_number: int
+
+
+def packet(at: float) -> Received:
+    return Received(pcm=TWENTY_MS, at=at, frame_number=round(at * 100))
 
 
 def heard(at: float) -> Heard:
@@ -30,7 +38,7 @@ async def test_a_saved_take_is_a_wav_of_its_audio(tmp_path: Path) -> None:
     assert decode(await anyio.Path(path).read_bytes(), rate=48000) == TWENTY_MS
 
 
-async def two_takes() -> AsyncIterator[Packet | None]:
+async def two_takes() -> AsyncIterator[Sound | None]:
     yield packet(1.0)
     yield packet(5.0)
     yield None

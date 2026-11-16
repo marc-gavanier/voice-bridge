@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Final
 import stamina
 from pymumble_rev import ClientConfig, MumbleClient, MumbleError
 
-from voice_bridge.libraries.mumble.tls import pinned_context
+from voice_bridge.features.transport.abilities.carry.implementation.tls import pinned_context
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable, Callable
