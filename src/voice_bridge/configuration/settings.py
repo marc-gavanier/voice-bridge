@@ -120,6 +120,8 @@ class ClaudeSettings(Section):
 
 
 class UnderstandingSettings(Section):
+    model: str = "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q"
+    revision: str = "faf4aa4225822f3bc6376869cb1164e8e3feedd0"
     threshold: float = 0.6
     stop_flag: Path = DEFAULT_STOP_FLAG
 

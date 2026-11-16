@@ -10,10 +10,8 @@ from tokenizers import Tokenizer
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-REPOSITORY: Final = "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q"
 MODEL_FILE: Final = "model_optimized.onnx"
 TOKENIZER_FILE: Final = "tokenizer.json"
-REVISION: Final = "faf4aa4225822f3bc6376869cb1164e8e3feedd0"
 LONGEST: Final = 128
 
 type Vectors = npt.NDArray[np.float32]
@@ -55,12 +53,12 @@ class Encoder:
         return _normalized((summed / counts[:, np.newaxis]).astype(np.float32))
 
 
-def load_encoder() -> Encoder:
+def load_encoder(repository: str, revision: str) -> Encoder:
     options = ort.SessionOptions()
     options.inter_op_num_threads = 1
     options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    model = hf_hub_download(REPOSITORY, MODEL_FILE, revision=REVISION)
-    tokenizer = Tokenizer.from_file(hf_hub_download(REPOSITORY, TOKENIZER_FILE, revision=REVISION))
+    model = hf_hub_download(repository, MODEL_FILE, revision=revision)
+    tokenizer = Tokenizer.from_file(hf_hub_download(repository, TOKENIZER_FILE, revision=revision))
     tokenizer.enable_truncation(max_length=LONGEST)
     tokenizer.enable_padding()
     return Encoder(

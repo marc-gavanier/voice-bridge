@@ -11,6 +11,7 @@ from voice_bridge.configuration.settings import (
     ClipsSettings,
     HearingSettings,
     SpeechSettings,
+    UnderstandingSettings,
     default_config_file,
     load_settings,
 )
@@ -294,3 +295,19 @@ def test_an_empty_model_stops_the_start() -> None:
 def test_a_model_that_could_be_read_as_an_option_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="subagent_model"):
         _ = ClaudeSettings(subagent_model="--dangerously-skip-permissions")
+
+
+def test_the_routing_model_defaults_to_multilingual_minilm_at_a_pinned_revision(config_file: Path) -> None:
+    assert load_settings(config_file).understanding == UnderstandingSettings(
+        model="Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q",
+        revision="faf4aa4225822f3bc6376869cb1164e8e3feedd0",
+    )
+
+
+def test_the_routing_model_comes_from_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(
+        MINIMAL + '[understanding]\nmodel = "example/encoder-onnx"\nrevision = "main"\n', encoding="utf-8"
+    )
+    understanding = load_settings(path).understanding
+    assert (understanding.model, understanding.revision) == ("example/encoder-onnx", "main")
