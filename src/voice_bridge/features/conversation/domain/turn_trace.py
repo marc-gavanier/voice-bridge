@@ -76,7 +76,12 @@ class Acknowledged:
     at: float
 
 
-type Report = FinishedTurn | Counted | Forwarded | Acknowledged
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AudioStalled:
+    waited: float
+
+
+type Report = FinishedTurn | Counted | Forwarded | Acknowledged | AudioStalled
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

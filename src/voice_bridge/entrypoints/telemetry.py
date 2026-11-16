@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def chosen_telemetry(
     clock: Callable[[], float], directory: Path, kept: int, attributes: Mapping[str, str | float | bool]
-) -> tuple[Telemetry, Callable[[float], None]]:
+) -> Telemetry:
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.open_telemetry import (
         OpenTelemetry,
         writing_to,
@@ -30,7 +30,7 @@ def chosen_telemetry(
     if exports_telemetry(os.environ):
         adapter = OpenTelemetry.from_globals(clock)
         logger.info("telemetry exported over OTLP")
-        return adapter, adapter.stalled
+        return adapter
     directory.mkdir(parents=True, exist_ok=True)
     providers = writing_to(
         RotatingText(DailyFile(directory / "traces.jsonl", kept=kept)),
@@ -40,7 +40,7 @@ def chosen_telemetry(
     )
     adapter = OpenTelemetry.from_providers(*providers, clock)
     logger.info("telemetry written to %s", directory)
-    return adapter, adapter.stalled
+    return adapter
 
 
 def report_errors(transport: Transport | None = None) -> bool:

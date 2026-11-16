@@ -14,7 +14,13 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from voice_bridge.features.conversation.domain.turn_trace import Acknowledged, Counted, FinishedTurn, Forwarded
+from voice_bridge.features.conversation.domain.turn_trace import (
+    Acknowledged,
+    AudioStalled,
+    Counted,
+    FinishedTurn,
+    Forwarded,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
@@ -163,8 +169,7 @@ class OpenTelemetry:
                     at,
                     {"voice_bridge.acknowledgement.sentence": sentence, "voice_bridge.utterance.text": words},
                 )
+            case AudioStalled(waited=waited):
+                self.stalls.record(waited)
             case _:
                 assert_never(report)
-
-    def stalled(self, seconds: float, /) -> None:
-        self.stalls.record(seconds)

@@ -28,6 +28,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 from voice_bridge.features.conversation.domain.turn_trace import (
     Acknowledged,
+    AudioStalled,
     Counted,
     FinishedTurn,
     Forwarded,
@@ -216,7 +217,7 @@ def test_a_counted_event_is_added_up(exported: Exported) -> None:
 
 
 def test_a_stall_is_measured(exported: Exported) -> None:
-    exported.telemetry.stalled(0.25)
+    exported.telemetry(AudioStalled(waited=0.25))
     assert histogram_sums(exported, "voice_bridge.audio.stall.duration") == {"{}": 0.25}
 
 
