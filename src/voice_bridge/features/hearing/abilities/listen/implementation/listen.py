@@ -2,10 +2,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from voice_bridge.features.hearing.abilities.listen.domain.heard import Heard, Turn, heard_frame, paused
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Session, Silero, Voicing, is_voiced
+from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing, is_voiced
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Session, Silero
 from voice_bridge.features.hearing.abilities.listen.implementation.silero import listen as score
 from voice_bridge.features.hearing.domain.utterance import Frame, Listening, UtteranceRules
-from voice_bridge.libraries.audio.pcm import duration
+from voice_bridge.libraries.audio.pcm import duration, level
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, Awaitable, Callable
@@ -31,7 +32,7 @@ class Hearing:
 def _frame(ears: Ears, silero: Silero, packet: Packet) -> Frame:
     return Frame(
         pcm=packet.pcm,
-        voiced=is_voiced(silero, packet.pcm, ears.voicing),
+        voiced=is_voiced(ears.voicing, probability=silero.probability, volume=level(packet.pcm)),
         at=packet.at,
         duration=duration(packet.pcm, ears.rate),
     )
