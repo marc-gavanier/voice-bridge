@@ -20,6 +20,7 @@ dependencies = [
     "opentelemetry-exporter-otlp-json-file>=0.66b2",
     "opentelemetry-sdk>=1.45.2",
     "platformdirs>=4.14.0",
+    "pooch>=1.9.0",
     "pydantic>=2.14.2",
     "pydantic-settings>=2.16.2",
     "pymumble-rev==0.1.0",

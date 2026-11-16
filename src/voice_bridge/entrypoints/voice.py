@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Final, assert_never
 import anyio
 import httpx
 from faster_whisper import WhisperModel
-from faster_whisper.vad import get_vad_model
 from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.configuration.log_config import kept_days
@@ -44,7 +43,7 @@ from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     VoiceStarted,
 )
 from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, listen
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing, load_silero
 from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, load_session
 from voice_bridge.features.hearing.abilities.transcribe.implementation.transcribe import (
     Transcription,
@@ -152,7 +151,7 @@ def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
 def _ears(settings: Settings) -> Ears:
     hearing = settings.hearing
     return Ears(
-        session=get_vad_model().session,
+        session=load_silero(),
         voicing=Voicing(volume_threshold=hearing.volume_threshold, probability=hearing.voice_probability),
         rules=UtteranceRules(
             silence=hearing.silence,
