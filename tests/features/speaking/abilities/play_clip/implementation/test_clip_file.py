@@ -1,4 +1,5 @@
 import wave
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -36,18 +37,18 @@ def written(path: Path, seconds: float) -> Path:
 @dataclass
 class RecordingDecoder:
     pcm: bytes
-    asked: list[tuple[Path, int]] = field(default_factory=list)
+    asked: list[tuple[str, int]] = field(default_factory=list)
 
-    def __call__(self, path: Path, rate: int, /) -> bytes:
-        self.asked.append((path, rate))
-        return self.pcm
+    def __call__(self, location: str, rate: int, /) -> Iterator[bytes]:
+        self.asked.append((location, rate))
+        return iter([self.pcm])
 
 
 def tone(seconds: float) -> bytes:
     return (np.sin(np.linspace(0, 440 * 2 * np.pi * seconds, int(RATE * seconds))) * 16000).astype(np.int16).tobytes()
 
 
-def unreadable(_path: Path, _rate: int) -> bytes:
+def unreadable(_location: str, _rate: int) -> Iterator[bytes]:
     message = "Invalid data found when processing input"
     raise ValueError(message)
 
@@ -80,7 +81,7 @@ def test_the_clip_found_is_decoded_at_the_rate_asked(tmp_path: Path) -> None:
     clip = written(clips(tmp_path) / "sample.wav", 0.0)
     decoder = RecordingDecoder(pcm=tone(1.0))
     _ = read(clip, clips(tmp_path), decoder)
-    assert decoder.asked == [(clip.resolve(), RATE)]
+    assert decoder.asked == [(str(clip.resolve()), RATE)]
 
 
 def test_a_clip_is_read_at_the_volume_set(tmp_path: Path) -> None:

@@ -45,7 +45,7 @@ def _allowed(path: str, rules: ClipRules) -> Path:
 def read_clip(path: str, *, rules: ClipRules, rate: int, decode: Decoder) -> bytes:
     found = _allowed(path, rules)
     try:
-        pcm = scaled(decode(found, rate), rules.volume)
+        pcm = scaled(b"".join(decode(str(found), rate)), rules.volume)
     except ValueError as error:
         message = f"{path} holds no audio FFmpeg can read"
         raise ClipRefusedError(message) from error

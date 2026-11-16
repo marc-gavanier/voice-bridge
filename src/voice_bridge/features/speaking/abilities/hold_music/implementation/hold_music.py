@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def track_of(path: Path, *, decode: Decoder, rate: int, volume: float) -> Track:
-    return Track(pcm=scaled(decode(path, rate), volume))
+    return Track(pcm=scaled(b"".join(decode(str(path), rate)), volume))
 
 
 @dataclass(slots=True, kw_only=True)

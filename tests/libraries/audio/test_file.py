@@ -21,17 +21,32 @@ def written(path: Path, rate: int, seconds: float) -> Path:
     return path
 
 
+def decoded(path: Path) -> bytes:
+    return b"".join(decode_audio(str(path), RATE))
+
+
 def test_a_file_is_decoded_as_mono_pcm_at_the_rate_asked(tmp_path: Path) -> None:
-    pcm = decode_audio(written(tmp_path / "music.wav", 44100, 1.0), RATE)
+    pcm = decoded(written(tmp_path / "music.wav", 44100, 1.0))
     assert len(pcm) / 2 == pytest.approx(RATE, rel=0.01)
 
 
+def test_a_file_is_decoded_frame_by_frame(tmp_path: Path) -> None:
+    frames = list(decode_audio(str(written(tmp_path / "music.wav", 44100, 1.0)), RATE))
+    assert len(frames) > 1
+
+
+def test_a_missing_file_fails_only_when_its_first_frame_is_asked(tmp_path: Path) -> None:
+    frames = decode_audio(str(tmp_path / "missing.wav"), RATE)
+    with pytest.raises(FileNotFoundError):
+        _ = next(frames)
+
+
 def test_a_damaged_frame_is_skipped_and_the_rest_of_the_file_is_decoded() -> None:
-    assert duration(decode_audio(DAMAGED, RATE), RATE) > 0.95
+    assert duration(decoded(DAMAGED), RATE) > 0.95
 
 
 def test_a_file_that_is_not_audio_cannot_be_decoded(tmp_path: Path) -> None:
     path = tmp_path / "notes.mp3"
     _ = path.write_text("not audio", encoding="utf-8")
     with pytest.raises(ValueError, match="Invalid data"):
-        _ = decode_audio(path, RATE)
+        _ = decoded(path)

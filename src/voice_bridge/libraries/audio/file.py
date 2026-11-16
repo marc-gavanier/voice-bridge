@@ -7,7 +7,6 @@ from av.error import InvalidDataError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from pathlib import Path
 
     from av.audio.frame import AudioFrame
     from av.container import InputContainer
@@ -26,11 +25,9 @@ def _frames(container: InputContainer) -> Iterator[AudioFrame]:
         yield frame
 
 
-def decode_audio(path: Path, rate: int) -> bytes:
+def decode_audio(location: str, rate: int) -> Iterator[bytes]:
     resampler = AudioResampler(format="s16", layout="mono", rate=rate)
-    with av.open(str(path), metadata_errors="ignore") as container:
-        return b"".join(
-            resampled.to_ndarray().tobytes()
-            for frame in chain(_frames(container), [None])
-            for resampled in resampler.resample(frame)
-        )
+    with av.open(location, metadata_errors="ignore") as container:
+        for frame in chain(_frames(container), [None]):
+            for resampled in resampler.resample(frame):
+                yield resampled.to_ndarray().tobytes()

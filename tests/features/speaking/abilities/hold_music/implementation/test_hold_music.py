@@ -1,4 +1,5 @@
 from array import array
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -118,17 +119,17 @@ MUSIC = Path("/music/hold.mp3")
 @dataclass
 class RecordingDecoder:
     pcm: bytes
-    asked: list[tuple[Path, int]] = field(default_factory=list)
+    asked: list[tuple[str, int]] = field(default_factory=list)
 
-    def __call__(self, path: Path, rate: int, /) -> bytes:
-        self.asked.append((path, rate))
-        return self.pcm
+    def __call__(self, location: str, rate: int, /) -> Iterator[bytes]:
+        self.asked.append((location, rate))
+        return iter([self.pcm])
 
 
 def test_the_music_is_decoded_from_its_file_at_the_rate_asked() -> None:
     decoder = RecordingDecoder(pcm=b"")
     _ = track_of(MUSIC, decode=decoder, rate=RATE, volume=1.0)
-    assert decoder.asked == [(MUSIC, RATE)]
+    assert decoder.asked == [(str(MUSIC), RATE)]
 
 
 def test_the_music_plays_from_its_start_at_the_volume_set() -> None:
