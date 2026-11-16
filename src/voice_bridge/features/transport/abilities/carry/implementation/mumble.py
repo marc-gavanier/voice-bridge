@@ -1,18 +1,27 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from itertools import count
 from typing import TYPE_CHECKING, Final, Protocol
 
-import anyio
 from pymumble_rev import events, opus
+from pymumble_rev.audio import PcmBuffer
 
+from voice_bridge.features.transport.abilities.carry.domain.received import (
+    Disconnected,
+    Frame,
+    Reconnected,
+    SpeakerJoined,
+    SpeakerLeft,
+    Stalled,
+)
 from voice_bridge.libraries.audio.pcm import duration
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping
+    from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 
-    from anyio.abc import ObjectReceiveStream, ObjectSendStream
     from pymumble_rev import ServerState, User
-    from pymumble_rev.audio import PcmBuffer
+
+    from voice_bridge.features.transport.abilities.carry.domain.received import Received
 
 
 logger = logging.getLogger(__name__)
@@ -21,14 +30,7 @@ STALL_THRESHOLD: Final = 0.1
 RECOVERY_WINDOW: Final = 0.2
 FRAME_DURATION: Final = 0.01
 MUMBLE_RATE: Final = opus.SAMPLE_RATE
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Packet:
-    pcm: bytes
-    at: float
-    frame_number: int
-    last: bool = False
+PLAYBACK_CAPACITY: Final = 600.0
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -37,15 +39,15 @@ class Stall:
     frames_skipped: int
 
 
-def _frames_in(packet: Packet) -> int:
-    return round(duration(packet.pcm, MUMBLE_RATE) / FRAME_DURATION)
+def _frames_in(frame: Frame) -> int:
+    return round(duration(frame.pcm, MUMBLE_RATE) / FRAME_DURATION)
 
 
-def stall(previous: Packet | None, packet: Packet) -> Stall | None:
-    if previous is None or previous.last or packet.at - previous.at <= STALL_THRESHOLD:
+def stall(previous: Frame | None, frame: Frame) -> Stall | None:
+    if previous is None or previous.last or frame.at - previous.at <= STALL_THRESHOLD:
         return None
-    skipped = packet.frame_number - previous.frame_number - _frames_in(previous)
-    return Stall(waited=round(packet.at - previous.at, 6), frames_skipped=max(0, skipped))
+    skipped = frame.frame_number - previous.frame_number - _frames_in(previous)
+    return Stall(waited=round(frame.at - previous.at, 6), frames_skipped=max(0, skipped))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -54,18 +56,18 @@ class Recovery:
     audio: float
 
     @classmethod
-    def after(cls, packet: Packet) -> Recovery:
-        return cls(since=packet.at, audio=duration(packet.pcm, MUMBLE_RATE))
+    def after(cls, frame: Frame) -> Recovery:
+        return cls(since=frame.at, audio=duration(frame.pcm, MUMBLE_RATE))
 
     @property
     def pace(self) -> float:
         return self.audio / RECOVERY_WINDOW
 
 
-def recovered(recovery: Recovery, packet: Packet) -> Recovery | None:
-    if packet.at - recovery.since >= RECOVERY_WINDOW:
+def recovered(recovery: Recovery, frame: Frame) -> Recovery | None:
+    if frame.at - recovery.since >= RECOVERY_WINDOW:
         return None
-    return Recovery(since=recovery.since, audio=round(recovery.audio + duration(packet.pcm, MUMBLE_RATE), 6))
+    return Recovery(since=recovery.since, audio=round(recovery.audio + duration(frame.pcm, MUMBLE_RATE), 6))
 
 
 def _log_recovery(recovery: Recovery | None) -> None:
@@ -78,13 +80,17 @@ def _log_recovery(recovery: Recovery | None) -> None:
         )
 
 
-class Session(Protocol):
+class Client(Protocol):
     @property
     def state(self) -> ServerState: ...
+    @property
+    def close_reason(self) -> str | None: ...
     def events(self) -> AsyncIterator[events.Event]: ...
+    def play(self, source: PcmBuffer, /) -> object: ...
 
 
 type Listened = Callable[[User], bool]
+type Connection = Callable[[Callable[[Client], Awaitable[None]]], Awaitable[None]]
 
 
 def holds_certificate(certificate_hash: str) -> Listened:
@@ -129,31 +135,43 @@ def _report_presence(event: events.Event, listened: Listened) -> None:
             pass
 
 
-async def pump_audio(
-    session: Session,
+def _presence(event: events.Event, listened: Listened) -> Received | None:
+    match event:
+        case events.UserJoined(user=user) if listened(user):
+            return SpeakerJoined()
+        case events.UserLeft(user=user) if listened(user):
+            return SpeakerLeft()
+        case _:
+            return None
+
+
+async def pump(
+    client: Client,
     listened: Listened,
-    packets: ObjectSendStream[Packet],
+    receive: Callable[[Received], Awaitable[None]],
     clock: Callable[[], float],
-    stalled_for: Callable[[float], None],
 ) -> None:
     decoder = opus.Decoder(channels=1)
-    previous: Packet | None = None
+    previous: Frame | None = None
     recovery: Recovery | None = None
-    async for event in session.events():
+    async for event in client.events():
         _report_presence(event, listened)
+        presence = _presence(event, listened)
+        if presence is not None:
+            await receive(presence)
         if isinstance(event, events.AudioReceived) and not is_listened(
-            session.state.users, event.sender_session, listened
+            client.state.users, event.sender_session, listened
         ):
-            _report_ignored(session.state.users, event)
-        if isinstance(event, events.AudioReceived) and is_listened(session.state.users, event.sender_session, listened):
-            packet = Packet(
+            _report_ignored(client.state.users, event)
+        if isinstance(event, events.AudioReceived) and is_listened(client.state.users, event.sender_session, listened):
+            frame = Frame(
                 pcm=decoder.decode(event.opus_data),
                 at=clock(),
                 frame_number=event.frame_number,
                 last=event.is_terminator,
             )
-            stalled = stall(previous, packet)
-            following = None if recovery is None or stalled else recovered(recovery, packet)
+            stalled = stall(previous, frame)
+            following = None if recovery is None or stalled else recovered(recovery, frame)
             if following is None:
                 _log_recovery(recovery)
             recovery = following
@@ -161,33 +179,30 @@ async def pump_audio(
                 logger.info(
                     "audio stalled %.0f ms before frame %d, %d frames skipped",
                     stalled.waited * 1000,
-                    packet.frame_number,
+                    frame.frame_number,
                     stalled.frames_skipped,
                 )
-                stalled_for(stalled.waited)
-                recovery = Recovery.after(packet)
-            await packets.send(packet)
+                await receive(Stalled(waited=stalled.waited))
+                recovery = Recovery.after(frame)
+            await receive(frame)
             decoder = opus.Decoder(channels=1) if event.is_terminator else decoder
-            previous = packet
+            previous = frame
 
 
-async def _receive_or_none(packets: ObjectReceiveStream[Packet], patience: float) -> Packet | None:
-    with anyio.move_on_after(patience):
-        return await packets.receive()
-    return None
-
-
-async def with_pauses(packets: ObjectReceiveStream[Packet], patience: float) -> AsyncGenerator[Packet | None]:
-    try:
-        while True:
-            yield await _receive_or_none(packets, patience)
-    except anyio.EndOfStream:
-        return
+def _playback() -> PcmBuffer:
+    return PcmBuffer(channels=1, capacity=PLAYBACK_CAPACITY)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class Loudspeaker:
-    buffer: PcmBuffer
+class Mumble:
+    connection: Connection
+    listened: Listened
+    clock: Callable[[], float]
+    buffer: PcmBuffer = field(default_factory=_playback)
+
+    @property
+    def rate(self) -> int:
+        return MUMBLE_RATE
 
     def play(self, pcm: bytes) -> None:
         if self.buffer.buffered == 0:
@@ -196,3 +211,15 @@ class Loudspeaker:
 
     def stop(self) -> None:
         self.buffer.clear()
+
+    async def carry(self, receive: Callable[[Received], Awaitable[None]], /) -> None:
+        connections = count()
+
+        async def session(client: Client) -> None:
+            if next(connections):
+                await receive(Reconnected())
+            _ = client.play(self.buffer)
+            await pump(client, self.listened, receive, self.clock)
+            await receive(Disconnected(reason=client.close_reason))
+
+        await self.connection(session)

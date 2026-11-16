@@ -9,8 +9,7 @@ from voice_bridge.libraries.audio.pcm import duration, level
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, Awaitable, Callable
 
-    from voice_bridge.features.hearing.abilities.listen.domain.ports import VoiceDetector
-    from voice_bridge.libraries.mumble.audio import Packet
+    from voice_bridge.features.hearing.abilities.listen.domain.ports import Sound, VoiceDetector
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -22,16 +21,16 @@ class Ears:
     turn: Turn | None = None
 
 
-def _frame(ears: Ears, packet: Packet) -> Frame:
+def _frame(ears: Ears, sound: Sound) -> Frame:
     return Frame(
-        pcm=packet.pcm,
-        voiced=is_voiced(ears.voicing, probability=ears.detector(packet.pcm), volume=level(packet.pcm)),
-        at=packet.at,
-        duration=duration(packet.pcm, ears.rate),
+        pcm=sound.pcm,
+        voiced=is_voiced(ears.voicing, probability=ears.detector(sound.pcm), volume=level(sound.pcm)),
+        at=sound.at,
+        duration=duration(sound.pcm, ears.rate),
     )
 
 
-def advance(ears: Ears, state: Listening, tick: Packet | None, now: float) -> tuple[Listening, tuple[Heard, ...]]:
+def advance(ears: Ears, state: Listening, tick: Sound | None, now: float) -> tuple[Listening, tuple[Heard, ...]]:
     if tick is None:
         return paused(state, now, ears.rules, ears.turn)
     return heard_frame(state, _frame(ears, tick), ears.rules, ears.turn)
@@ -39,7 +38,7 @@ def advance(ears: Ears, state: Listening, tick: Packet | None, now: float) -> tu
 
 async def listen(
     ears: Ears,
-    ticks: AsyncIterable[Packet | None],
+    ticks: AsyncIterable[Sound | None],
     report: Callable[[Heard], Awaitable[None]],
     clock: Callable[[], float],
 ) -> None:

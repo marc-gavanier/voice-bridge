@@ -1,9 +1,9 @@
 import ssl
 from pathlib import Path
 
-from voice_bridge.libraries.mumble.tls import pinned_context
+from voice_bridge.features.transport.abilities.carry.implementation.tls import pinned_context
 
-SERVER_CERTIFICATE = Path(__file__).parents[2] / "fixtures" / "server.pem"
+SERVER_CERTIFICATE = Path(__file__).parents[5] / "fixtures" / "server.pem"
 
 
 def test_the_server_certificate_is_required() -> None:

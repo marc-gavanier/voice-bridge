@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Final, assert_never
 import anyio
 import httpx
 from faster_whisper import WhisperModel
-from pymumble_rev.audio import PcmBuffer
 
 from voice_bridge.configuration.log_config import kept_days
 from voice_bridge.configuration.telemetry import run_attributes
@@ -71,37 +70,31 @@ from voice_bridge.features.speaking.abilities.speak.implementation.speak import 
     voice_of,
     voice_streamed,
 )
+from voice_bridge.features.transport.abilities.carry.domain.received import Frame
+from voice_bridge.features.transport.abilities.carry.implementation.carry import carry, with_pauses
+from voice_bridge.features.transport.abilities.carry.implementation.mumble import Mumble, holds_certificate
+from voice_bridge.features.transport.abilities.carry.implementation.mumble_connection import Access, stay_connected
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import load_encoder, router
 from voice_bridge.features.understanding.abilities.understand.implementation.understand import StopFlag, Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
 from voice_bridge.libraries.audio.file import decode_audio
 from voice_bridge.libraries.audio.tempo import METHOD as PACE_METHOD
 from voice_bridge.libraries.audio.tempo import pace
-from voice_bridge.libraries.mumble.audio import (
-    MUMBLE_RATE,
-    Loudspeaker,
-    Packet,
-    holds_certificate,
-    pump_audio,
-    with_pauses,
-)
-from voice_bridge.libraries.mumble.connection import Access, stay_connected
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from anyio.abc import ObjectReceiveStream, ObjectSendStream
-    from pymumble_rev import MumbleClient
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude, Interpreter
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
+    from voice_bridge.features.transport.abilities.carry.domain.ports import Transport
 
 logger = logging.getLogger(__name__)
 
-PLAYBACK_CAPACITY: Final = 600.0
 PATIENCE: Final = 0.05
 
 
@@ -115,6 +108,14 @@ def access(settings: Settings, username: str) -> Access:
     )
 
 
+def mumble(settings: Settings, username: str) -> Mumble:
+    return Mumble(
+        connection=partial(stay_connected, access(settings, username)),
+        listened=holds_certificate(settings.mumble.speaker_certificate_hash),
+        clock=anyio.current_time,
+    )
+
+
 def _timed(judge: Callable[[bytes], float]) -> Callable[[bytes], float]:
     def timed(pcm: bytes) -> float:
         started = time.perf_counter()
@@ -125,11 +126,11 @@ def _timed(judge: Callable[[bytes], float]) -> Callable[[bytes], float]:
     return timed
 
 
-def _turn(settings: Settings) -> Turn | None:
+def _turn(settings: Settings, rate: int) -> Turn | None:
     hearing = settings.hearing
     if not hearing.smart_turn:
         return None
-    return Turn(judge=_timed(partial(completion, load_session(), rate=MUMBLE_RATE)), threshold=hearing.turn_threshold)
+    return Turn(judge=_timed(partial(completion, load_session(), rate=rate)), threshold=hearing.turn_threshold)
 
 
 def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
@@ -149,10 +150,10 @@ def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
             assert_never(each)
 
 
-def _ears(settings: Settings) -> Ears:
+def _ears(settings: Settings, rate: int) -> Ears:
     hearing = settings.hearing
     return Ears(
-        detector=SileroDetector(session=load_silero(), rate=MUMBLE_RATE),
+        detector=SileroDetector(session=load_silero(), rate=rate),
         voicing=Voicing(volume_threshold=hearing.volume_threshold, probability=hearing.voice_probability),
         rules=UtteranceRules(
             silence=hearing.silence,
@@ -164,19 +165,19 @@ def _ears(settings: Settings) -> Ears:
             short_pause=hearing.short_pause if hearing.smart_turn else None,
             unfinished_silence=hearing.unfinished_silence if hearing.smart_turn else None,
         ),
-        rate=MUMBLE_RATE,
-        turn=_turn(settings),
+        rate=rate,
+        turn=_turn(settings, rate),
     )
 
 
-async def _transcription(settings: Settings, language: LanguagePack) -> Transcription:
+async def _transcription(settings: Settings, language: LanguagePack, rate: int) -> Transcription:
     whisper = settings.whisper
     model = await anyio.to_thread.run_sync(
         partial(WhisperModel, whisper.model, device=whisper.device, compute_type=whisper.compute_type)
     )
     hallucinations = Hallucinations(texts=language.hallucinations, prefixes=language.hallucination_prefixes)
     return Transcription(
-        recognizer=FasterWhisper(model), rate=MUMBLE_RATE, language=language.code, hallucinations=hallucinations
+        recognizer=FasterWhisper(model), rate=rate, language=language.code, hallucinations=hallucinations
     )
 
 
@@ -200,18 +201,18 @@ async def _route(
             assert_never(each)
 
 
-async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | None:
+async def _hold_music(settings: Settings, speaker: Transport) -> HoldMusic | None:
     hold_music = settings.hold_music
     if hold_music.file is None:
         return None
     track = await anyio.to_thread.run_sync(
-        partial(track_of, hold_music.file, decode=decode_audio, rate=MUMBLE_RATE, volume=hold_music.volume)
+        partial(track_of, hold_music.file, decode=decode_audio, rate=speaker.rate, volume=hold_music.volume)
     )
-    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / MUMBLE_RATE)
+    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / speaker.rate)
     return HoldMusic(
         track=track,
         speaker=speaker,
-        rate=MUMBLE_RATE,
+        rate=speaker.rate,
         fade_in=hold_music.fade_in,
         fade_out=hold_music.fade_out,
     )
@@ -274,14 +275,12 @@ class ClaudeSide:
     board: WorkBoard
 
 
-async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide, username: str) -> None:
+async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide, transport: Transport) -> None:
     events_in, events_out = anyio.create_memory_object_stream[Event](math.inf)
-    packets_in, packets_out = anyio.create_memory_object_stream[Packet](math.inf)
+    frames_in, frames_out = anyio.create_memory_object_stream[Frame](math.inf)
     utterances_in, utterances_out = anyio.create_memory_object_stream[bytes](math.inf)
-    buffer = PcmBuffer(channels=1, capacity=PLAYBACK_CAPACITY)
-    transcription = await _transcription(settings, language)
-    speaker = Loudspeaker(buffer=buffer)
-    hold_music = await _hold_music(settings, speaker)
+    transcription = await _transcription(settings, language, transport.rate)
+    hold_music = await _hold_music(settings, transport)
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
     speech_settings = settings.speech
     telemetry = chosen_telemetry(
@@ -291,15 +290,8 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         run_attributes(settings, voice=speech_settings.voice or language.voice, pace=PACE_METHOD),
     )
 
-    async def connected(client: MumbleClient) -> None:
-        _ = client.play(buffer)
-        await pump_audio(
-            client,
-            holds_certificate(settings.mumble.speaker_certificate_hash),
-            packets_in,
-            anyio.current_time,
-            lambda waited: telemetry(AudioStalled(waited=waited)),
-        )
+    def stalled(waited: float) -> None:
+        telemetry(AudioStalled(waited=waited))
 
     async def heard(each: Heard) -> None:
         await _route(each, events_in, utterances_in, settings.hearing.silence)
@@ -324,8 +316,8 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
     async with (
         events_in,
         events_out,
-        packets_in,
-        packets_out,
+        frames_in,
+        frames_out,
         utterances_in,
         utterances_out,
         httpx.AsyncClient(base_url=str(speech_settings.url), timeout=speech_settings.timeout) as http,
@@ -338,7 +330,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             gain=speech_settings.gain,
             speed=speech_settings.speed,
             pacing=pace,
-            rate=MUMBLE_RATE,
+            rate=transport.rate,
             health=speech_settings.health,
         )
         greeting = secrets.choice(language.greetings)
@@ -350,9 +342,9 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
             voice=partial(voice_streamed, engine),
-            speaker=speaker,
+            speaker=transport,
             claude=_following_stops(side.claude, understanding, StopFlag(settings.understanding.stop_flag)),
-            rate=MUMBLE_RATE,
+            rate=transport.rate,
             clock=anyio.current_time,
             acknowledgement=clips,
             understood=_interpreting(understanding),
@@ -370,7 +362,7 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             return CachedVoice(
                 voice=partial(voice_of, engine),
                 directory=settings.cache_directory / directory,
-                key=f"{engine.model} {engine.voice} {engine.gain} {engine.speed} {PACE_METHOD} {MUMBLE_RATE}",
+                key=f"{engine.model} {engine.voice} {engine.gain} {engine.speed} {PACE_METHOD} {transport.rate}",
             )
 
         async def greet() -> None:
@@ -391,8 +383,10 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             await record_announcements(announcements, announcing)
             await announcing.prune()
 
-        _ = tasks.start_soon(stay_connected, access(settings, username), connected)
-        _ = tasks.start_soon(listen, _ears(settings), with_pauses(packets_out, PATIENCE), heard, anyio.current_time)
+        _ = tasks.start_soon(carry, transport, frames_in.send, stalled)
+        _ = tasks.start_soon(
+            listen, _ears(settings, transport.rate), with_pauses(frames_out, PATIENCE), heard, anyio.current_time
+        )
         _ = tasks.start_soon(transcribe_utterances, transcription, utterances_out, transcribed)
         _ = tasks.start_soon(hold_conversation, mouth, events_out, events_in.clone())
         _ = tasks.start_soon(relay_replies)

@@ -12,7 +12,7 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, watching_hangs
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
-from voice_bridge.entrypoints.voice import ClaudeSide, converse
+from voice_bridge.entrypoints.voice import ClaudeSide, converse, mumble
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
     BoardTool,
     ChannelTools,
@@ -27,7 +27,6 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import ClipRules, read_clip
 from voice_bridge.libraries.audio.file import decode_audio
-from voice_bridge.libraries.mumble.audio import MUMBLE_RATE
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +35,12 @@ def now() -> datetime:
     return datetime.now().astimezone()
 
 
-def _play_tool(settings: Settings, language: LanguagePack) -> PlayTool:
+def _play_tool(settings: Settings, language: LanguagePack, rate: int) -> PlayTool:
     clips = settings.clips
     rules = ClipRules(directory=clips.directory, largest=clips.largest, longest=clips.longest, volume=clips.volume)
 
     async def read(path: str) -> bytes:
-        return await anyio.to_thread.run_sync(
-            partial(read_clip, path, rules=rules, rate=MUMBLE_RATE, decode=decode_audio)
-        )
+        return await anyio.to_thread.run_sync(partial(read_clip, path, rules=rules, rate=rate, decode=decode_audio))
 
     return PlayTool(
         description=language.play_tool_description,
@@ -56,6 +53,7 @@ def _play_tool(settings: Settings, language: LanguagePack) -> PlayTool:
 async def serve(settings: Settings, language: LanguagePack) -> None:
     replies_in, replies_out = anyio.create_memory_object_stream[Reply](math.inf)
     board = WorkBoard(clock=now)
+    transport = mumble(settings, settings.mumble.username)
     server = channel_server(
         instructions=load_instructions(settings.instructions_file, default=language.instructions),
         tools=ChannelTools(
@@ -67,7 +65,7 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
                 description=language.end_tool_description, text_description=language.end_text_description
             ),
             board=BoardTool(description=language.board_tool_description, read=board.report),
-            play=_play_tool(settings, language),
+            play=_play_tool(settings, language, transport.rate),
         ),
         replies=replies_in,
     )
@@ -85,7 +83,7 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
                 await claude(text, interrupted=interrupted, acknowledgement=acknowledgement)
 
             side = ClaudeSide(claude=logged, replies=replies_out, board=board)
-            await converse(settings, language, side, settings.mumble.username)
+            await converse(settings, language, side, transport)
 
         await serve_over_stdio(server, talk_to)
 

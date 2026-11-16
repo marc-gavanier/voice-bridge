@@ -125,7 +125,7 @@ omit = [
     "*/voice_bridge/entrypoints/rehearsal.py",
     "*/voice_bridge/entrypoints/tool_hook.py",
     "*/voice_bridge/entrypoints/voice.py",
-    "*/voice_bridge/libraries/mumble/connection.py",
+    "*/voice_bridge/features/transport/abilities/carry/implementation/mumble_connection.py",
 ]
 
 [tool.coverage.report]

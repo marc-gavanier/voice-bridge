@@ -2,7 +2,7 @@ import math
 import sys
 import time
 from functools import partial
-from typing import TYPE_CHECKING, Final
+from typing import Final
 
 import anyio
 
@@ -12,28 +12,31 @@ from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, wa
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
 from voice_bridge.entrypoints.voice import access
-from voice_bridge.features.conversation.abilities.hold_conversation.implementation.telemetry import no_stall
 from voice_bridge.features.recording.abilities.record.implementation.record import Recorder, record
-from voice_bridge.libraries.mumble.audio import MUMBLE_RATE, Packet, named, pump_audio, with_pauses
-from voice_bridge.libraries.mumble.connection import stay_connected
-
-if TYPE_CHECKING:
-    from pymumble_rev import MumbleClient
+from voice_bridge.features.transport.abilities.carry.domain.received import Frame
+from voice_bridge.features.transport.abilities.carry.implementation.carry import carry, with_pauses
+from voice_bridge.features.transport.abilities.carry.implementation.mumble import Mumble, named
+from voice_bridge.features.transport.abilities.carry.implementation.mumble_connection import stay_connected
 
 USERNAME: Final = "recorder"
 PATIENCE: Final = 0.5
 
 
 async def record_bridge(settings: Settings) -> None:
-    packets_in, packets_out = anyio.create_memory_object_stream[Packet](math.inf)
-    recorder = Recorder(directory=settings.log_file.parent / "recordings", rate=MUMBLE_RATE)
+    frames_in, frames_out = anyio.create_memory_object_stream[Frame](math.inf)
+    transport = Mumble(
+        connection=partial(stay_connected, access(settings, USERNAME)),
+        listened=named(settings.mumble.username),
+        clock=time.time,
+    )
+    recorder = Recorder(directory=settings.log_file.parent / "recordings", rate=transport.rate)
 
-    async def connected(client: MumbleClient) -> None:
-        await pump_audio(client, named(settings.mumble.username), packets_in, time.time, no_stall)
+    def unmeasured(_waited: float) -> None:
+        return None
 
-    async with packets_in, packets_out, anyio.create_task_group() as tasks:
-        _ = tasks.start_soon(stay_connected, access(settings, USERNAME), connected)
-        await record(recorder, with_pauses(packets_out, PATIENCE), time.time)
+    async with frames_in, frames_out, anyio.create_task_group() as tasks:
+        _ = tasks.start_soon(carry, transport, frames_in.send, unmeasured)
+        await record(recorder, with_pauses(frames_out, PATIENCE), time.time)
 
 
 def main() -> None:

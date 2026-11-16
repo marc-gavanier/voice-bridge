@@ -19,7 +19,6 @@ from voice_bridge.features.hearing.abilities.listen.domain.ports import VoiceDet
 from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing
 from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, advance, listen
 from voice_bridge.features.hearing.domain.utterance import Dismissed, Listening, UtteranceRules
-from voice_bridge.libraries.mumble.audio import Packet
 
 RATE = 48000
 PACKET_BYTES = 1920
@@ -48,7 +47,14 @@ def ears(detector: VoiceDetector, voicing: Voicing = ANY_VOLUME, turn: Turn | No
 EARS = ears(scoring(1.0))
 DEAF_EARS = ears(scoring(0.0))
 
-type Tick = tuple[Packet | None, float]
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Received:
+    pcm: bytes
+    at: float
+
+
+type Tick = tuple[Received | None, float]
 
 
 def speech_ticks() -> list[Tick]:
@@ -56,7 +62,7 @@ def speech_ticks() -> list[Tick]:
         pcm = recording.readframes(recording.getnframes())
     starts = range(0, len(pcm) - PACKET_BYTES + 1, PACKET_BYTES)
     return [
-        (Packet(pcm=pcm[start : start + PACKET_BYTES], at=index * 0.02, frame_number=index * 2), index * 0.02)
+        (Received(pcm=pcm[start : start + PACKET_BYTES], at=index * 0.02), index * 0.02)
         for index, start in enumerate(starts)
     ]
 
@@ -66,9 +72,7 @@ def packet_audio(ticks: list[Tick]) -> list[bytes]:
 
 
 def silence_ticks(count: int) -> list[Tick]:
-    return [
-        (Packet(pcm=bytes(PACKET_BYTES), at=index * 0.02, frame_number=index), index * 0.02) for index in range(count)
-    ]
+    return [(Received(pcm=bytes(PACKET_BYTES), at=index * 0.02), index * 0.02) for index in range(count)]
 
 
 EARS_TOO_LOUD_TO_REACH = ears(scoring(1.0), Voicing(volume_threshold=1e9, probability=0.5))
@@ -116,7 +120,7 @@ def test_a_pause_alone_is_never_reported() -> None:
     assert advance(EARS, Listening(), None, 1.0)[1] == ()
 
 
-async def ticks_of(ticks: list[Tick]) -> AsyncIterator[Packet | None]:
+async def ticks_of(ticks: list[Tick]) -> AsyncIterator[Received | None]:
     for tick, _ in ticks:
         yield tick
 
