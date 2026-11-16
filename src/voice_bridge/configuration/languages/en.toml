@@ -1,4 +1,4 @@
-whisper_code = "en"
+code = "en"
 voice = "neutral_female"
 stop_refusal = "The speaker asked to stop: no tool runs until their next message. Do not retry; say in one sentence what was stopped and what was already done."
 delegation_refusal = "In a voice session you do not work yourself: hand this task to a background agent, end your turn at once and stay available to talk."

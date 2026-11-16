@@ -20,8 +20,8 @@ ANNOUNCED_COUNTS: Final = 4
 type RouteOf = Callable[[Language, str], str]
 
 
-def test_english_is_transcribed_as_english() -> None:
-    assert language_pack("en").whisper_code == "en"
+def test_english_is_coded_as_english() -> None:
+    assert language_pack("en").code == "en"
 
 
 def test_english_greets_in_english() -> None:
@@ -199,7 +199,7 @@ def test_every_language_has_neutral_acknowledgements_for_a_question(language: La
 
 
 MINIMAL_PACK = """
-whisper_code = "en"
+code = "en"
 voice = "neutral_female"
 stop_refusal = "Stopped."
 delegation_refusal = "Delegate."
@@ -291,5 +291,5 @@ def test_a_language_file_without_announcements_is_refused() -> None:
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
-def test_every_language_is_transcribed_in_itself(language: Language) -> None:
-    assert language_pack(language).whisper_code == language
+def test_every_language_is_coded_as_its_iso_639_1_code(language: Language) -> None:
+    assert language_pack(language).code == language

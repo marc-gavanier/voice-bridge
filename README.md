@@ -315,7 +315,7 @@ Nothing said reaches Sentry: the bridge turns off breadcrumbs, which would carry
 
 The bridge speaks Arabic, Dutch, English, French, German, Hindi, Italian, Portuguese and Spanish, the nine languages Voxtral has voices for. Each one is two files in [`languages/`](src/voice_bridge/configuration/languages), named after its ISO 639-1 code:
 
-- `<code>.toml`: the Whisper language code, the default voice, the tool descriptions, the Whisper hallucinations to drop, and the fourteen routes with their examples, acknowledgements and the thresholds of the stop, presence and end routes; the presence route, marked `greets`, also gives the greeting, one of its sentences drawn at each start; the presence, thanks and compliment routes, marked `answers`, bring no hold music, since their acknowledgement fully answers them. A test asks for at least 15 examples per route, and for the same routes, in the same order, as French.
+- `<code>.toml`: the ISO 639-1 code given to the speech recognizer, the default voice, the tool descriptions, the Whisper hallucinations to drop, and the fourteen routes with their examples, acknowledgements and the thresholds of the stop, presence and end routes; the presence route, marked `greets`, also gives the greeting, one of its sentences drawn at each start; the presence, thanks and compliment routes, marked `answers`, bring no hold music, since their acknowledgement fully answers them. A test asks for at least 15 examples per route, and for the same routes, in the same order, as French.
 - `<code>.md`: the instructions Claude is given, when the user has no `instructions_file`.
 
 To add one:

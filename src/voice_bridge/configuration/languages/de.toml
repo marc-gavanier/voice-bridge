@@ -1,4 +1,4 @@
-whisper_code = "de"
+code = "de"
 voice = "de_female"
 stop_refusal = "Der Sprecher hat um Abbruch gebeten: Bis zu seiner nächsten Nachricht läuft kein Werkzeug. Versuche es nicht erneut; sag in einem Satz, was abgebrochen wurde und was schon erledigt war."
 delegation_refusal = "In einer Sprachsitzung arbeitest du nicht selbst: Gib diese Aufgabe an einen Hintergrundagenten ab, beende deinen Zug sofort und bleib für das Gespräch verfügbar."
