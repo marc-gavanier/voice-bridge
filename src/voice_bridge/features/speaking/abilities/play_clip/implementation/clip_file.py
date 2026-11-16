@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn
 
-from voice_bridge.libraries.audio.file import read_audio
-from voice_bridge.libraries.audio.pcm import duration
+from voice_bridge.libraries.audio.pcm import duration, scaled
+
+if TYPE_CHECKING:
+    from voice_bridge.features.speaking.domain.ports import Decoder
 
 AUDIO_SUFFIXES: Final = (".aac", ".flac", ".m4a", ".mp3", ".ogg", ".opus", ".wav")
 
@@ -40,10 +42,10 @@ def _allowed(path: str, rules: ClipRules) -> Path:
     return found
 
 
-def read_clip(path: str, *, rules: ClipRules, rate: int) -> bytes:
+def read_clip(path: str, *, rules: ClipRules, rate: int, decode: Decoder) -> bytes:
     found = _allowed(path, rules)
     try:
-        pcm = read_audio(found, rate=rate, volume=rules.volume)
+        pcm = scaled(decode(found, rate), rules.volume)
     except ValueError as error:
         message = f"{path} holds no audio FFmpeg can read"
         raise ClipRefusedError(message) from error

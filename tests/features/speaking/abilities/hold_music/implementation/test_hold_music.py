@@ -1,11 +1,12 @@
 from array import array
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from voice_bridge.features.speaking.abilities.hold_music.domain.ports import Speaker
-from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic
+from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic, track_of
 from voice_bridge.features.speaking.domain.track import Track
 
 pytestmark = pytest.mark.anyio
@@ -109,3 +110,27 @@ def test_without_a_fade_out_stopping_plays_nothing_more() -> None:
     speaker = RecordedSpeaker()
     loud_for(speaker).fade()
     assert speaker.played == []
+
+
+MUSIC = Path("/music/hold.mp3")
+
+
+@dataclass
+class RecordingDecoder:
+    pcm: bytes
+    asked: list[tuple[Path, int]] = field(default_factory=list)
+
+    def __call__(self, path: Path, rate: int, /) -> bytes:
+        self.asked.append((path, rate))
+        return self.pcm
+
+
+def test_the_music_is_decoded_from_its_file_at_the_rate_asked() -> None:
+    decoder = RecordingDecoder(pcm=b"")
+    _ = track_of(MUSIC, decode=decoder, rate=RATE, volume=1.0)
+    assert decoder.asked == [(MUSIC, RATE)]
+
+
+def test_the_music_plays_from_its_start_at_the_volume_set() -> None:
+    track = track_of(MUSIC, decode=RecordingDecoder(pcm=array("h", [8000, -8000]).tobytes()), rate=RATE, volume=0.5)
+    assert track == Track(pcm=array("h", [4000, -4000]).tobytes())

@@ -26,6 +26,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import ClipRules, read_clip
+from voice_bridge.libraries.audio.file import decode_audio
 from voice_bridge.libraries.mumble.audio import MUMBLE_RATE
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,9 @@ def _play_tool(settings: Settings, language: LanguagePack) -> PlayTool:
     rules = ClipRules(directory=clips.directory, largest=clips.largest, longest=clips.longest, volume=clips.volume)
 
     async def read(path: str) -> bytes:
-        return await anyio.to_thread.run_sync(partial(read_clip, path, rules=rules, rate=MUMBLE_RATE))
+        return await anyio.to_thread.run_sync(
+            partial(read_clip, path, rules=rules, rate=MUMBLE_RATE, decode=decode_audio)
+        )
 
     return PlayTool(
         description=language.play_tool_description,

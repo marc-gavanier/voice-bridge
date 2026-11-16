@@ -30,6 +30,10 @@ def boost(pcm: bytes, gain: float) -> bytes:
     return from_float(np.tanh(to_float(pcm) * gain))
 
 
+def scaled(pcm: bytes, volume: float) -> bytes:
+    return from_float(to_float(pcm) * volume)
+
+
 def ramp(pcm: bytes, start: float, end: float) -> bytes:
     samples = to_float(pcm)
     return from_float(samples * np.linspace(start, end, num=samples.size, dtype=np.float32))
