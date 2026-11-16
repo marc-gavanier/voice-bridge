@@ -2,8 +2,14 @@
 name = "voice-bridge"
 version = "0.1.0"
 description = "Talk to a Claude Code session by voice over Mumble"
+readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.14",
+]
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "anyio>=4.15.1",
@@ -35,6 +41,10 @@ voice-bridge-recorder = "voice_bridge.entrypoints.recorder:main"
 voice-bridge-tool-hook = "voice_bridge.entrypoints.tool_hook:main"
 voice-bridge-activity-hook = "voice_bridge.entrypoints.activity_hook:main"
 voice-bridge-claude-settings = "voice_bridge.entrypoints.claude_settings:main"
+
+[project.urls]
+Repository = "https://github.com/marc-gavanier/voice-bridge"
+Issues = "https://github.com/marc-gavanier/voice-bridge/issues"
 
 [project.optional-dependencies]
 cuda = [
@@ -191,6 +201,10 @@ DEP002 = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
+version_provider = "uv"
+tag_format = "v$version"
+major_version_zero = true
+update_changelog_on_bump = true
 
 [tool.pydeps]
 only = ["voice_bridge"]
