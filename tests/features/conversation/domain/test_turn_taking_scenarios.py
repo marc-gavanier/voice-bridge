@@ -45,7 +45,7 @@ SPEAKING_AT = 1.0
 SILENT_AT = 5.0
 NO_SILENCE = -1
 RECORDED = b"recorded"
-UNANSWERED = "Claude Code waits for a confirmation on its screen."
+UNANSWERED = "The assistant waits for a confirmation on its screen."
 
 
 @dataclass(frozen=True)
@@ -100,12 +100,12 @@ def recording(name: str) -> Recording:
     return Recording(name=name, pcm=RECORDED)
 
 
-@given("Claude is silent", target_fixture="turn")
+@given("the assistant is silent", target_fixture="turn")
 def claude_is_silent() -> Turn:
     return Turn(state=Conversation())
 
 
-@given("Claude Code has not answered since the bridge started", target_fixture="turn")
+@given("the assistant has not answered since the bridge started", target_fixture="turn")
 def claude_code_has_not_answered() -> Turn:
     return Turn(state=Conversation(unanswered=(UNANSWERED,), unanswered_after=10.0))
 
@@ -115,20 +115,20 @@ def unanswered_words(state: Conversation) -> Turn:
     return after(said, SilenceLasted(ticket=latest_silence(said), at=SILENT_AT))
 
 
-@given("the speaker's words reached a Claude Code that never answered", target_fixture="turn")
+@given("the speaker's words reached an assistant that never answered", target_fixture="turn")
 def words_reached_a_claude_code_that_never_answered() -> Turn:
     return unanswered_words(Conversation(unanswered=(UNANSWERED,), unanswered_after=10.0))
 
 
 @given(
-    "the speaker's words reached a Claude Code that never answered, with a long wait for the music",
+    "the speaker's words reached an assistant that never answered, with a long wait for the music",
     target_fixture="turn",
 )
 def words_reached_a_claude_code_that_never_answered_with_a_long_wait() -> Turn:
     return unanswered_words(Conversation(unanswered=(UNANSWERED,), unanswered_after=10.0, hold_music_delay=60.0))
 
 
-@given("Claude Code told the bridge it works", target_fixture="turn")
+@given("the assistant told the bridge it works", target_fixture="turn")
 def claude_code_told_the_bridge_it_works(turn: Turn) -> Turn:
     return after(turn, AssistantBusy(at=SILENT_AT))
 
@@ -148,13 +148,13 @@ def the_wait_for_the_earlier_words_goes_on(turn: Turn) -> Turn:
     return after(turn, AnswerLasted(ticket=turn.answers[0]))
 
 
-@given(parsers.parse('Claude is replying "{first}" then "{second}"'), target_fixture="turn")
+@given(parsers.parse('the assistant is replying "{first}" then "{second}"'), target_fixture="turn")
 def claude_is_replying(first: str, second: str) -> Turn:
     asked = after(Turn(state=Conversation()), Asked(sentences=(first, second)))
     return whole_voice(asked, ticket=synthesizing_ticket(asked), pcm=b"", duration=3.0, at=0.0)
 
 
-@given("the speaker cut Claude off", target_fixture="turn")
+@given("the speaker cut the assistant off", target_fixture="turn")
 def the_speaker_cut_claude_off(turn: Turn) -> Turn:
     return after(turn, VoiceDetected(at=SPEAKING_AT))
 
@@ -169,12 +169,12 @@ def the_speaker_started_talking(turn: Turn) -> Turn:
     return after(turn, VoiceDetected(at=SPEAKING_AT))
 
 
-@given(parsers.parse('Claude\'s voice for "{sentence}" was ready'), target_fixture="turn")
+@given(parsers.parse('the assistant\'s voice for "{sentence}" was ready'), target_fixture="turn")
 def claudes_voice_was_ready(turn: Turn, sentence: str) -> Turn:
     return claudes_voice_is_ready(turn, sentence)
 
 
-@given(parsers.re(r'Claude replied "(?P<sentence>[^"]*)"$'), target_fixture="turn")
+@given(parsers.re(r'the assistant replied "(?P<sentence>[^"]*)"$'), target_fixture="turn")
 def claude_replied(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,)))
 
@@ -185,12 +185,12 @@ def voiced(turn: Turn, sentence: str, duration: float) -> Turn:
     return whole_voice(asked, ticket=ticket, pcm=b"", duration=duration, at=SPEAKING_AT)
 
 
-@given(parsers.parse('Claude said "{sentence}"'), target_fixture="turn")
+@given(parsers.parse('the assistant said "{sentence}"'), target_fixture="turn")
 def claude_said(turn: Turn, sentence: str) -> Turn:
     return voiced(turn, sentence, duration=SILENT_AT - SPEAKING_AT - 1.0)
 
 
-@given(parsers.parse('Claude is saying "{sentence}"'), target_fixture="turn")
+@given(parsers.parse('the assistant is saying "{sentence}"'), target_fixture="turn")
 def claude_is_saying(turn: Turn, sentence: str) -> Turn:
     return voiced(turn, sentence, duration=SILENT_AT - SPEAKING_AT + 1.0)
 
@@ -200,42 +200,42 @@ def working_on(words: str) -> Turn:
     return after(said, SilenceLasted(ticket=latest_silence(said), at=SILENT_AT))
 
 
-@given(parsers.parse('Claude is working on "{words}"'), target_fixture="turn")
+@given(parsers.parse('the assistant is working on "{words}"'), target_fixture="turn")
 def claude_is_working_on(words: str) -> Turn:
     return working_on(words)
 
 
-@given(parsers.parse('Claude replied "{first}" then "{second}"'), target_fixture="turn")
+@given(parsers.parse('the assistant replied "{first}" then "{second}"'), target_fixture="turn")
 def claude_replied_two_sentences(turn: Turn, first: str, second: str) -> Turn:
     return after(turn, Asked(sentences=(first, second)))
 
 
-@given("Claude is done", target_fixture="turn")
+@given("the assistant is done", target_fixture="turn")
 def claude_was_done(turn: Turn) -> Turn:
     return after(turn, AssistantIdle())
 
 
-@when("Claude is done", target_fixture="turn")
+@when("the assistant is done", target_fixture="turn")
 def claude_is_done(turn: Turn) -> Turn:
     return after(turn, AssistantIdle())
 
 
-@given("Claude started working on its own", target_fixture="turn")
+@given("the assistant started working on its own", target_fixture="turn")
 def claude_started_working_on_its_own() -> Turn:
     return after(Turn(state=Conversation()), AssistantBusy(at=SILENT_AT))
 
 
-@when("Claude starts working on its own", target_fixture="turn")
+@when("the assistant starts working on its own", target_fixture="turn")
 def claude_starts_working_on_its_own(turn: Turn) -> Turn:
     return after(turn, AssistantBusy(at=SILENT_AT))
 
 
-@given(parsers.parse('Claude said goodbye with "{sentence}"'), target_fixture="turn")
+@given(parsers.parse('the assistant said goodbye with "{sentence}"'), target_fixture="turn")
 def claude_said_goodbye(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,), ending=True))
 
 
-@given(parsers.parse('Claude is saying goodbye with "{sentence}"'), target_fixture="turn")
+@given(parsers.parse('the assistant is saying goodbye with "{sentence}"'), target_fixture="turn")
 def claude_is_saying_goodbye(turn: Turn, sentence: str) -> Turn:
     asked = after(turn, Asked(sentences=(sentence,), ending=True))
     return whole_voice(asked, ticket=synthesizing_ticket(asked), pcm=b"", duration=3.0, at=0.0)
@@ -302,7 +302,7 @@ def the_wait_goes_on(turn: Turn) -> Turn:
     return after(turn, HoldLasted(ticket=turn.holds[-1]))
 
 
-@when(parsers.parse('Claude\'s voice for "{sentence}" is ready'), target_fixture="turn")
+@when(parsers.parse('the assistant\'s voice for "{sentence}" is ready'), target_fixture="turn")
 def claudes_voice_is_ready(turn: Turn, sentence: str) -> Turn:
     assert turn.state.synthesizing is not None
     assert turn.state.synthesizing.sentence == sentence
@@ -315,24 +315,24 @@ def first_piece(turn: Turn, sentence: str) -> Turn:
     return after(turn, Voiced(ticket=synthesizing_ticket(turn), pcm=b"voice", duration=3.0, at=0.0))
 
 
-@when(parsers.parse('the first piece of Claude\'s voice for "{sentence}" is ready'), target_fixture="turn")
+@when(parsers.parse('the first piece of the assistant\'s voice for "{sentence}" is ready'), target_fixture="turn")
 def the_first_piece_is_ready(turn: Turn, sentence: str) -> Turn:
     return first_piece(turn, sentence)
 
 
-@given(parsers.parse('the first piece of Claude\'s voice for "{sentence}" was ready'), target_fixture="turn")
+@given(parsers.parse('the first piece of the assistant\'s voice for "{sentence}" was ready'), target_fixture="turn")
 def the_first_piece_was_ready(turn: Turn, sentence: str) -> Turn:
     return first_piece(turn, sentence)
 
 
-@when(parsers.parse('the rest of Claude\'s voice for "{sentence}" arrives'), target_fixture="turn")
+@when(parsers.parse('the rest of the assistant\'s voice for "{sentence}" arrives'), target_fixture="turn")
 def the_rest_of_the_voice_arrives(turn: Turn, sentence: str) -> Turn:
     assert turn.state.synthesizing is not None
     assert turn.state.synthesizing.sentence == sentence
     return whole_voice(turn, ticket=synthesizing_ticket(turn), pcm=b"voice", duration=1.0, at=SPEAKING_AT)
 
 
-@when(parsers.parse('Claude\'s voice for "{sentence}" fails'), target_fixture="turn")
+@when(parsers.parse('the assistant\'s voice for "{sentence}" fails'), target_fixture="turn")
 def claudes_voice_fails(turn: Turn, sentence: str) -> Turn:
     assert turn.state.synthesizing is not None
     assert turn.state.synthesizing.sentence == sentence
@@ -374,7 +374,7 @@ def the_speaker_went_on(turn: Turn) -> Turn:
     return after(turn, SpeechStarted(at=SPEAKING_AT))
 
 
-@when(parsers.parse('Claude replies "{sentence}"'), target_fixture="turn")
+@when(parsers.parse('the assistant replies "{sentence}"'), target_fixture="turn")
 def claude_replies(turn: Turn, sentence: str) -> Turn:
     return after(turn, Asked(sentences=(sentence,)))
 
@@ -409,17 +409,17 @@ def the_silence_after_the_first_words_ends(turn: Turn) -> Turn:
     return after(turn, SilenceLasted(ticket=turn.silences[0], at=SILENT_AT))
 
 
-@then("Claude's voice stops")
+@then("the assistant's voice stops")
 def claudes_voice_stops(turn: Turn) -> None:
     assert StopPlaying(heard_at=SPEAKING_AT) in turn.commands
 
 
-@then("Claude's voice plays")
+@then("the assistant's voice plays")
 def claudes_voice_plays(turn: Turn) -> None:
     assert Play(pcm=b"voice") in turn.commands
 
 
-@then("Claude's voice does not play")
+@then("the assistant's voice does not play")
 def claudes_voice_does_not_play(turn: Turn) -> None:
     assert not any(isinstance(command, Play) for command in turn.commands)
 
@@ -434,12 +434,12 @@ def no_synthesis_is_abandoned(turn: Turn) -> None:
     assert not any(isinstance(command, CancelSynthesis) for command in turn.commands)
 
 
-@then("Claude's voice stops when the stop is understood")
+@then("the assistant's voice stops when the stop is understood")
 def claudes_voice_stops_when_the_stop_is_understood(turn: Turn) -> None:
     assert StopPlaying(heard_at=SILENT_AT) in turn.commands
 
 
-@then("Claude's voice is not stopped")
+@then("the assistant's voice is not stopped")
 def claudes_voice_is_not_stopped(turn: Turn) -> None:
     assert not any(isinstance(command, StopPlaying) for command in turn.commands)
 
@@ -449,12 +449,12 @@ def nothing_happens(turn: Turn) -> None:
     assert turn.commands == ()
 
 
-@then(parsers.parse('Claude still has to say "{first}" then "{second}"'))
+@then(parsers.parse('the assistant still has to say "{first}" then "{second}"'))
 def claude_still_has_to_say(turn: Turn, first: str, second: str) -> None:
     assert unspoken(turn.state) == (first, second)
 
 
-@then("Claude has nothing left to say")
+@then("the assistant has nothing left to say")
 def claude_has_nothing_left_to_say(turn: Turn) -> None:
     assert unspoken(turn.state) == ()
 
@@ -463,32 +463,32 @@ def forwarded(turn: Turn) -> Forward:
     return next(command for command in turn.commands if isinstance(command, Forward))
 
 
-@then(parsers.parse('Claude hears "{words}" as an interruption'))
+@then(parsers.parse('the assistant hears "{words}" as an interruption'))
 def claude_hears_an_interruption(turn: Turn, words: str) -> None:
     assert (forwarded(turn).text, forwarded(turn).interrupted) == (words, True)
 
 
-@then(parsers.parse('Claude hears "{words}"'))
+@then(parsers.parse('the assistant hears "{words}"'))
 def claude_hears(turn: Turn, words: str) -> None:
     assert (forwarded(turn).text, forwarded(turn).interrupted) == (words, False)
 
 
-@then("Claude hears nothing yet")
+@then("the assistant hears nothing yet")
 def claude_hears_nothing_yet(turn: Turn) -> None:
     assert not any(isinstance(command, Forward) for command in turn.commands)
 
 
-@then("Claude says nothing yet")
+@then("the assistant says nothing yet")
 def claude_says_nothing_yet(turn: Turn) -> None:
     assert not any(isinstance(command, Synthesize) for command in turn.commands)
 
 
-@then(parsers.parse('Claude hears "{words}" with an acknowledgement to come'))
+@then(parsers.parse('the assistant hears "{words}" with an acknowledgement to come'))
 def claude_hears_with_an_acknowledgement(turn: Turn, words: str) -> None:
     assert (forwarded(turn).text, forwarded(turn).acknowledging) == (words, True)
 
 
-@then(parsers.parse('Claude hears "{words}" with no acknowledgement to come'))
+@then(parsers.parse('the assistant hears "{words}" with no acknowledgement to come'))
 def claude_hears_without_an_acknowledgement(turn: Turn, words: str) -> None:
     assert (forwarded(turn).text, forwarded(turn).acknowledging) == (words, False)
 
@@ -503,7 +503,7 @@ def the_bridge_acknowledges_nothing(turn: Turn) -> None:
     assert acknowledgements(turn.commands) == ()
 
 
-@then(parsers.parse('Claude starts saying "{sentence}"'))
+@then(parsers.parse('the assistant starts saying "{sentence}"'))
 def claude_starts_saying(turn: Turn, sentence: str) -> None:
     assert any(isinstance(command, Synthesize) and command.sentence == sentence for command in turn.commands)
 
@@ -513,22 +513,22 @@ def the_hold_music_waits_for_the_end_of_that_voice(turn: Turn) -> None:
     assert [command.after for command in turn.commands if isinstance(command, AwaitHold)] == [1.0]
 
 
-@then("the bridge waits for Claude Code to answer")
+@then("the bridge waits for the assistant to answer")
 def the_bridge_waits_for_claude_code_to_answer(turn: Turn) -> None:
     assert [command.after for command in turn.commands if isinstance(command, AwaitAnswer)] == [10.0]
 
 
-@then("the bridge does not wait for Claude Code to answer")
+@then("the bridge does not wait for the assistant to answer")
 def the_bridge_does_not_wait_for_claude_code_to_answer(turn: Turn) -> None:
     assert not any(isinstance(command, AwaitAnswer) for command in turn.commands)
 
 
-@then("the bridge says that Claude Code does not answer")
+@then("the bridge says that the assistant does not answer")
 def the_bridge_says_that_claude_code_does_not_answer(turn: Turn) -> None:
     assert any(isinstance(command, Synthesize) and command.sentence == UNANSWERED for command in turn.commands)
 
 
-@then("Claude no longer counts as working")
+@then("the assistant no longer counts as working")
 def claude_no_longer_counts_as_working(turn: Turn) -> None:
     assert not turn.state.working
 
@@ -563,7 +563,7 @@ def the_hold_music_stops(turn: Turn) -> None:
     assert StopHoldMusic() in turn.commands
 
 
-@then("the hold music stops before Claude speaks")
+@then("the hold music stops before the assistant speaks")
 def the_hold_music_stops_before_claude_speaks(turn: Turn) -> None:
     assert turn.commands[:2] == (StopHoldMusic(), Play(pcm=b"voice"))
 
@@ -615,7 +615,7 @@ def the_bridge_announces_nothing(turn: Turn) -> None:
     assert announcements(turn.commands) == ()
 
 
-@then("the announcement follows Claude's voice")
+@then("the announcement follows the assistant's voice")
 def the_announcement_follows_claudes_voice(turn: Turn) -> None:
     assert position(turn.commands, Play) < position(turn.commands, Announce)
 
@@ -630,17 +630,17 @@ def the_hold_music_stops_before_the_announcement(turn: Turn) -> None:
     assert turn.commands[:2] == (StopHoldMusic(), Announce(at_work=2))
 
 
-@when(parsers.parse('Claude plays the recording "{name}"'), target_fixture="turn")
+@when(parsers.parse('the assistant plays the recording "{name}"'), target_fixture="turn")
 def claude_plays_the_recording(turn: Turn, name: str) -> Turn:
     return after(turn, Asked(sentences=(recording(name),)))
 
 
-@given(parsers.parse('Claude played the recording "{name}"'), target_fixture="turn")
+@given(parsers.parse('the assistant played the recording "{name}"'), target_fixture="turn")
 def claude_played_the_recording(turn: Turn, name: str) -> Turn:
     return claude_plays_the_recording(turn, name)
 
 
-@given(parsers.parse('Claude is playing the recording "{name}"'), target_fixture="turn")
+@given(parsers.parse('the assistant is playing the recording "{name}"'), target_fixture="turn")
 def claude_is_playing_the_recording(name: str) -> Turn:
     asked = after(Turn(state=Conversation()), Asked(sentences=(recording(name),)))
     return whole_voice(asked, ticket=synthesizing_ticket(asked), pcm=RECORDED, duration=3.0, at=0.0)
@@ -653,11 +653,11 @@ def the_recording_is_ready(turn: Turn, name: str) -> Turn:
     return whole_voice(turn, ticket=synthesizing_ticket(turn), pcm=b"voice", duration=1.0, at=SILENT_AT)
 
 
-@then(parsers.parse('Claude starts saying the recording "{name}"'))
+@then(parsers.parse('the assistant starts saying the recording "{name}"'))
 def claude_starts_saying_the_recording(turn: Turn, name: str) -> None:
     assert Synthesize(ticket=synthesizing_ticket(turn), sentence=recording(name)) in turn.commands
 
 
-@then(parsers.parse('Claude still has to say "{first}" and "{second}" before the recording "{name}"'))
+@then(parsers.parse('the assistant still has to say "{first}" and "{second}" before the recording "{name}"'))
 def claude_still_has_to_say_then_the_recording(turn: Turn, first: str, second: str, name: str) -> None:
     assert unspoken(turn.state) == (first, second, recording(name))
