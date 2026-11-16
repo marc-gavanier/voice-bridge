@@ -1,11 +1,10 @@
 import wave
-from itertools import accumulate
 from pathlib import Path
 
 import numpy as np
 
 from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing, is_voiced
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Silero, listen, load_silero
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import SileroDetector, load_silero
 from voice_bridge.libraries.audio.pcm import from_float, level
 
 RATE = 48000
@@ -18,17 +17,15 @@ def packets(pcm: bytes) -> list[bytes]:
     return [pcm[start : start + PACKET_BYTES] for start in range(0, len(pcm) - PACKET_BYTES + 1, PACKET_BYTES)]
 
 
-def states(pcm: bytes) -> list[Silero]:
-    session = load_silero()
-    return list(accumulate(packets(pcm), lambda state, packet: listen(session, state, packet, RATE), initial=Silero()))[
-        1:
-    ]
+def probabilities(pcm: bytes) -> list[float]:
+    detector = SileroDetector(session=load_silero(), rate=RATE)
+    return [detector(packet) for packet in packets(pcm)]
 
 
-def decisions(pcm: bytes, voicing: Voicing = QUIET_ENOUGH) -> list[bool]:
+def decisions(pcm: bytes) -> list[bool]:
     return [
-        is_voiced(voicing, probability=state.probability, volume=level(packet))
-        for state, packet in zip(states(pcm), packets(pcm), strict=True)
+        is_voiced(QUIET_ENOUGH, probability=probability, volume=level(packet))
+        for probability, packet in zip(probabilities(pcm), packets(pcm), strict=True)
     ]
 
 

@@ -66,3 +66,14 @@ def listen(session: Session, state: Silero, pcm: bytes, rate: int) -> Silero:
         lambda current, window: _score(session, current, window), samples[:usable].reshape(-1, WINDOW), state
     )
     return replace(scored, pending=samples[usable:])
+
+
+@dataclass(slots=True, kw_only=True)
+class SileroDetector:
+    session: Session
+    rate: int
+    state: Silero = field(default_factory=Silero)
+
+    def __call__(self, pcm: bytes, /) -> float:
+        self.state = listen(self.session, self.state, pcm, self.rate)
+        return self.state.probability
