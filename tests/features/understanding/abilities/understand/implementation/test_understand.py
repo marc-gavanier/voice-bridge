@@ -1,4 +1,3 @@
-import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -7,7 +6,6 @@ from voice_bridge.features.understanding.abilities.understand.domain.ports impor
 from voice_bridge.features.understanding.abilities.understand.implementation.understand import (
     StopFlag,
     Understanding,
-    pre_tool_use_answer,
 )
 from voice_bridge.features.understanding.domain.meaning import Meaning, Route
 
@@ -85,30 +83,3 @@ def test_a_message_without_a_flag_leaves_none(tmp_path: Path) -> None:
     flag = StopFlag(tmp_path / "stop")
     flag.follow(YES)
     assert not flag.path.exists()
-
-
-def event(tool: str) -> str:
-    return json.dumps({"hook_event_name": "PreToolUse", "tool_name": tool, "tool_input": {}})
-
-
-def test_a_tool_after_a_stop_is_denied_with_the_reason() -> None:
-    answer = pre_tool_use_answer(event("Bash"), stopped=True, allowed=ALLOWED, reason="The speaker asked to stop.")
-    assert json.loads(answer or "{}") == {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": "The speaker asked to stop.",
-        }
-    }
-
-
-def test_the_reply_tool_still_runs_after_a_stop() -> None:
-    assert pre_tool_use_answer(event("mcp__voice__reply"), stopped=True, allowed=ALLOWED, reason="Stop.") is None
-
-
-def test_no_answer_lets_a_tool_run_without_a_stop() -> None:
-    assert pre_tool_use_answer(event("Bash"), stopped=False, allowed=ALLOWED, reason="Stop.") is None
-
-
-def test_an_event_without_a_tool_is_denied_after_a_stop() -> None:
-    assert pre_tool_use_answer("{}", stopped=True, allowed=ALLOWED, reason="Stop.") is not None

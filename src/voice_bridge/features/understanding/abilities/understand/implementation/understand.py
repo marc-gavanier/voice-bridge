@@ -2,8 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from voice_bridge.features.understanding.domain.meaning import Meaning, Route, meaning_of, refused
-from voice_bridge.libraries.claude_code.hooks import denial, tool_call
+from voice_bridge.features.understanding.domain.meaning import Meaning, Route, meaning_of
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -41,9 +40,3 @@ class StopFlag:
         elif self.path.exists():
             self.path.unlink()
             logger.info("stop lifted by a new message")
-
-
-def pre_tool_use_answer(event: str, *, stopped: bool, allowed: frozenset[str], reason: str) -> str | None:
-    if not refused(tool_call(event).tool, stopped=stopped, allowed=allowed):
-        return None
-    return denial(reason)
