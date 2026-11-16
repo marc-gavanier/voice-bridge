@@ -83,12 +83,12 @@ class AnswerLasted:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ClaudeBusy:
+class AssistantBusy:
     at: float
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ClaudeIdle:
+class AssistantIdle:
     pass
 
 
@@ -110,8 +110,8 @@ type Event = (
     | SilenceLasted
     | HoldLasted
     | AnswerLasted
-    | ClaudeBusy
-    | ClaudeIdle
+    | AssistantBusy
+    | AssistantIdle
     | AgentsChanged
 )
 
@@ -534,12 +534,12 @@ def _on_wait(state: Conversation, event: SilenceLasted | HoldLasted | AnswerLast
             assert_never(event)
 
 
-def _on_activity(state: Conversation, event: ClaudeBusy | ClaudeIdle) -> Step:
+def _on_activity(state: Conversation, event: AssistantBusy | AssistantIdle) -> Step:
     match event:
-        case ClaudeBusy(at=at):
+        case AssistantBusy(at=at):
             busy = replace(state, working=True, heard_from_claude_code=True)
             return (busy, ()) if busy.hearing else _await_hold_after_voice(busy, (), at)
-        case ClaudeIdle():
+        case AssistantIdle():
             return _stop_holding(replace(state, working=False, awaiting_hold=None, heard_from_claude_code=True))
         case _:
             assert_never(event)
@@ -559,7 +559,7 @@ def step(state: Conversation, event: Event) -> Step:
             return _on_speaker(state, event)
         case SilenceLasted() | HoldLasted() | AnswerLasted():
             return _on_wait(state, event)
-        case ClaudeBusy() | ClaudeIdle():
+        case AssistantBusy() | AssistantIdle():
             return _on_activity(state, event)
         case AgentsChanged():
             return _on_agents(state, event)

@@ -13,7 +13,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.domain.assis
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 from voice_bridge.features.conversation.domain.board import Task
-from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged, ClaudeBusy, ClaudeIdle
+from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged, AssistantBusy, AssistantIdle
 
 MORNING = datetime(2026, 11, 13, 9, 0, tzinfo=UTC)
 STARTED = ToolCall(tool_call_id="a1", title="general-purpose")
@@ -39,12 +39,12 @@ def board_with_one_finished() -> WorkBoard:
     return work
 
 
-def test_claude_busy_is_told_to_turn_taking() -> None:
-    assert board().events_of(TurnStarted(), 2.0) == (ClaudeBusy(at=2.0),)
+def test_a_turn_started_is_told_to_turn_taking_as_the_assistant_busy() -> None:
+    assert board().events_of(TurnStarted(), 2.0) == (AssistantBusy(at=2.0),)
 
 
-def test_claude_idle_is_told_to_turn_taking() -> None:
-    assert board().events_of(TurnEnded(), 2.0) == (ClaudeIdle(),)
+def test_a_turn_ended_is_told_to_turn_taking_as_the_assistant_idle() -> None:
+    assert board().events_of(TurnEnded(), 2.0) == (AssistantIdle(),)
 
 
 def test_an_agent_started_is_told_as_a_change_of_the_agents_at_work() -> None:
@@ -165,19 +165,19 @@ def test_the_board_reports_how_often_an_agent_was_resumed_and_when_last() -> Non
 
 
 def test_a_stop_with_nothing_in_the_background_finishes_the_background_agents() -> None:
-    assert board_with_one_at_work().events_of(TurnEnded(agents=()), 2.0) == (ClaudeIdle(), AgentsChanged(at_work=0))
+    assert board_with_one_at_work().events_of(TurnEnded(agents=()), 2.0) == (AssistantIdle(), AgentsChanged(at_work=0))
 
 
 def test_a_stop_without_the_task_list_leaves_the_agents_at_work() -> None:
-    assert board_with_one_at_work().events_of(TurnEnded(), 2.0) == (ClaudeIdle(),)
+    assert board_with_one_at_work().events_of(TurnEnded(), 2.0) == (AssistantIdle(),)
 
 
 def test_a_running_agent_missing_from_the_board_is_added_on_a_stop() -> None:
-    assert board().events_of(DESCRIBED, 2.0) == (ClaudeBusy(at=2.0), AgentsChanged(at_work=1))
+    assert board().events_of(DESCRIBED, 2.0) == (AssistantBusy(at=2.0), AgentsChanged(at_work=1))
 
 
 def test_work_left_in_the_background_without_agents_keeps_the_assistant_busy() -> None:
-    assert board().events_of(TurnEnded(working=True, agents=()), 2.0) == (ClaudeBusy(at=2.0),)
+    assert board().events_of(TurnEnded(working=True, agents=()), 2.0) == (AssistantBusy(at=2.0),)
 
 
 def test_an_agent_stopping_while_still_listed_as_running_is_finished_once() -> None:
@@ -224,7 +224,7 @@ def test_an_unreliable_board_read_is_logged(caplog: pytest.LogCaptureFixture) ->
     assert "board read while unreliable since 2026-11-13T09:00:00+00:00" in caplog.text
 
 
-def test_claude_busy_in_time_after_a_message_keeps_the_board_reliable() -> None:
+def test_a_turn_started_in_time_after_a_message_keeps_the_board_reliable() -> None:
     clock = Clock()
     work = WorkBoard(clock=clock.read)
     work.forwarded()
@@ -233,7 +233,7 @@ def test_claude_busy_in_time_after_a_message_keeps_the_board_reliable() -> None:
     assert json.loads(work.report())["reliable"] is True
 
 
-def test_claude_busy_too_late_is_logged_as_a_gap(caplog: pytest.LogCaptureFixture) -> None:
+def test_a_turn_started_too_late_is_logged_as_a_gap(caplog: pytest.LogCaptureFixture) -> None:
     _ = board_left_without_news(Clock()).events_of(TurnStarted(), 0.0)
     assert "no news from Claude Code's hooks from 2026-11-13T09:00:00+00:00" in caplog.text
 
