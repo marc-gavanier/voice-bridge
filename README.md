@@ -457,7 +457,7 @@ flowchart LR
     telemetry -.->|"OTLP"| collector
 ```
 
-The code is split into features, on top of shared libraries; entry points only wire them together.
+The code is split into features, on top of shared libraries; entry points only wire them together. The conversation reaches Claude Code through an assistant port shaped like the [Agent Client Protocol](https://agentclientprotocol.com) ([ADR-037](docs/decisions/ADR-037-the-assistant-is-reached-through-a-port-shaped-like-acp.md)).
 
 ```
 src/voice_bridge/
