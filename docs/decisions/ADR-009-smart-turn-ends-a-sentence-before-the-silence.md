@@ -1,7 +1,7 @@
 # ADR-009 — Smart Turn ends a sentence before the silence
 
 **Date**: 2026-11-11
-**Status**: accepted
+**Status**: accepted, amended by [ADR-036](ADR-036-silero-smart-turns-features-and-audio-files-no-longer-come-from-faster-whisper.md): the features come from `transformers`, no longer from faster-whisper
 
 ## Context
 
