@@ -99,3 +99,7 @@ def test_an_ability_implementation_imports_only_its_ability_its_feature_librarie
 ) -> None:
     forbidden = _forbidden_imports(graph, "ability implementation", _ability_implementation_may_import)
     assert not forbidden, forbidden
+
+
+def test_faster_whisper_is_imported_only_where_the_speech_recognizer_is_built(graph: grimp.ImportGraph) -> None:
+    assert graph.find_modules_that_directly_import("faster_whisper") == {f"{ROOT}.entrypoints.voice"}

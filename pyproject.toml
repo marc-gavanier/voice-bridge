@@ -27,6 +27,7 @@ dependencies = [
     "soxr>=1.1.0",
     "stamina>=26.1.0",
     "tokenizers>=0.23.3",
+    "transformers>=5.22.2",
 ]
 
 [project.scripts]
