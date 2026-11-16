@@ -44,7 +44,7 @@ from voice_bridge.features.hearing.abilities.listen.domain.heard import (
 )
 from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing
 from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, listen
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import load_silero
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import SileroDetector, load_silero
 from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, load_session
 from voice_bridge.features.hearing.abilities.transcribe.implementation.transcribe import (
     Transcription,
@@ -152,7 +152,7 @@ def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
 def _ears(settings: Settings) -> Ears:
     hearing = settings.hearing
     return Ears(
-        session=load_silero(),
+        detector=SileroDetector(session=load_silero(), rate=MUMBLE_RATE),
         voicing=Voicing(volume_threshold=hearing.volume_threshold, probability=hearing.voice_probability),
         rules=UtteranceRules(
             silence=hearing.silence,

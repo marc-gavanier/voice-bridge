@@ -1,50 +1,40 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from voice_bridge.features.hearing.abilities.listen.domain.heard import Heard, Turn, heard_frame, paused
 from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing, is_voiced
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Session, Silero
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import listen as score
 from voice_bridge.features.hearing.domain.utterance import Frame, Listening, UtteranceRules
 from voice_bridge.libraries.audio.pcm import duration, level
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, Awaitable, Callable
 
+    from voice_bridge.features.hearing.abilities.listen.domain.ports import VoiceDetector
     from voice_bridge.libraries.mumble.audio import Packet
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Ears:
-    session: Session
+    detector: VoiceDetector
     voicing: Voicing
     rules: UtteranceRules
     rate: int
     turn: Turn | None = None
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Hearing:
-    silero: Silero = field(default_factory=Silero)
-    listening: Listening = field(default_factory=Listening)
-
-
-def _frame(ears: Ears, silero: Silero, packet: Packet) -> Frame:
+def _frame(ears: Ears, packet: Packet) -> Frame:
     return Frame(
         pcm=packet.pcm,
-        voiced=is_voiced(ears.voicing, probability=silero.probability, volume=level(packet.pcm)),
+        voiced=is_voiced(ears.voicing, probability=ears.detector(packet.pcm), volume=level(packet.pcm)),
         at=packet.at,
         duration=duration(packet.pcm, ears.rate),
     )
 
 
-def advance(ears: Ears, state: Hearing, tick: Packet | None, now: float) -> tuple[Hearing, tuple[Heard, ...]]:
+def advance(ears: Ears, state: Listening, tick: Packet | None, now: float) -> tuple[Listening, tuple[Heard, ...]]:
     if tick is None:
-        listening, heard = paused(state.listening, now, ears.rules, ears.turn)
-        return Hearing(silero=state.silero, listening=listening), heard
-    silero = score(ears.session, state.silero, tick.pcm, ears.rate)
-    listening, heard = heard_frame(state.listening, _frame(ears, silero, tick), ears.rules, ears.turn)
-    return Hearing(silero=silero, listening=listening), heard
+        return paused(state, now, ears.rules, ears.turn)
+    return heard_frame(state, _frame(ears, tick), ears.rules, ears.turn)
 
 
 async def listen(
@@ -53,7 +43,7 @@ async def listen(
     report: Callable[[Heard], Awaitable[None]],
     clock: Callable[[], float],
 ) -> None:
-    state = Hearing()
+    state = Listening()
     async for tick in ticks:
         state, heard = advance(ears, state, tick, clock())
         for each in heard:
