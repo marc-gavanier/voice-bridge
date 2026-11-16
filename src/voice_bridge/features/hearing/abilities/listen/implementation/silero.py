@@ -8,7 +8,7 @@ import onnxruntime as ort
 import pooch
 import soxr
 
-from voice_bridge.libraries.audio.pcm import Samples, level, to_float
+from voice_bridge.libraries.audio.pcm import Samples, to_float
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -53,12 +53,6 @@ class Silero:
     probability: float = 0.0
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Voicing:
-    volume_threshold: float
-    probability: float
-
-
 def _score(session: Session, state: Silero, window: Samples) -> Silero:
     framed = np.concatenate([state.context, window.reshape(1, WINDOW)], axis=1)
     output, after = session.run(None, {"input": framed, "state": state.state, "sr": _RATE_INPUT})
@@ -72,7 +66,3 @@ def listen(session: Session, state: Silero, pcm: bytes, rate: int) -> Silero:
         lambda current, window: _score(session, current, window), samples[:usable].reshape(-1, WINDOW), state
     )
     return replace(scored, pending=samples[usable:])
-
-
-def is_voiced(state: Silero, pcm: bytes, voicing: Voicing) -> bool:
-    return state.probability >= voicing.probability and level(pcm) >= voicing.volume_threshold

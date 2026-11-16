@@ -4,14 +4,9 @@ from pathlib import Path
 
 import numpy as np
 
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import (
-    Silero,
-    Voicing,
-    is_voiced,
-    listen,
-    load_silero,
-)
-from voice_bridge.libraries.audio.pcm import from_float
+from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing, is_voiced
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import Silero, listen, load_silero
+from voice_bridge.libraries.audio.pcm import from_float, level
 
 RATE = 48000
 PACKET_BYTES = 960 * 2
@@ -31,7 +26,10 @@ def states(pcm: bytes) -> list[Silero]:
 
 
 def decisions(pcm: bytes, voicing: Voicing = QUIET_ENOUGH) -> list[bool]:
-    return [is_voiced(state, packet, voicing) for state, packet in zip(states(pcm), packets(pcm), strict=True)]
+    return [
+        is_voiced(voicing, probability=state.probability, volume=level(packet))
+        for state, packet in zip(states(pcm), packets(pcm), strict=True)
+    ]
 
 
 def speech() -> bytes:
@@ -64,10 +62,6 @@ def test_engine_hum_never_adds_up_to_half_a_second_of_voice() -> None:
 
 def test_speech_is_voice() -> None:
     assert any(decisions(speech()))
-
-
-def test_quiet_speech_is_not_voice() -> None:
-    assert not any(decisions(speech(), Voicing(volume_threshold=1e9, probability=0.5)))
 
 
 def test_silero_v6_hears_voice_in_96_of_the_131_packets_of_the_recording() -> None:

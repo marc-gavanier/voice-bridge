@@ -14,8 +14,9 @@ from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Utterance,
     VoiceStarted,
 )
+from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing
 from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, Hearing, advance, listen
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing, load_silero
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import load_silero
 from voice_bridge.features.hearing.domain.utterance import Dismissed, UtteranceRules
 from voice_bridge.libraries.mumble.audio import Packet
 
@@ -56,6 +57,14 @@ EARS_FOR_EVERYTHING = Ears(
 )
 
 
+EARS_TOO_LOUD_TO_REACH = Ears(
+    session=load_silero(),
+    voicing=Voicing(volume_threshold=1e9, probability=0.5),
+    rules=UtteranceRules(),
+    rate=RATE,
+)
+
+
 def heard(ticks: list[Tick], ears: Ears = EARS) -> tuple[Heard, ...]:
     def step(result: tuple[Hearing, tuple[Heard, ...]], tick: Tick) -> tuple[Hearing, tuple[Heard, ...]]:
         state, reported = advance(ears, result[0], tick[0], tick[1])
@@ -74,6 +83,10 @@ def test_speech_starts_only_once_per_utterance() -> None:
 
 def test_speech_followed_by_a_pause_is_an_utterance() -> None:
     assert isinstance(heard([*speech_ticks(), (None, 10.0)])[-1], Utterance)
+
+
+def test_speech_quieter_than_the_volume_threshold_is_never_reported() -> None:
+    assert heard([*speech_ticks(), (None, 10.0)], EARS_TOO_LOUD_TO_REACH) == ()
 
 
 def test_silence_is_never_reported() -> None:

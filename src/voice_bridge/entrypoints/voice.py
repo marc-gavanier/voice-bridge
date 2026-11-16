@@ -42,8 +42,9 @@ from voice_bridge.features.hearing.abilities.listen.domain.heard import (
     Utterance,
     VoiceStarted,
 )
+from voice_bridge.features.hearing.abilities.listen.domain.voicing import Voicing
 from voice_bridge.features.hearing.abilities.listen.implementation.listen import Ears, listen
-from voice_bridge.features.hearing.abilities.listen.implementation.silero import Voicing, load_silero
+from voice_bridge.features.hearing.abilities.listen.implementation.silero import load_silero
 from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, load_session
 from voice_bridge.features.hearing.abilities.transcribe.implementation.transcribe import (
     Transcription,
