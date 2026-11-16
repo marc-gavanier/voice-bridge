@@ -219,8 +219,9 @@ async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | N
 
 def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
     routes = language.acknowledgements
+    encoder = load_encoder(settings.understanding.model, settings.understanding.revision)
     understanding = Understanding(
-        scores=router(load_encoder(), [route.examples for route in routes]),
+        scores=router(encoder, [route.examples for route in routes]),
         routes=tuple(
             Route(
                 name=route.name,

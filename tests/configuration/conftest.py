@@ -18,7 +18,8 @@ from voice_bridge.features.understanding.domain.meaning import Route
 
 @pytest.fixture(scope="session")
 def encoder() -> Encoder:
-    return load_encoder()
+    settings = UnderstandingSettings()
+    return load_encoder(settings.model, settings.revision)
 
 
 @pytest.fixture(scope="session")
