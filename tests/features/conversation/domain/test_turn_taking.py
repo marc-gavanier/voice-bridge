@@ -3,11 +3,11 @@ from functools import reduce
 from voice_bridge.features.conversation.domain.turn_taking import (
     AnswerLasted,
     Asked,
+    AssistantBusy,
     AwaitAnswer,
     AwaitHold,
     AwaitSilence,
     CancelSynthesis,
-    ClaudeBusy,
     Command,
     Conversation,
     Event,
@@ -355,7 +355,7 @@ def announced(*events: Event) -> tuple[Event, ...]:
     return (
         Asked(sentences=("Je regarde.",)),
         *voice(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
-        ClaudeBusy(at=0.0),
+        AssistantBusy(at=0.0),
         *events,
     )
 
@@ -478,7 +478,7 @@ def test_the_whole_settle_is_awaited_when_the_end_of_the_voice_is_unknown() -> N
 
 def test_the_hold_music_waits_its_delay_after_the_reply() -> None:
     assert patient_commands(
-        ClaudeBusy(at=0.0),
+        AssistantBusy(at=0.0),
         Asked(sentences=("Je regarde.",)),
         *voice(ticket=0, pcm=SOUND, duration=0.5, at=0.0),
     )[-1] == AwaitHold(ticket=1, after=2.5)

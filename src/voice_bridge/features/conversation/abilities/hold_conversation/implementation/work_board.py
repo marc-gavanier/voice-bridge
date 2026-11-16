@@ -24,7 +24,7 @@ from voice_bridge.features.conversation.domain.board import (
     start,
     unreliable_since,
 )
-from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged, ClaudeBusy, ClaudeIdle, Event
+from voice_bridge.features.conversation.domain.turn_taking import AgentsChanged, AssistantBusy, AssistantIdle, Event
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -95,12 +95,12 @@ class WorkBoard:
         match activity:
             case TurnStarted():
                 self._heard()
-                return (ClaudeBusy(at=at),)
+                return (AssistantBusy(at=at),)
             case TurnEnded(working=True, agents=agents):
                 self._heard()
-                return (ClaudeBusy(at=at), *self._counted(self._reconciled(agents)))
+                return (AssistantBusy(at=at), *self._counted(self._reconciled(agents)))
             case TurnEnded(agents=agents):
-                return (ClaudeIdle(), *self._counted(self._reconciled(agents)))
+                return (AssistantIdle(), *self._counted(self._reconciled(agents)))
             case ToolCall(tool_call_id=agent_id, title=kind):
                 return self._counted(start(self.board, agent_id=agent_id, kind=kind, at=self.clock())[0])
             case ToolCallCompleted(tool_call_id=agent_id, content=last_message, agents=agents):

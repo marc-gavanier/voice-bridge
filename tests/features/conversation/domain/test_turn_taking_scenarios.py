@@ -9,12 +9,12 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Announce,
     AnswerLasted,
     Asked,
+    AssistantBusy,
+    AssistantIdle,
     AwaitAnswer,
     AwaitHold,
     AwaitSilence,
     CancelSynthesis,
-    ClaudeBusy,
-    ClaudeIdle,
     Command,
     Conversation,
     Event,
@@ -130,7 +130,7 @@ def words_reached_a_claude_code_that_never_answered_with_a_long_wait() -> Turn:
 
 @given("Claude Code told the bridge it works", target_fixture="turn")
 def claude_code_told_the_bridge_it_works(turn: Turn) -> Turn:
-    return after(turn, ClaudeBusy(at=SILENT_AT))
+    return after(turn, AssistantBusy(at=SILENT_AT))
 
 
 @given("the wait for an answer went on", target_fixture="turn")
@@ -212,22 +212,22 @@ def claude_replied_two_sentences(turn: Turn, first: str, second: str) -> Turn:
 
 @given("Claude is done", target_fixture="turn")
 def claude_was_done(turn: Turn) -> Turn:
-    return after(turn, ClaudeIdle())
+    return after(turn, AssistantIdle())
 
 
 @when("Claude is done", target_fixture="turn")
 def claude_is_done(turn: Turn) -> Turn:
-    return after(turn, ClaudeIdle())
+    return after(turn, AssistantIdle())
 
 
 @given("Claude started working on its own", target_fixture="turn")
 def claude_started_working_on_its_own() -> Turn:
-    return after(Turn(state=Conversation()), ClaudeBusy(at=SILENT_AT))
+    return after(Turn(state=Conversation()), AssistantBusy(at=SILENT_AT))
 
 
 @when("Claude starts working on its own", target_fixture="turn")
 def claude_starts_working_on_its_own(turn: Turn) -> Turn:
-    return after(turn, ClaudeBusy(at=SILENT_AT))
+    return after(turn, AssistantBusy(at=SILENT_AT))
 
 
 @given(parsers.parse('Claude said goodbye with "{sentence}"'), target_fixture="turn")
