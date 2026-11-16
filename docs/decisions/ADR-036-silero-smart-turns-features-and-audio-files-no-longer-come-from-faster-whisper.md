@@ -23,7 +23,7 @@ Replacing Whisper would have broken all three. The behaviour had to stay the sam
 ## Consequences
 
 - Each of the three steps can change without Whisper, and Whisper without them.
-- The first start needs network access to GitHub for Silero, 2 MB, as it does to Hugging Face for Smart Turn and MiniLM. Silero is cached in pooch's cache, `~/.cache/pooch`, outside the Hugging Face cache that the CI keeps between runs, so the CI downloads it each time.
+- The first start needs network access to GitHub for Silero, 2 MB, as it does to Hugging Face for Smart Turn and MiniLM. Silero is cached in pooch's cache, `~/.cache/pooch`, which the CI keeps between runs with the Hugging Face cache, keyed on the three pinned versions.
 - `transformers` adds about 60 MB, with `regex`, `safetensors` and `typer`, and about two seconds to the start; without PyTorch it logs one advisory line when imported. `pooch` adds `requests`.
 
 ## Alternatives considered

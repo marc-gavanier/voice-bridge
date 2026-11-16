@@ -97,13 +97,19 @@ jobs:
       - *sync
       - id: models
         run: |
-          revisions=$(grep -h '^REVISION: Final = ' src/voice_bridge/features/understanding/abilities/understand/implementation/embeddings.py src/voice_bridge/features/hearing/abilities/listen/implementation/smart_turn.py | cut -d '"' -f 2 | paste -sd -)
-          [[ $revisions =~ ^[0-9a-f]{40}-[0-9a-f]{40}$ ]]
+          revisions=$(uv run --frozen python -c '
+          from voice_bridge.features.hearing.abilities.listen.implementation import silero, smart_turn
+          from voice_bridge.features.understanding.abilities.understand.implementation import embeddings
+          print(embeddings.REVISION, smart_turn.REVISION, silero.MODEL_HASH.removeprefix("sha256:"), sep="-")
+          ')
+          [[ $revisions =~ ^[0-9a-f]{40}-[0-9a-f]{40}-[0-9a-f]{64}$ ]]
           echo "revisions=$revisions" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/huggingface/hub
-          key: huggingface-${{ steps.models.outputs.revisions }}
+          path: |
+            ~/.cache/huggingface/hub
+            ~/.cache/pooch
+          key: models-${{ steps.models.outputs.revisions }}
       - run: uv run --frozen pytest
 
   audit:
