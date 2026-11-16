@@ -358,7 +358,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             return CachedVoice(
                 voice=partial(voice_of, engine),
                 directory=settings.cache_directory / directory,
-                key=f"{engine.model} {engine.voice} {engine.gain} {engine.speed} {PACE_METHOD} {transport.rate}",
+                key=f"{engine.fingerprint} {PACE_METHOD}",
             )
 
         async def greet() -> None:

@@ -18,6 +18,7 @@ HEALTH_TIMEOUT: Final = 2.0
 RATE_HEADER: Final = "X-Audio-Sample-Rate"
 PCM_RATE: Final = 24000
 SPEECH_ROUTE: Final = "/v1/audio/speech"
+ADAPTER: Final = "openai-compatible"
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -58,6 +59,10 @@ class OpenAICompatibleSpeech:
     pacing: Pacing
     rate: int
     health: str
+
+    @property
+    def fingerprint(self) -> str:
+        return f"{ADAPTER} {self.model} {self.voice} {self.gain} {self.speed} {self.rate}"
 
     def _payload(self, sentence: str, response_format: str) -> dict[str, str | bool]:
         return {"model": self.model, "input": sentence, "voice": self.voice, "response_format": response_format}

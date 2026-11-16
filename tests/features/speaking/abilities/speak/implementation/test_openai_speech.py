@@ -1,6 +1,6 @@
 import json
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import httpx
 import numpy as np
@@ -277,3 +277,39 @@ async def test_an_engine_without_a_health_route_is_ready_at_once() -> None:
 async def test_the_openai_compatible_client_is_a_synthesis() -> None:
     synthesis: Synthesis = engine(httpx.MockTransport(answering_wav))
     assert await synthesis.whole("Bonjour.") == SAMPLES
+
+
+ANSWERING = httpx.MockTransport(answering_wav)
+SPEECH = engine(ANSWERING)
+
+
+async def test_the_fingerprint_names_the_adapter_so_another_engine_never_shares_its_clips() -> None:
+    assert SPEECH.fingerprint.startswith("openai-compatible ")
+
+
+async def test_another_model_changes_the_fingerprint() -> None:
+    assert replace(SPEECH, model="other").fingerprint != SPEECH.fingerprint
+
+
+async def test_another_voice_changes_the_fingerprint() -> None:
+    assert replace(SPEECH, voice="en_male").fingerprint != SPEECH.fingerprint
+
+
+async def test_another_gain_changes_the_fingerprint() -> None:
+    assert replace(SPEECH, gain=2.0).fingerprint != SPEECH.fingerprint
+
+
+async def test_another_speed_changes_the_fingerprint() -> None:
+    assert replace(SPEECH, speed=1.2).fingerprint != SPEECH.fingerprint
+
+
+async def test_another_rate_changes_the_fingerprint() -> None:
+    assert replace(SPEECH, rate=24000).fingerprint != SPEECH.fingerprint
+
+
+async def test_the_health_route_leaves_the_fingerprint_alone() -> None:
+    assert replace(SPEECH, health="/v1/models").fingerprint == SPEECH.fingerprint
+
+
+async def test_the_server_reached_leaves_the_fingerprint_alone() -> None:
+    assert engine(httpx.MockTransport(refusing)).fingerprint == SPEECH.fingerprint
