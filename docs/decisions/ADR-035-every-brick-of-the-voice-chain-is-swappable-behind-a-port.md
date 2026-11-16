@@ -12,6 +12,8 @@
 - **Listening.** faster-whisper is built in the entry point, behind a protocol shaped like its own call and kept in an `implementation`. It is also a hidden dependency of three other steps: the Silero model file comes from its package, Smart Turn's features use its `FeatureExtractor`, and audio files are decoded with its `decode_audio`. Replacing Whisper would break voice detection, end of turn and clip decoding. Silero's state lives in the `listen` shell.
 - **Speech synthesis.** The conversation sees `Voice`, but the `speak` shell takes the concrete OpenAI-compatible client, and the clip cache builds its key from that client's fields. Any server with the OpenAI speech API already works by changing its address.
 - **Acknowledgement routing.** `Scores` is a port, but MiniLM's repository and revision are constants, so changing the model is a code change.
+- **Audio output.** The bridge's voice, the clips of the `play` tool and the hold music each reach the transport's sending side on their own path. Nothing mixes them into one signal, and nothing keeps the signal actually played, which echo cancellation needs as its reference (#35).
+- **Audio sources.** `play` and the hold music each read their files their own way: the hold music decodes one file at startup, `play` decodes a clip from its allowed folder. #75 proposes folder, radio and Navidrome sources for the hold music only, chosen with a `kind` key, a scheme of its own.
 - **Already behind a port**: end of turn (`Judge`), the pace of the speech (`Pacing`), hold music (`HoldMusic`) and telemetry (`Telemetry`).
 - **Settings.** `config.toml` mixes sections named after a tool, `mumble` and `whisper`, with sections named after a function, `speech` and `hearing`. The entry point hard-wires each implementation; only Smart Turn's boolean and telemetry's environment variables choose one.
 
@@ -33,10 +35,21 @@ Every brick of the chain is reached through a port in an ability's `domain`, wit
 - **Listening pipeline, third.** Listening is a pipeline of four steps, each with its own port and adapters: audio decoding, voice activity detection, end of turn and speech recognition. One tool may serve several steps by default, as faster-whisper does today, but each step must be swappable alone. The first change cuts the hidden dependencies: Silero from its own source, Smart Turn's features without faster-whisper, audio files decoded with PyAV directly. Then voice detection gets a port that takes Silero's state out of the shell, and speech recognition a port in `transcribe/domain` with a neutral transcript and a neutral language code.
 - **Acknowledgement routing, fourth.** No new port: the embedding model's repository and revision become settings, before #56 tries a trained model.
 - **Settings by port, fifth.** The settings are organised by step, that is by port: each step's section names its chosen adapter, and the adapter's own settings sit in a sub-section named after it, such as `[transport]` with `adapter = "mumble"` and `[transport.mumble]`. What belongs to the step whatever the adapter, such as the hearing thresholds, stays in the step's section. Smart Turn's boolean becomes the end of turn's adapter, and telemetry's adapter is chosen the same way while the OpenTelemetry adapter keeps reading the standard `OTEL_*` variables. The current `config.toml` breaks once; the README documents the migration, section by section, in the same pull request.
+- **Audio output.** One player, behind a port, mixes everything the speaker hears, the bridge's voice, the clips of `play` and the hold music, and sends it to the headset through the transport. It also gives the signal it played as the reference for echo cancellation (#35), so that the echo is subtracted from what was really sent, not from what each producer thought it sent.
+- **Audio sources.** A source port, shared by `play` and the hold music, gives audio to the player: a file, a folder, a radio stream, Navidrome, as #75 describes. Its settings follow the scheme of the settings by port: the step's section names the adapter, and the adapter's own settings sit in a sub-section named after it. This replaces #75's `kind` key.
 - **Speech synthesis, last.** A port in `speak/domain`, with the OpenAI-compatible client as its first adapter. Its value is for engines embedded in the bridge, online services with another API, and a proper key for the clip cache, taken from the adapter rather than from the client's fields.
-- **Unchanged**: end of turn, the pace of the speech, hold music and telemetry already sit behind a port.
+- **Unchanged**: end of turn, the pace of the speech, hold music and telemetry already sit behind a port. The hold music keeps its port for when it plays; where its audio comes from and how it reaches the headset move to the source and output ports.
 
-The work follows this order, one issue per unit: transport, assistant, the listening pipeline with its hidden dependencies first, the routing model, the settings, speech synthesis.
+The work follows this order, one issue per unit: transport, assistant, the listening pipeline with its hidden dependencies first, the routing model, the settings, speech synthesis. Audio output comes before echo cancellation; audio sources come after the decoding port of the listening pipeline and alongside the settings.
+
+The other open issues fit in this frame:
+
+- **Echo cancellation (#35)** is a step of the listening pipeline, designed with the decoding and voice activity ports (#81), and fed by the output's reference signal.
+- **Streamed synthesis**, one of the latency levers of #44, is a capability of the synthesis port (#85).
+- **Streamed replies** come through the assistant port (#79), whose updates already stream.
+- **A trained acknowledgement model (#56)** comes after the routing model becomes a setting, behind the existing `Scores` port.
+- **Publishing on PyPI (#17)** releases 0.x versions, which mean alpha; 1.0 marks the end of the alpha.
+- **Streaming `play`**, uncommitted work on branch `feat/stream-play-allowed-dirs`, is rebased on the branch of #80 and reuses its PyAV decoder, before the settings by port.
 
 ## Consequences
 
@@ -45,7 +58,9 @@ The work follows this order, one issue per unit: transport, assistant, the liste
 - The assistant port inverts nothing yet: Claude Code still spawns the bridge. An ACP adapter would make the bridge the client that spawns the assistant, which the port's shape allows but this decision does not do.
 - The voice instructions and tool descriptions in the language files still speak to Claude Code; another assistant needs its own.
 - A Discord adapter in Python rests on an unmerged pull request and on an undocumented behaviour of Discord; it is tried, not relied on, until both hold.
-- Each of the six units changes wiring and settings, so the entry point and `config.toml` change several times before the settings are reorganised; the settings break only once, in their own unit.
+- The player becomes the only writer to the transport's sending side; the voice, the clips and the hold music become its clients, and their mix, such as the hold music fading under the voice, is decided in one place.
+- `play` and the hold music share one decoder and one set of sources, so a radio or Navidrome works for both, and #75 is reworked on the source port.
+- Each unit changes wiring and settings, so the entry point and `config.toml` change several times before the settings are reorganised; the settings break only once, in their own unit.
 
 ## Alternatives considered
 
@@ -54,5 +69,7 @@ The work follows this order, one issue per unit: transport, assistant, the liste
 - **One speech recognition port that keeps faster-whisper's bundled helpers.** It would leave voice detection, end of turn and clip decoding unable to change without Whisper.
 - **A port for the embedding model.** `Scores` is already the seam; a setting is enough for another encoder, and a trained classifier from #56 would replace the router behind `Scores`.
 - **A port for speech synthesis first.** The OpenAI-compatible client already covers most local servers by changing an address, so it waits until the rest is done.
+- **Echo cancellation from each producer's own copy of what it sent.** Without one mixer, no single signal matches what the speaker heard, so the reference would be wrong whenever two sounds overlap.
+- **A source port for the hold music only**, with #75's `kind` key. `play` would keep its own decoding, and the settings would follow a second scheme beside the settings by port.
 - **One flat section per tool**, as today. It hides which step a tool fills and cannot say that two tools are alternatives for the same step.
 - **A key per brick at the top level**, such as `transport = "mumble"` beside a `[mumble]` section, as the study suggested. It separates the choice from the step it belongs to.
