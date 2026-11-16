@@ -1,7 +1,7 @@
 # ADR-004 — CUDA libraries from pip, not from the system
 
 **Date**: 2026-11-10
-**Status**: accepted
+**Status**: accepted, amended by [ADR-038](ADR-038-published-on-pypi-by-trusted-publishing-with-cuda-as-an-extra.md): the CUDA libraries are in the `cuda` extra, no longer installed by `uv sync` alone
 
 ## Context
 
