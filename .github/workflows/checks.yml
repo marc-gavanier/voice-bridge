@@ -13,20 +13,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  files:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - run: sudo apt-get install --yes --no-install-recommends libopus0
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - &setup-uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
           save-cache: ${{ github.ref == 'refs/heads/main' }}
-      - run: uv sync --locked
+      - &sync
+        run: uv sync --locked
+      - run: uv run --frozen prek run --all-files --show-diff-on-failure check-merge-conflict check-added-large-files end-of-file-fixer trailing-whitespace check-toml check-yaml
+      - run: uv run --frozen validate-pyproject pyproject.toml
+      - run: uv run --frozen shellcheck scripts/*.sh
+      - run: uv run --frozen typos
+      - if: github.event_name == 'pull_request'
+        run: uv run --frozen cz check --rev-range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+  workflows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - *setup-uv
+      - *sync
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -34,18 +52,49 @@ jobs:
             !~/.cache/prek/tools
             !~/.cache/prek/cache
           key: prek-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-      - run: uv run --frozen prek run --all-files --show-diff-on-failure check-merge-conflict check-added-large-files end-of-file-fixer trailing-whitespace check-toml check-yaml
-      - run: uv run --frozen validate-pyproject pyproject.toml
       - run: uv run --frozen prek run --all-files actionlint
       - run: uv run --frozen zizmor .
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - *checkout
+      - *setup-uv
+      - *sync
       - run: uv run --frozen ruff format --check
       - run: uv run --frozen ruff check
+
+  types:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - *checkout
+      - *setup-uv
+      - *sync
       - run: uv run --frozen basedpyright
+
+  architecture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - *checkout
+      - *setup-uv
+      - *sync
       - run: uv run --frozen lint-imports
       - run: uv run --frozen alint check
       - run: uv run --frozen deptry src
+
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - run: sudo apt-get install --yes --no-install-recommends libopus0
+      - *setup-uv
+      - *sync
       - id: models
         run: |
           revisions=$(grep -h '^REVISION: Final = ' src/voice_bridge/features/understanding/abilities/understand/implementation/embeddings.py src/voice_bridge/features/hearing/abilities/listen/implementation/smart_turn.py | cut -d '"' -f 2 | paste -sd -)
@@ -56,11 +105,24 @@ jobs:
           path: ~/.cache/huggingface/hub
           key: huggingface-${{ steps.models.outputs.revisions }}
       - run: uv run --frozen pytest
-      - run: uv run --frozen shellcheck scripts/*.sh
-      - run: uv run --frozen typos
+
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - *checkout
+      - *setup-uv
       - run: uv audit --frozen --preview-features audit-command
-      - if: github.event_name == 'pull_request'
-        run: uv run --frozen cz check --rev-range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+  checks:
+    if: always()
+    needs: [files, workflows, lint, types, architecture, tests, audit]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
 
   secrets:
     runs-on: ubuntu-24.04
