@@ -1,13 +1,12 @@
 from array import array
-from collections.abc import Iterator
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 from voice_bridge.features.speaking.abilities.hold_music.domain.ports import Speaker
 from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic, track_of
+from voice_bridge.features.speaking.domain.audio import Audio, AudioRefusedError
 from voice_bridge.features.speaking.domain.track import Track
 
 pytestmark = pytest.mark.anyio
@@ -113,25 +112,25 @@ def test_without_a_fade_out_stopping_plays_nothing_more() -> None:
     assert speaker.played == []
 
 
-MUSIC = Path("/music/hold.mp3")
-
-
 @dataclass
-class RecordingDecoder:
+class PickedSource:
     pcm: bytes
-    asked: list[tuple[str, int]] = field(default_factory=list)
+    picks: list[str] = field(default_factory=list)
 
-    def __call__(self, location: str, rate: int, /) -> Iterator[bytes]:
-        self.asked.append((location, rate))
-        return iter([self.pcm])
+    def find(self, asked: str, /) -> Audio:
+        raise AudioRefusedError(asked)
+
+    def pick(self) -> Audio:
+        self.picks.append("hold.mp3")
+        return Audio(name="hold.mp3", frames=iter([self.pcm[:2], self.pcm[2:]]))
 
 
-def test_the_music_is_decoded_from_its_file_at_the_rate_asked() -> None:
-    decoder = RecordingDecoder(pcm=b"")
-    _ = track_of(MUSIC, decode=decoder, rate=RATE, volume=1.0)
-    assert decoder.asked == [(str(MUSIC), RATE)]
+def test_the_music_is_picked_once_from_its_source() -> None:
+    source = PickedSource(pcm=b"")
+    _ = track_of(source, volume=1.0)
+    assert source.picks == ["hold.mp3"]
 
 
 def test_the_music_plays_from_its_start_at_the_volume_set() -> None:
-    track = track_of(MUSIC, decode=RecordingDecoder(pcm=array("h", [8000, -8000]).tobytes()), rate=RATE, volume=0.5)
+    track = track_of(PickedSource(pcm=array("h", [8000, -8000]).tobytes()), volume=0.5)
     assert track == Track(pcm=array("h", [4000, -4000]).tobytes())

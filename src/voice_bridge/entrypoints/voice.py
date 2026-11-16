@@ -68,6 +68,7 @@ from voice_bridge.features.speaking.abilities.speak.implementation.speak import 
     voice_streamed,
     wait_until_ready,
 )
+from voice_bridge.features.speaking.implementation.audio_file import AudioFile
 from voice_bridge.features.transport.abilities.carry.domain.received import Frame
 from voice_bridge.features.transport.abilities.carry.implementation.carry import carry, with_pauses
 from voice_bridge.features.transport.abilities.carry.implementation.mumble import Mumble, holds_certificate
@@ -204,7 +205,7 @@ async def _hold_music(settings: Settings, rate: int, speaker: Channel) -> HoldMu
     if hold_music.file is None:
         return None
     track = await anyio.to_thread.run_sync(
-        partial(track_of, hold_music.file, decode=decode_audio, rate=rate, volume=hold_music.volume)
+        partial(track_of, AudioFile(path=hold_music.file, decode=decode_audio, rate=rate), volume=hold_music.volume)
     )
     logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / rate)
     return HoldMusic(

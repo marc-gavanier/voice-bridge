@@ -9,16 +9,15 @@ from voice_bridge.libraries.audio.pcm import SAMPLE_BYTES, ramp, scaled
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from pathlib import Path
 
     from voice_bridge.features.speaking.abilities.hold_music.domain.ports import Speaker
-    from voice_bridge.features.speaking.domain.ports import Decoder
+    from voice_bridge.features.speaking.domain.ports import AudioSource
 
 logger = logging.getLogger(__name__)
 
 
-def track_of(path: Path, *, decode: Decoder, rate: int, volume: float) -> Track:
-    return Track(pcm=scaled(b"".join(decode(str(path), rate)), volume))
+def track_of(source: AudioSource, *, volume: float) -> Track:
+    return Track(pcm=scaled(b"".join(source.pick().frames), volume))
 
 
 @dataclass(slots=True, kw_only=True)
