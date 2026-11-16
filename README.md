@@ -464,7 +464,7 @@ src/voice_bridge/
   features/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
     speaking/      sentences written for the ear, acknowledgements, counts of tasks in progress, synthesis (OpenAI speech API, Voxtral by default), clips Claude plays
-    conversation/  turn taking, interruptions, turn traces and events, the board of agents, the Claude channel (MCP), delegation by the main agent
+    conversation/  turn taking, interruptions, turn traces and events, the board of agents, the assistant port shaped like ACP and its adapters: Claude Code (MCP channel, hooks, delegation by the main agent) and the rehearsal's echo
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
     transport/     the transport port: audio in and out at the transport's rate, the speaker's frames, stalls and reconnections; Mumble its first adapter, with the pinned connection and the speaker's certificate (pymumble-rev)

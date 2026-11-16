@@ -1,5 +1,6 @@
 import io
 import json
+import signal
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -11,13 +12,18 @@ from mcp import ClientSession, types
 from mcp.shared.memory import create_client_server_memory_streams
 from mcp.shared.message import SessionMessage
 
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import (
+    AgentMessageChunk,
+    Prompt,
+    SessionUpdate,
+)
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Assistant
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
     BoardTool,
     ChannelTools,
+    ClaudeCode,
     EndSessionTool,
-    Forwarder,
     PlayTool,
-    Reply,
     ReplyTool,
     channel_server,
     forward,
@@ -63,17 +69,17 @@ TOOLS = ChannelTools(reply=TOOL, end_session=END_TOOL, board=BOARD_TOOL, play=PL
 @dataclass(frozen=True)
 class Connection:
     session: ClientSession
-    replies: MemoryObjectReceiveStream[Reply]
+    replies: MemoryObjectReceiveStream[SessionUpdate]
     initialized: types.InitializeResult
 
 
 @asynccontextmanager
 async def connected() -> AsyncGenerator[Connection]:
-    replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
+    replies_in, replies_out = anyio.create_memory_object_stream[SessionUpdate](10)
     server = channel_server(
         instructions="Answer with reply.",
         tools=TOOLS,
-        replies=replies_in,
+        updates=replies_in,
     )
     async with (
         replies_in,
@@ -127,14 +133,14 @@ async def test_calling_reply_hands_the_text_to_the_conversation() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="Bonjour.")
+    assert reply == AgentMessageChunk(text="Bonjour.")
 
 
 async def test_a_working_flag_from_former_instructions_is_ignored() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("reply", {"text": "Je regarde.", "working": True})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="Je regarde.")
+    assert reply == AgentMessageChunk(text="Je regarde.")
 
 
 async def test_calling_reply_confirms_the_text_was_sent() -> None:
@@ -176,14 +182,14 @@ async def test_playing_a_file_hands_its_recording_and_label_to_the_conversation(
     async with connected() as connection:
         _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav", "label": "Écoute."})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="Écoute.", recording=Recording(name="sample.wav", pcm=RECORDED))
+    assert reply == AgentMessageChunk(text="Écoute.", recording=Recording(name="sample.wav", pcm=RECORDED))
 
 
 async def test_playing_a_file_without_a_label_says_nothing_before_it() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav"})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="", recording=Recording(name="sample.wav", pcm=RECORDED))
+    assert reply == AgentMessageChunk(text="", recording=Recording(name="sample.wav", pcm=RECORDED))
 
 
 async def test_playing_a_file_confirms_it_was_sent() -> None:
@@ -206,7 +212,7 @@ async def test_playing_a_refused_file_hands_nothing_to_the_conversation() -> Non
         _ = await connection.session.call_tool("play", {"path": "/clips/notes.txt"})
         _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="Bonjour.")
+    assert reply == AgentMessageChunk(text="Bonjour.")
 
 
 async def test_a_refused_file_is_logged(caplog: pytest.LogCaptureFixture) -> None:
@@ -275,7 +281,7 @@ async def test_ending_the_session_hands_the_goodbye_to_the_conversation() -> Non
     async with connected() as connection:
         _ = await connection.session.call_tool("end_session", {"text": "À demain."})
         reply = await connection.replies.receive()
-    assert reply == Reply(text="À demain.", ending=True)
+    assert reply == AgentMessageChunk(text="À demain.", closing=True)
 
 
 async def test_ending_the_session_confirms_the_goodbye_will_be_said() -> None:
@@ -305,7 +311,7 @@ async def test_calling_reply_without_text_is_an_error() -> None:
 async def notification(text: str, *, interrupted: bool, acknowledgement: str | None = None) -> types.JSONRPCMessage:
     sent, received = anyio.create_memory_object_stream[SessionMessage](1)
     async with sent, received:
-        await forward(sent, text, interrupted=interrupted, acknowledgement=acknowledgement)
+        await forward(sent, Prompt(text=text, interrupted=interrupted, acknowledgement=acknowledgement))
         return (await received.receive()).message
 
 
@@ -346,21 +352,22 @@ HANDSHAKE = {
 
 
 async def exchanged(*requests: Mapping[str, object]) -> list[types.JSONRPCMessage]:
-    replies_in, replies_out = anyio.create_memory_object_stream[Reply](10)
+    replies_in, replies_out = anyio.create_memory_object_stream[SessionUpdate](10)
     server = channel_server(
         instructions="Answer with reply.",
         tools=TOOLS,
-        replies=replies_in,
+        updates=replies_in,
     )
     written = io.StringIO()
 
-    async def converse(claude: Forwarder) -> None:
-        await claude("bonjour", interrupted=False, acknowledgement=None)
+    async def converse(assistant: Assistant) -> None:
+        await assistant.prompt(Prompt(text="bonjour"))
 
     async with replies_in, replies_out:
         await serve_over_stdio(
             server,
             converse,
+            pid=None,
             stdin=anyio.wrap_file(io.StringIO("".join(f"{json.dumps(request)}\n" for request in requests))),
             stdout=anyio.wrap_file(written),
         )
@@ -392,3 +399,31 @@ async def test_the_conversation_is_forwarded_as_a_channel_notification() -> None
     assert types.JSONRPCNotification(
         jsonrpc="2.0", method="notifications/claude/channel", params={"content": "bonjour", "meta": {}}
     ) in await exchanged(HANDSHAKE)
+
+
+async def test_prompting_claude_code_sends_a_channel_notification() -> None:
+    sent, received = anyio.create_memory_object_stream[SessionMessage](1)
+    async with sent, received:
+        await ClaudeCode(write=sent, pid=None).prompt(Prompt(text="tu en es où"))
+        message = (await received.receive()).message
+    assert message == types.JSONRPCNotification(
+        jsonrpc="2.0", method="notifications/claude/channel", params={"content": "tu en es où", "meta": {}}
+    )
+
+
+async def ended_by_closing() -> int | None:
+    sent, received = anyio.create_memory_object_stream[SessionMessage](1)
+    async with sent, received, await anyio.open_process(["sleep", "60"]) as process:
+        await ClaudeCode(write=sent, pid=process.pid).close()
+        return await process.wait()
+
+
+async def test_closing_the_session_ends_claude_code_with_sigterm() -> None:
+    assert await ended_by_closing() == -signal.SIGTERM
+
+
+async def test_closing_without_a_claude_code_process_says_how_to_start_one(caplog: pytest.LogCaptureFixture) -> None:
+    sent, received = anyio.create_memory_object_stream[SessionMessage](1)
+    async with sent, received:
+        await ClaudeCode(write=sent, pid=None).close()
+    assert "no Claude Code process to end: start the bridge with scripts/claude-voice.sh" in caplog.text

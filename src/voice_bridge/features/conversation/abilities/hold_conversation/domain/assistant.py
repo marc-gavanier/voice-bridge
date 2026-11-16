@@ -5,6 +5,21 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from voice_bridge.features.conversation.domain.board import Task
+    from voice_bridge.features.conversation.domain.turn_taking import Recording
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Prompt:
+    text: str
+    interrupted: bool = False
+    acknowledgement: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AgentMessageChunk:
+    text: str
+    recording: Recording | None = None
+    closing: bool = False
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -39,3 +54,4 @@ class ToolCallCompleted:
 
 
 type Activity = TurnStarted | TurnEnded | ToolCall | ToolCallUpdate | ToolCallCompleted
+type SessionUpdate = AgentMessageChunk | Activity

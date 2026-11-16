@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt
     from voice_bridge.features.conversation.domain.turn_trace import Report, Understood
 
 
@@ -10,8 +11,9 @@ class Voice(Protocol):
     async def __call__(self, sentence: str, hear: Callable[[bytes], Awaitable[None]], /) -> bool: ...
 
 
-class Claude(Protocol):
-    async def __call__(self, text: str, *, interrupted: bool, acknowledgement: str | None) -> None: ...
+class Assistant(Protocol):
+    async def prompt(self, prompt: Prompt, /) -> None: ...
+    async def close(self) -> None: ...
 
 
 class Interpreter(Protocol):
