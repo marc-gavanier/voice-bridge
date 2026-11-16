@@ -9,6 +9,16 @@ import anyio
 from anyio.streams.buffered import BufferedByteReceiveStream
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, ValidationError
 
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import (
+    Activity,
+    ToolCall,
+    ToolCallCompleted,
+    ToolCallUpdate,
+    TurnEnded,
+    TurnStarted,
+)
+from voice_bridge.features.conversation.domain import board
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from pathlib import Path
@@ -20,6 +30,7 @@ logger = logging.getLogger(__name__)
 LONGEST_LINE: Final = 1024 * 1024
 SEND_TIMEOUT: Final = 1.0
 LONGEST_ACTION: Final = 120
+AGENT_TASK: Final = "subagent"
 
 
 class _Message(BaseModel):
@@ -150,6 +161,34 @@ def _said(news: News) -> str:
             assert_never(news)
 
 
+def _agents(tasks: tuple[Task, ...] | None) -> tuple[board.Task, ...] | None:
+    if tasks is None:
+        return None
+    return tuple(
+        board.Task(id=task.id, description=task.description, kind=task.agent_type)
+        for task in tasks
+        if task.type == AGENT_TASK
+    )
+
+
+def activity_of(news: News) -> Activity:
+    match news:
+        case Busy(tasks=None):
+            return TurnStarted()
+        case Busy(tasks=tasks):
+            return TurnEnded(working=True, agents=_agents(tasks))
+        case Idle(tasks=tasks):
+            return TurnEnded(agents=_agents(tasks))
+        case AgentStarted(agent_id=agent_id, agent_type=agent_type):
+            return ToolCall(tool_call_id=agent_id, title=agent_type)
+        case AgentActed(agent_id=agent_id, action=action, at=at):
+            return ToolCallUpdate(tool_call_id=agent_id, title=action, at=at)
+        case AgentFinished(agent_id=agent_id, last_message=last_message, tasks=tasks):
+            return ToolCallCompleted(tool_call_id=agent_id, content=last_message, agents=_agents(tasks))
+        case _:
+            assert_never(news)
+
+
 def tell_bridge(path: Path, news: News) -> None:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
         connection.settimeout(SEND_TIMEOUT)
@@ -172,7 +211,7 @@ async def _read_news(stream: SocketStream) -> News | None:
         return None
 
 
-async def listen_to_claude(path: Path, heard: Callable[[News], Awaitable[None]]) -> None:
+async def listen_to_claude(path: Path, heard: Callable[[Activity], Awaitable[None]]) -> None:
     await anyio.Path(path).parent.mkdir(parents=True, exist_ok=True)
     await anyio.Path(path).unlink(missing_ok=True)
 
@@ -181,7 +220,7 @@ async def listen_to_claude(path: Path, heard: Callable[[News], Awaitable[None]])
         if news is None:
             return
         logger.info("%s", _said(news))
-        await heard(news)
+        await heard(activity_of(news))
 
     async with await anyio.create_unix_listener(path) as listener:
         await listener.serve(handle)
