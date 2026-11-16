@@ -5,14 +5,20 @@ from typing import TYPE_CHECKING
 import anyio
 
 from voice_bridge.features.speaking.domain.track import Track, next_chunk
-from voice_bridge.libraries.audio.pcm import SAMPLE_BYTES, ramp
+from voice_bridge.libraries.audio.pcm import SAMPLE_BYTES, ramp, scaled
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+    from pathlib import Path
 
     from voice_bridge.features.speaking.abilities.hold_music.domain.ports import Speaker
+    from voice_bridge.features.speaking.domain.ports import Decoder
 
 logger = logging.getLogger(__name__)
+
+
+def track_of(path: Path, *, decode: Decoder, rate: int, volume: float) -> Track:
+    return Track(pcm=scaled(decode(path, rate), volume))
 
 
 @dataclass(slots=True, kw_only=True)

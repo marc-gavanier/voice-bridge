@@ -1,7 +1,17 @@
 import numpy as np
 import pytest
 
-from voice_bridge.libraries.audio.pcm import boost, duration, from_float, level, ramp, resample, resampling, to_float
+from voice_bridge.libraries.audio.pcm import (
+    boost,
+    duration,
+    from_float,
+    level,
+    ramp,
+    resample,
+    resampling,
+    scaled,
+    to_float,
+)
 
 
 def pcm_of(*values: int) -> bytes:
@@ -84,3 +94,11 @@ def test_the_first_piece_is_resampled_before_the_rest_arrives() -> None:
 def test_audio_resampled_at_its_own_rate_passes_through_piece_by_piece() -> None:
     resampler = resampling(48000, 48000)
     assert (resampler.push(pcm_of(1, 2)), resampler.end()) == (pcm_of(1, 2), b"")
+
+
+def test_scaling_multiplies_every_sample_by_the_volume() -> None:
+    assert scaled(pcm_of(16384, -8192), 0.5) == pcm_of(8192, -4096)
+
+
+def test_scaling_never_clips_past_full_scale() -> None:
+    assert scaled(pcm_of(30000, -30000), 2.0) == pcm_of(32767, -32767)

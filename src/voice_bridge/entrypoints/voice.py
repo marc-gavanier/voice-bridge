@@ -63,18 +63,17 @@ from voice_bridge.features.speaking.abilities.announce.implementation.announce i
     Announcements,
     record_announcements,
 )
-from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic
+from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic, track_of
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import SpeechEngine, wait_until_ready
 from voice_bridge.features.speaking.abilities.speak.implementation.speak import (
     sentences_of,
     voice_of,
     voice_streamed,
 )
-from voice_bridge.features.speaking.domain.track import Track
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import load_encoder, router
 from voice_bridge.features.understanding.abilities.understand.implementation.understand import StopFlag, Understanding
 from voice_bridge.features.understanding.domain.meaning import Route
-from voice_bridge.libraries.audio.file import read_audio
+from voice_bridge.libraries.audio.file import decode_audio
 from voice_bridge.libraries.audio.tempo import METHOD as PACE_METHOD
 from voice_bridge.libraries.audio.tempo import pace
 from voice_bridge.libraries.mumble.audio import (
@@ -202,12 +201,12 @@ async def _hold_music(settings: Settings, speaker: Loudspeaker) -> HoldMusic | N
     hold_music = settings.hold_music
     if hold_music.file is None:
         return None
-    pcm = await anyio.to_thread.run_sync(
-        partial(read_audio, hold_music.file, rate=MUMBLE_RATE, volume=hold_music.volume)
+    track = await anyio.to_thread.run_sync(
+        partial(track_of, hold_music.file, decode=decode_audio, rate=MUMBLE_RATE, volume=hold_music.volume)
     )
-    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(pcm) / 2 / MUMBLE_RATE)
+    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / MUMBLE_RATE)
     return HoldMusic(
-        track=Track(pcm=pcm),
+        track=track,
         speaker=speaker,
         rate=MUMBLE_RATE,
         fade_in=hold_music.fade_in,
