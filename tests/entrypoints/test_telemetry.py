@@ -72,6 +72,7 @@ def sentry(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) ->
     _ = report_errors(transport)
     yield transport
     sentry_sdk.get_client().close()
+    monkeypatch.delenv("SENTRY_DSN")
     _ = sentry_sdk.init()
 
 
