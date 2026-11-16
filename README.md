@@ -163,7 +163,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `hold_music.delay`, `hold_music.volume` | `2.0`, `0.3` | How long after Claude starts working, or after the end of its voice, the music starts, and its loudness, below the voice's |
 | `hold_music.fade_in`, `hold_music.fade_out` | `1.0`, `0.3` | Seconds the music takes to rise and to fall; the fall plays before a reply's voice and delays it by as much |
 | `clips.directory` | `~/.local/state/voice-bridge/clips` | The only directory, with its subdirectories, from which Claude's `play` tool reads audio files; a link inside it to a file elsewhere is refused |
-| `clips.longest`, `clips.largest` | `300.0`, `50000000` | The longest clip in seconds and the largest file in bytes `play` accepts; the playback buffer holds 600 s |
+| `clips.longest`, `clips.largest` | `300.0`, `50000000` | The longest clip in seconds and the largest file in bytes `play` accepts |
 | `clips.volume` | `1.0` | Loudness of the clips, as the file has it by default; the speech's `gain` does not apply to them |
 | `understanding.threshold` | `0.6` | The cosine similarity to its closest example a sentence needs to take a route; the presence route asks 0.7, and the end and stop routes 0.75, set in each language's TOML file in [`languages/`](src/voice_bridge/configuration/languages); 0.6 sits above the 0.5 to 0.65 that MiniLM gives two unrelated sentences ([ADR-030](docs/decisions/ADR-030-the-acknowledgement-thresholds-sit-above-the-noise-of-unrelated-sentences.md)). The model, 220 MB, is downloaded from Hugging Face on first start |
 | `understanding.model`, `understanding.revision` | `Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q`, `faf4aa4225822f3bc6376869cb1164e8e3feedd0` | The Hugging Face repository of the encoder that routes the acknowledgements, and the commit, branch or tag of it to download; the repository holds the ONNX model as `model_optimized.onnx` and its `tokenizer.json`, as MiniLM's does. Another encoder changes the cosine similarities, so `understanding.threshold` and the routes' thresholds may need calibrating again ([ADR-030](docs/decisions/ADR-030-the-acknowledgement-thresholds-sit-above-the-noise-of-unrelated-sentences.md)) |
@@ -424,7 +424,8 @@ Inside the bridge, one task per stage passes events along; turn taking decides, 
 flowchart LR
     mumble["Mumble server"]
     subgraph bridge["voice-bridge"]
-        transport["Transport<br/>Mumble: pinned certificate, one speaker,<br/>playback buffer, reconnection"]
+        transport["Transport<br/>Mumble: pinned certificate, one speaker,<br/>reconnection"]
+        player["Player<br/>mixes the voice and the hold music,<br/>keeps what was sent"]
         ears["Ears<br/>loudness, Silero VAD,<br/>Smart Turn"]
         whisper["Transcription<br/>faster-whisper"]
         turns["Turn taking<br/>pure state machine"]
@@ -450,24 +451,24 @@ flowchart LR
     claude -->|"play tool"| channel -->|"recording"| turns
     turns -->|"synthesize"| mouth <-->|"HTTP"| voxtral
     mouth -->|"speech"| turns
-    turns -->|"play, announce, stop"| transport -->|"bridge's audio"| mumble
+    turns -->|"play, announce, hold music, stop"| player -->|"each frame as it is sent"| transport -->|"bridge's audio"| mumble
     turns -.->|"turns, counts"| telemetry
     transport -.->|"stalls"| telemetry
     telemetry -.->|"OTLP JSON Lines"| files
     telemetry -.->|"OTLP"| collector
 ```
 
-The code is split into features, on top of shared libraries; entry points only wire them together. The conversation reaches Claude Code through an assistant port shaped like the [Agent Client Protocol](https://agentclientprotocol.com) ([ADR-037](docs/decisions/ADR-037-the-assistant-is-reached-through-a-port-shaped-like-acp.md)).
+The code is split into features, on top of shared libraries; entry points only wire them together. The conversation reaches Claude Code through an assistant port shaped like the [Agent Client Protocol](https://agentclientprotocol.com) ([ADR-037](docs/decisions/ADR-037-the-assistant-is-reached-through-a-port-shaped-like-acp.md)). Everything the bridge sends goes through one player, which mixes its layers as the transport pulls each frame and keeps that frame, timed, as the reference for echo cancellation ([ADR-038](docs/decisions/ADR-038-the-transport-pulls-what-it-sends-from-one-player.md)).
 
 ```
 src/voice_bridge/
   features/
     hearing/       detect utterances, filter hallucinations, transcribe (Silero, Whisper)
-    speaking/      sentences written for the ear, acknowledgements, counts of tasks in progress, synthesis (OpenAI speech API, Voxtral by default), clips Claude plays
+    speaking/      sentences written for the ear, acknowledgements, counts of tasks in progress, synthesis (OpenAI speech API, Voxtral by default), clips Claude plays, the player that mixes all the bridge sends
     conversation/  turn taking, interruptions, turn traces and events, the board of agents, the assistant port shaped like ACP and its adapters: Claude Code (MCP channel, hooks, delegation by the main agent) and the rehearsal's echo
     understanding/ routes by meaning for acknowledgements and stops (MiniLM on ONNX Runtime)
     recording/     the diagnostic recorder
-    transport/     the transport port: audio in and out at the transport's rate, the speaker's frames, stalls and reconnections; Mumble its first adapter, with the pinned connection and the speaker's certificate (pymumble-rev)
+    transport/     the transport port: audio in at the transport's rate and out pulled from the player, the speaker's frames, stalls and reconnections; Mumble its first adapter, with the pinned connection and the speaker's certificate (pymumble-rev)
   libraries/
     audio/         PCM and WAV with numpy and soxr, audio files decoded and speech paced with FFmpeg (PyAV)
     claude_code/   the input and the refusal of Claude Code's PreToolUse hook, and the settings that register the hooks and choose the models
