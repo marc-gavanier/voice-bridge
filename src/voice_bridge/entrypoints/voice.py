@@ -1,8 +1,6 @@
 import logging
 import math
-import os
 import secrets
-import signal
 import time
 from dataclasses import dataclass
 from functools import partial
@@ -15,9 +13,7 @@ from faster_whisper import WhisperModel
 from voice_bridge.configuration.log_config import kept_days
 from voice_bridge.configuration.telemetry import run_attributes
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
-from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
-    listen_to_claude,
-)
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import AgentMessageChunk
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
     Mouth,
     hold_conversation,
@@ -87,9 +83,8 @@ if TYPE_CHECKING:
 
     from voice_bridge.configuration.language import LanguagePack
     from voice_bridge.configuration.settings import Settings
-    from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Activity
-    from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Claude, Interpreter
-    from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt, SessionUpdate
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Assistant, Interpreter
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
     from voice_bridge.features.transport.abilities.carry.domain.ports import Transport
 
@@ -252,30 +247,28 @@ def _wording(language: LanguagePack) -> Wording:
     return Wording(at_work=announcements.at_work, many_at_work=announcements.many_at_work)
 
 
-async def _end_claude_code(pid: int | None) -> None:
-    if pid is None:
-        logger.warning("no Claude Code process to end: start the bridge with scripts/claude-voice.sh")
-        return
-    logger.info("ending Claude Code, process %d", pid)
-    os.kill(pid, signal.SIGTERM)
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _FollowingStops:
+    assistant: Assistant
+    understanding: Understanding
+    flag: StopFlag
 
+    async def prompt(self, prompt: Prompt) -> None:
+        self.flag.follow(self.understanding(prompt.text))
+        await self.assistant.prompt(prompt)
 
-def _following_stops(claude: Claude, understanding: Understanding, flag: StopFlag) -> Claude:
-    async def forward(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
-        flag.follow(understanding(text))
-        await claude(text, interrupted=interrupted, acknowledgement=acknowledgement)
-
-    return forward
+    async def close(self) -> None:
+        await self.assistant.close()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ClaudeSide:
-    claude: Claude
-    replies: ObjectReceiveStream[Reply]
+class AssistantSide:
+    assistant: Assistant
+    updates: ObjectReceiveStream[SessionUpdate]
     board: WorkBoard
 
 
-async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide, transport: Transport) -> None:
+async def converse(settings: Settings, language: LanguagePack, side: AssistantSide, transport: Transport) -> None:
     events_in, events_out = anyio.create_memory_object_stream[Event](math.inf)
     frames_in, frames_out = anyio.create_memory_object_stream[Frame](math.inf)
     utterances_in, utterances_out = anyio.create_memory_object_stream[bytes](math.inf)
@@ -304,14 +297,15 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             Transcribed(text=text, noise=noise, stop_at=anyio.current_time() if stops else None, answered=answered)
         )
 
-    async def claude_is(activity: Activity) -> None:
-        for event in side.board.events_of(activity, anyio.current_time()):
-            await events_in.send(event)
-
-    async def relay_replies() -> None:
-        async for reply in side.replies:
-            recordings = () if reply.recording is None else (reply.recording,)
-            await events_in.send(Asked(sentences=(*sentences_of(reply.text), *recordings), ending=reply.ending))
+    async def relay_updates() -> None:
+        async for update in side.updates:
+            match update:
+                case AgentMessageChunk(text=text, recording=recording, closing=closing):
+                    recordings = () if recording is None else (recording,)
+                    await events_in.send(Asked(sentences=(*sentences_of(text), *recordings), ending=closing))
+                case _:
+                    for event in side.board.events_of(update, anyio.current_time()):
+                        await events_in.send(event)
 
     async with (
         events_in,
@@ -343,7 +337,9 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         mouth = Mouth(
             voice=partial(voice_streamed, engine),
             speaker=transport,
-            claude=_following_stops(side.claude, understanding, StopFlag(settings.understanding.stop_flag)),
+            assistant=_FollowingStops(
+                assistant=side.assistant, understanding=understanding, flag=StopFlag(settings.understanding.stop_flag)
+            ),
             rate=transport.rate,
             clock=anyio.current_time,
             acknowledgement=clips,
@@ -354,7 +350,6 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
             hold_music_delay=settings.hold_music.delay,
             unanswered=sentences_of(language.unanswered),
             unanswered_after=settings.claude.unanswered_after,
-            leave=partial(_end_claude_code, settings.claude_pid),
             telemetry=telemetry,
         )
 
@@ -389,6 +384,5 @@ async def converse(settings: Settings, language: LanguagePack, side: ClaudeSide,
         )
         _ = tasks.start_soon(transcribe_utterances, transcription, utterances_out, transcribed)
         _ = tasks.start_soon(hold_conversation, mouth, events_out, events_in.clone())
-        _ = tasks.start_soon(relay_replies)
-        _ = tasks.start_soon(listen_to_claude, settings.activity_socket, claude_is)
+        _ = tasks.start_soon(relay_updates)
         _ = tasks.start_soon(greet)

@@ -8,6 +8,7 @@ from anyio import wait_all_tasks_blocked
 from anyio.abc import ObjectReceiveStream
 from anyio.streams.memory import MemoryObjectSendStream
 
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
     Acknowledgement,
     Voice,
@@ -130,10 +131,23 @@ async def hanging_after_a_piece(sentence: str, hear: Hear) -> bool:
 
 
 @dataclass(frozen=True)
+class FakeAssistant:
+    prompts: MemoryObjectSendStream[Prompt]
+    closed: MemoryObjectSendStream[float]
+    started: float
+
+    async def prompt(self, prompt: Prompt) -> None:
+        await self.prompts.send(prompt)
+
+    async def close(self) -> None:
+        await self.closed.send(anyio.current_time() - self.started)
+
+
+@dataclass(frozen=True)
 class Talk:
     say: MemoryObjectSendStream[Event]
     played: ObjectReceiveStream[bytes]
-    forwarded: ObjectReceiveStream[tuple[str, bool, str | None]]
+    forwarded: ObjectReceiveStream[Prompt]
     left: ObjectReceiveStream[float]
     reports: list[Report]
 
@@ -149,23 +163,16 @@ async def talking(
 ) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
     played_in, played_out = anyio.create_memory_object_stream[bytes](100)
-    forwarded_in, forwarded_out = anyio.create_memory_object_stream[tuple[str, bool, str | None]](100)
+    forwarded_in, forwarded_out = anyio.create_memory_object_stream[Prompt](100)
     left_in, left_out = anyio.create_memory_object_stream[float](100)
     reports: list[Report] = []
-    started = anyio.current_time()
-
-    async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
-        await forwarded_in.send((text, interrupted, acknowledgement))
-
+    assistant = FakeAssistant(prompts=forwarded_in, closed=left_in, started=anyio.current_time())
     hold_music = FakeMusic(played=played_in)
-
-    async def leave() -> None:
-        await left_in.send(anyio.current_time() - started)
 
     mouth = Mouth(
         voice=voice,
         speaker=StreamedSpeaker(played_in),
-        claude=claude,
+        assistant=assistant,
         rate=48000,
         clock=lambda: 0.0,
         acknowledgement=acknowledgement,
@@ -176,7 +183,6 @@ async def talking(
         hold_music_delay=0.0,
         unanswered=unanswered,
         unanswered_after=0.0,
-        leave=leave,
         telemetry=reports.append,
     )
     emit = say.clone()
@@ -225,44 +231,44 @@ async def test_a_sentence_without_voice_is_skipped_for_the_next_one() -> None:
     assert played == SOUND
 
 
-async def test_a_transcript_is_forwarded_to_claude() -> None:
+async def test_a_transcript_is_prompted_to_the_assistant() -> None:
     async with talking() as talk:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
         forwarded = await talk.forwarded.receive()
-    assert forwarded == ("Tu en es où ?", False, "Voyons.")
+    assert forwarded == Prompt(text="Tu en es où ?", interrupted=False, acknowledgement="Voyons.")
 
 
-async def test_claude_learns_the_acknowledgement_that_is_played_after_its_words() -> None:
+async def test_the_assistant_learns_the_acknowledgement_that_is_played_after_its_words() -> None:
     async with talking() as talk:
         await talk.say.send(Transcribed(text="Le dépôt est propre."))
-        _, _, announced = await talk.forwarded.receive()
+        announced = (await talk.forwarded.receive()).acknowledgement
         played = await talk.played.receive()
     assert (announced, played) == ("D'accord.", STATEMENT_CLIP)
 
 
-async def test_claude_learns_nothing_when_no_clip_is_ready() -> None:
+async def test_the_assistant_learns_nothing_when_no_clip_is_ready() -> None:
     async with talking(NOT_READY) as talk:
         await talk.say.send(Transcribed(text="Tu en es où ?"))
         forwarded = await talk.forwarded.receive()
-    assert forwarded == ("Tu en es où ?", False, None)
+    assert forwarded == Prompt(text="Tu en es où ?", interrupted=False)
 
 
-async def test_claude_learns_nothing_for_words_that_will_not_be_acknowledged() -> None:
+async def test_the_assistant_learns_nothing_for_words_that_will_not_be_acknowledged() -> None:
     async with talking() as talk:
         await talk.say.send(Transcribed(text="Le dépôt est propre."))
         _ = await talk.forwarded.receive()
         _ = await talk.played.receive()
         await talk.say.send(Transcribed(text="Et les logs."))
         forwarded = await talk.forwarded.receive()
-    assert forwarded == ("Et les logs.", False, None)
+    assert forwarded == Prompt(text="Et les logs.", interrupted=False)
 
 
-async def test_words_said_in_pieces_reach_claude_as_one_message() -> None:
+async def test_words_said_in_pieces_reach_the_assistant_as_one_prompt() -> None:
     async with talking() as talk:
         talk.say.send_nowait(Transcribed(text="Je voudrais..."))
         talk.say.send_nowait(Transcribed(text="un ticket."))
         forwarded = await talk.forwarded.receive()
-    assert forwarded == ("Je voudrais... un ticket.", False, "D'accord.")
+    assert forwarded == Prompt(text="Je voudrais... un ticket.", interrupted=False, acknowledgement="D'accord.")
 
 
 async def test_words_joined_from_pieces_are_logged(caplog: pytest.LogCaptureFixture) -> None:
@@ -376,7 +382,7 @@ async def test_without_hold_music_claude_at_work_stays_silent() -> None:
     assert played == SOUND
 
 
-async def test_a_goodbye_leaves_once_its_voice_has_played() -> None:
+async def test_a_goodbye_closes_the_session_once_its_voice_has_played() -> None:
     async with talking() as talk:
         await talk.say.send(Asked(sentences=("À demain.",), ending=True))
         played = await talk.played.receive()
@@ -390,7 +396,7 @@ async def test_the_silence_already_kept_since_the_end_of_the_voice_is_not_waited
         await talk.say.send(Transcribed(text="Bonjour."))
         with anyio.fail_after(1):
             forwarded = await talk.forwarded.receive()
-    assert forwarded[0] == "Bonjour."
+    assert forwarded.text == "Bonjour."
 
 
 async def reported_after(*events: Event) -> list[Report]:

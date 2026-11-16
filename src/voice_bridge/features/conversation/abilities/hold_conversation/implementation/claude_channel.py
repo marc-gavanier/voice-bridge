@@ -1,4 +1,6 @@
 import logging
+import os
+import signal
 from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import PurePath
@@ -12,6 +14,7 @@ from mcp.server.stdio import stdio_server
 from mcp.shared.message import SessionMessage
 from pydantic import BaseModel, ValidationError
 
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import AgentMessageChunk, Prompt
 from voice_bridge.features.conversation.domain.turn_taking import Recording
 
 if TYPE_CHECKING:
@@ -20,6 +23,9 @@ if TYPE_CHECKING:
     from anyio.abc import ObjectSendStream
     from mcp.server.context import ServerRequestContext
     from mcp.server.models import InitializationOptions
+
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import SessionUpdate
+    from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Assistant
 
 SERVER_NAME: Final = "voice"
 TOOL_NAME: Final = "reply"
@@ -69,13 +75,6 @@ class ChannelTools:
     end_session: EndSessionTool
     board: BoardTool
     play: PlayTool
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class Reply:
-    text: str
-    ending: bool = False
-    recording: Recording | None = None
 
 
 class ReplyArguments(BaseModel):
@@ -139,7 +138,7 @@ def _play_tool(tool: PlayTool) -> types.Tool:
     )
 
 
-async def _clip_of(tool: PlayTool, arguments: dict[str, object]) -> Reply | types.CallToolResult:
+async def _clip_of(tool: PlayTool, arguments: dict[str, object]) -> AgentMessageChunk | types.CallToolResult:
     try:
         asked = PlayArguments.model_validate(arguments)
     except ValidationError as error:
@@ -151,7 +150,7 @@ async def _clip_of(tool: PlayTool, arguments: dict[str, object]) -> Reply | type
         return _error(str(error))
     name = PurePath(asked.path).name
     logger.info("clip received from Claude: %s, after %r", name, asked.label)
-    return Reply(text=asked.label, recording=Recording(name=name, pcm=pcm))
+    return AgentMessageChunk(text=asked.label, recording=Recording(name=name, pcm=pcm))
 
 
 def _board(tool: BoardTool) -> types.CallToolResult:
@@ -159,27 +158,29 @@ def _board(tool: BoardTool) -> types.CallToolResult:
     return types.CallToolResult(content=[types.TextContent(type="text", text=tool.read())])
 
 
-def _reply_of(name: str, arguments: dict[str, object]) -> Reply | types.CallToolResult:
+def _reply_of(name: str, arguments: dict[str, object]) -> AgentMessageChunk | types.CallToolResult:
     try:
         if name == END_TOOL_NAME:
-            return Reply(text=EndSessionArguments.model_validate(arguments).text, ending=True)
+            return AgentMessageChunk(text=EndSessionArguments.model_validate(arguments).text, closing=True)
         reply = ReplyArguments.model_validate(arguments)
     except ValidationError as error:
         return _error(str(error))
-    return Reply(text=reply.text)
+    return AgentMessageChunk(text=reply.text)
 
 
-def _logged(reply: Reply | types.CallToolResult) -> Reply | types.CallToolResult:
+def _logged(reply: AgentMessageChunk | types.CallToolResult) -> AgentMessageChunk | types.CallToolResult:
     if isinstance(reply, types.CallToolResult):
         return reply
-    if reply.ending:
+    if reply.closing:
         logger.info("goodbye received from Claude: %r, the session ends after it", reply.text)
     else:
         logger.info("reply received from Claude: %r", reply.text)
     return reply
 
 
-async def _received(tools: ChannelTools, params: types.CallToolRequestParams) -> Reply | types.CallToolResult:
+async def _received(
+    tools: ChannelTools, params: types.CallToolRequestParams
+) -> AgentMessageChunk | types.CallToolResult:
     arguments = params.arguments or {}
     if params.name == PLAY_TOOL_NAME:
         return await _clip_of(tools.play, arguments)
@@ -188,7 +189,9 @@ async def _received(tools: ChannelTools, params: types.CallToolRequestParams) ->
     return _error(f"unknown tool: {params.name}")
 
 
-def channel_server(*, instructions: str, tools: ChannelTools, replies: ObjectSendStream[Reply]) -> Server[object]:
+def channel_server(
+    *, instructions: str, tools: ChannelTools, updates: ObjectSendStream[SessionUpdate]
+) -> Server[object]:
     reply = types.Tool.model_validate(
         {
             "name": TOOL_NAME,
@@ -218,8 +221,8 @@ def channel_server(*, instructions: str, tools: ChannelTools, replies: ObjectSen
         received = await _received(tools, params)
         if isinstance(received, types.CallToolResult):
             return received
-        await replies.send(received)
-        answer = "ending" if received.ending else "sent"
+        await updates.send(received)
+        answer = "ending" if received.closing else "sent"
         return types.CallToolResult(content=[types.TextContent(type="text", text=answer)])
 
     return Server(
@@ -235,33 +238,42 @@ def initialization_options(server: Server[object]) -> InitializationOptions:
     return server.create_initialization_options(experimental_capabilities={CHANNEL_CAPABILITY: {}})
 
 
-class Forwarder(Protocol):
-    async def __call__(self, text: str, *, interrupted: bool, acknowledgement: str | None) -> None: ...
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ClaudeCode:
+    write: MessageSender
+    pid: int | None
+
+    async def prompt(self, prompt: Prompt) -> None:
+        await forward(self.write, prompt)
+
+    async def close(self) -> None:
+        if self.pid is None:
+            logger.warning("no Claude Code process to end: start the bridge with scripts/claude-voice.sh")
+            return
+        logger.info("ending Claude Code, process %d", self.pid)
+        os.kill(self.pid, signal.SIGTERM)
 
 
 async def serve_over_stdio(
     server: Server[object],
-    converse: Callable[[Forwarder], Coroutine[object, object, None]],
+    converse: Callable[[Assistant], Coroutine[object, object, None]],
     *,
+    pid: int | None,
     stdin: anyio.AsyncFile[str] | None = None,
     stdout: anyio.AsyncFile[str] | None = None,
 ) -> None:
     async with stdio_server(stdin, stdout) as (read, write), anyio.create_task_group() as tasks:
-
-        async def claude(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
-            await forward(write, text, interrupted=interrupted, acknowledgement=acknowledgement)
-
-        _ = tasks.start_soon(converse, claude)
+        _ = tasks.start_soon(converse, ClaudeCode(write=write, pid=pid))
         async with server.lifespan(server) as state:
             await serve_loop(server, read, write, lifespan_state=state, init_options=initialization_options(server))
         tasks.cancel_scope.cancel()
 
 
-async def forward(write: MessageSender, text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
-    meta = {"interrupted": "true"} if interrupted else {}
-    if acknowledgement is not None:
-        meta["acknowledgement"] = acknowledgement
+async def forward(write: MessageSender, prompt: Prompt) -> None:
+    meta = {"interrupted": "true"} if prompt.interrupted else {}
+    if prompt.acknowledgement is not None:
+        meta["acknowledgement"] = prompt.acknowledgement
     notification = types.JSONRPCNotification(
-        jsonrpc="2.0", method=CHANNEL_NOTIFICATION, params={"content": text, "meta": meta}
+        jsonrpc="2.0", method=CHANNEL_NOTIFICATION, params={"content": prompt.text, "meta": meta}
     )
     await write.send(SessionMessage(notification))

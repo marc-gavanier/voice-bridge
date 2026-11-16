@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, assert_never
 
 import anyio
 
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt
 from voice_bridge.features.conversation.domain.turn_taking import (
     Acknowledge,
     Announce,
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
         Acknowledgement,
         Announcement,
-        Claude,
+        Assistant,
         HoldMusic,
         Interpreter,
         Speaker,
@@ -58,7 +59,7 @@ logger = logging.getLogger(__name__)
 class Mouth:
     voice: Voice
     speaker: Speaker
-    claude: Claude
+    assistant: Assistant
     rate: int
     clock: Callable[[], float]
     acknowledgement: Acknowledgement
@@ -69,7 +70,6 @@ class Mouth:
     hold_music_delay: float
     unanswered: tuple[str, ...]
     unanswered_after: float
-    leave: Callable[[], Awaitable[None]]
     telemetry: Telemetry
 
 
@@ -143,7 +143,7 @@ async def _forward(mouth: Mouth, shell: _Shell, command: Forward) -> None:
     shell.acknowledgement = mouth.acknowledgement(command.text) if command.acknowledging else None
     sentence = shell.acknowledgement[0] if shell.acknowledgement else None
     mouth.telemetry(forwarded(shell.trace, mouth.clock(), command, mouth.understood(command.text), sentence))
-    await mouth.claude(command.text, interrupted=command.interrupted, acknowledgement=sentence)
+    await mouth.assistant.prompt(Prompt(text=command.text, interrupted=command.interrupted, acknowledgement=sentence))
 
 
 def _acknowledge(mouth: Mouth, shell: _Shell, order: Acknowledge) -> None:
@@ -185,7 +185,7 @@ async def _await_answer(emit: ObjectSendStream[Event], order: AwaitAnswer) -> No
 async def _leave(mouth: Mouth, order: Leave) -> None:
     await anyio.sleep(max(0.0, order.until - mouth.clock()))
     logger.info("leaving: the goodbye has been said")
-    await mouth.leave()
+    await mouth.assistant.close()
 
 
 async def _play_music(hold_music: HoldMusic, shell: _Shell, *, task_status: TaskStatus[None]) -> None:

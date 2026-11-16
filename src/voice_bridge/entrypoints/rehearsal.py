@@ -13,8 +13,9 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, watching_hangs
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
-from voice_bridge.entrypoints.voice import ClaudeSide, converse, mumble
-from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import Reply
+from voice_bridge.entrypoints.voice import AssistantSide, converse, mumble
+from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import SessionUpdate
+from voice_bridge.features.conversation.abilities.hold_conversation.implementation.echo import Echo
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 
 USERNAME: Final = "rehearsal"
@@ -27,19 +28,9 @@ def now() -> datetime:
 
 
 async def rehearse(settings: Settings, language: LanguagePack) -> None:
-    said_in, said_out = anyio.create_memory_object_stream[Reply](math.inf)
+    said_in, said_out = anyio.create_memory_object_stream[SessionUpdate](math.inf)
     async with said_in, said_out:
-
-        async def repeat(text: str, *, interrupted: bool, acknowledgement: str | None) -> None:
-            logger.info(
-                "repeating %r%s, acknowledged with %r",
-                text,
-                " after an interruption" if interrupted else "",
-                acknowledgement,
-            )
-            await said_in.send(Reply(text=text))
-
-        side = ClaudeSide(claude=repeat, replies=said_out, board=WorkBoard(clock=now))
+        side = AssistantSide(assistant=Echo(updates=said_in), updates=said_out, board=WorkBoard(clock=now))
         await converse(settings, language, side, mumble(settings, USERNAME))
 
 
