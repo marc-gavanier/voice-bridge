@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
+import pytest
 
 from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, features, load_session
 
@@ -43,3 +44,7 @@ def test_the_completion_is_the_probability_the_model_gives() -> None:
 
 def test_a_whole_sentence_is_a_finished_turn() -> None:
     assert completion(load_session(), speech(), RATE) > 0.5
+
+
+def test_smart_turn_judges_the_recording_finished_with_the_reference_probability() -> None:
+    assert completion(load_session(), speech(), RATE) == pytest.approx(0.98162, abs=1e-5)

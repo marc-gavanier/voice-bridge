@@ -5,8 +5,8 @@ import numpy as np
 import numpy.typing as npt
 import onnxruntime as ort
 import soxr
-from faster_whisper.feature_extractor import FeatureExtractor
 from huggingface_hub import hf_hub_download
+from transformers import WhisperFeatureExtractor
 
 from voice_bridge.libraries.audio.pcm import Samples, to_float
 
@@ -22,7 +22,7 @@ MODEL_FILE: Final = "smart-turn-v3.2-cpu.onnx"
 REVISION: Final = "f766f81d3cfdf7737ac64aad813d91bbfd56bf93"
 NORMALIZATION_FLOOR: Final = 1e-7
 
-_EXTRACTOR: Final = FeatureExtractor(feature_size=MEL_BINS, sampling_rate=SMART_TURN_RATE, chunk_length=SECONDS)
+_EXTRACTOR: Final = WhisperFeatureExtractor(feature_size=MEL_BINS, sampling_rate=SMART_TURN_RATE, chunk_length=SECONDS)
 
 
 class Session(Protocol):
@@ -52,7 +52,8 @@ def _normalized(samples: Samples) -> Samples:
 
 def features(pcm: bytes, rate: int) -> npt.NDArray[np.float32]:
     samples = _normalized(_last_seconds(soxr.resample(to_float(pcm), rate, SMART_TURN_RATE)))
-    return _EXTRACTOR(samples, padding=0)[np.newaxis, :, :FRAMES].astype(np.float32)
+    extracted = _EXTRACTOR(samples, sampling_rate=SMART_TURN_RATE, return_tensors="np")
+    return extracted["input_features"][:, :, :FRAMES].astype(np.float32)
 
 
 def completion(session: Session, pcm: bytes, rate: int) -> float:
