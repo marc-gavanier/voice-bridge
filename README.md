@@ -115,7 +115,7 @@ sequenceDiagram
 ## Requirements
 
 - Linux with an NVIDIA GPU able to hold Voxtral and Whisper together, about 14 GB of video memory.
-- [uv](https://docs.astral.sh/uv/). It brings Python 3.14 and the CUDA libraries the project needs.
+- [uv](https://docs.astral.sh/uv/). It brings Python 3.14 and, with the `cuda` extra, the CUDA libraries Whisper needs on the GPU.
 - A Mumble server, version 1.5 or later. Voice reaches the bridge through the server's TLS connection, which [pymumble-rev](https://github.com/AidenOfficial/PyMumble) requires.
 - A Mumble app on the phone, such as [Mumla](https://mumla-app.gitlab.io/) on Android.
 - Claude Code with channels enabled. Channels are a research preview: a channel outside Anthropic's allowlist loads with `--dangerously-load-development-channels`, which the launcher passes.
@@ -124,8 +124,10 @@ sequenceDiagram
 ## Install
 
 ```bash
-uv sync
+uv sync --extra cuda
 ```
+
+The `cuda` extra brings cuBLAS and cuDNN for CUDA 12, about a gigabyte, which `scripts/with-cuda.sh` points Whisper at and the launcher adds itself ([ADR-004](docs/decisions/ADR-004-cuda-libraries-from-pip.md)). Without it, `uv sync` installs no NVIDIA package: Whisper then runs on the CPU, or on the GPU with the CUDA libraries of the system.
 
 OpenTelemetry's SDK and its file exporter come with every install, to [keep traces and metrics on the machine](#read-the-traces-and-metrics). `uv sync --extra otel` adds zero-code instrumentation and the OTLP and Prometheus exporters, to [export traces, metrics and the log](#export-traces-metrics-and-the-log) to a collector instead; `--extra sentry` adds Sentry, to [report errors](#report-errors-to-sentry). The launcher adds them itself when [their variables are set](#one-tool-per-signal).
 
