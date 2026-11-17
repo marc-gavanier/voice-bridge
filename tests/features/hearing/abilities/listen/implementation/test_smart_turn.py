@@ -4,17 +4,23 @@ from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
-import pytest
 
 from voice_bridge.features.hearing.abilities.listen.implementation.smart_turn import completion, features, load_session
 
 RATE = 48000
-SPEECH = Path(__file__).parents[5] / "fixtures" / "speech.wav"
+FIXTURES = Path(__file__).parents[5] / "fixtures"
+SPEECH = FIXTURES / "speech.wav"
+REFERENCE_FEATURES = FIXTURES / "speech_smart_turn_features.npy"
 
 
 def speech() -> bytes:
     with wave.open(str(SPEECH), "rb") as recording:
         return recording.readframes(recording.getnframes())
+
+
+def reference_features() -> np.ndarray:
+    with REFERENCE_FEATURES.open("rb") as reference:
+        return np.lib.format.read_array(reference)
 
 
 def test_the_features_cover_eight_seconds_of_whisper_frames() -> None:
@@ -46,5 +52,5 @@ def test_a_whole_sentence_is_a_finished_turn() -> None:
     assert completion(load_session(), speech(), RATE) > 0.5
 
 
-def test_smart_turn_judges_the_recording_finished_with_the_reference_probability() -> None:
-    assert completion(load_session(), speech(), RATE) == pytest.approx(0.98162, abs=1e-5)
+def test_the_features_of_the_recording_match_the_reference() -> None:
+    assert np.allclose(features(speech(), RATE), reference_features(), atol=1e-4)
