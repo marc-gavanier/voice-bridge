@@ -3,6 +3,7 @@ set -euo pipefail
 unit=voice-bridge-voxtral
 case "${1:-}" in
   start)
+    systemctl --user is-active --quiet "$unit" && exit 0
     systemd-run --user --unit="$unit" --collect \
       --setenv=VLLM_USE_FLASHINFER_SAMPLER=0 \
       --setenv=PATH="$PATH" \
