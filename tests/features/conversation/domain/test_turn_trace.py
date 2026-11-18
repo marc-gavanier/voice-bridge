@@ -161,7 +161,7 @@ def test_a_recording_tells_no_characters_to_synthesize() -> None:
     assert synthesis_of(
         *heard(),
         (4.0, FORWARD),
-        (6.0, Synthesize(ticket=0, sentence=Recording(name="a.wav", pcm=b""))),
+        (6.0, Synthesize(ticket=0, sentence=Recording(name="a.wav", path="/clips/a.wav"))),
         (8.0, SynthesisFailed(ticket=0)),
     ).attributes == (("rank", 0), ("characters", 0))
 

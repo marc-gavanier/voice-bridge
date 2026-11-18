@@ -61,6 +61,7 @@ from voice_bridge.features.speaking.abilities.announce.implementation.announce i
 from voice_bridge.features.speaking.abilities.hold_music.implementation.hold_music import HoldMusic, track_of
 from voice_bridge.features.speaking.abilities.mix.domain.mixing import Layer
 from voice_bridge.features.speaking.abilities.mix.implementation.player import Channel, Player
+from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import ClipStream
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech
 from voice_bridge.features.speaking.abilities.speak.implementation.speak import (
     sentences_of,
@@ -69,6 +70,7 @@ from voice_bridge.features.speaking.abilities.speak.implementation.speak import 
     wait_until_ready,
 )
 from voice_bridge.features.speaking.implementation.audio_file import AudioFile
+from voice_bridge.features.speaking.implementation.audio_folder import AudioFolder
 from voice_bridge.features.transport.abilities.carry.domain.received import Frame
 from voice_bridge.features.transport.abilities.carry.implementation.carry import carry, with_pauses
 from voice_bridge.features.transport.abilities.carry.implementation.mumble import Mumble, holds_certificate
@@ -272,6 +274,10 @@ class AssistantSide:
     board: WorkBoard
 
 
+def clip_source(settings: Settings, rate: int) -> AudioFolder:
+    return AudioFolder(directories=settings.clips.directories, decode=decode_audio, rate=rate)
+
+
 async def converse(settings: Settings, language: LanguagePack, side: AssistantSide, transport: Transport) -> None:
     events_in, events_out = anyio.create_memory_object_stream[Event](math.inf)
     frames_in, frames_out = anyio.create_memory_object_stream[Frame](math.inf)
@@ -341,6 +347,9 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         announcements = Announcements(wording=_wording(language))
         mouth = Mouth(
             voice=partial(voice_streamed, engine),
+            recordings=ClipStream(
+                source=clip_source(settings, transport.rate), volume=settings.clips.volume, rate=transport.rate
+            ),
             speaker=player.channel(Layer.VOICE),
             assistant=_FollowingStops(
                 assistant=side.assistant, understanding=understanding, flag=StopFlag(settings.understanding.stop_flag)

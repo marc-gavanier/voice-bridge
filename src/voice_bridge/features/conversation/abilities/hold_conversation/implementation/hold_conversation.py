@@ -46,6 +46,7 @@ if TYPE_CHECKING:
         Assistant,
         HoldMusic,
         Interpreter,
+        Recordings,
         Speaker,
         Telemetry,
         Voice,
@@ -58,6 +59,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Mouth:
     voice: Voice
+    recordings: Recordings
     speaker: Speaker
     assistant: Assistant
     rate: int
@@ -83,8 +85,7 @@ class _Shell:
 
 async def _voiced(mouth: Mouth, said: Said, hear: Callable[[bytes], Awaitable[None]]) -> bool:
     if isinstance(said, Recording):
-        await hear(said.pcm)
-        return True
+        return await mouth.recordings(said.path, hear)
     return await mouth.voice(said, hear)
 
 

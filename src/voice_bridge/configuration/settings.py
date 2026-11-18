@@ -112,13 +112,13 @@ def _keys_of(data: object) -> set[str]:
 
 REMOVED_CLIP_KEYS: dict[str, str] = {
     "directory": 'clips.directory became clips.directories, a list: directories = ["/path/to/clips"]',
+    "largest": "clips.largest is gone: a clip is streamed, whatever its size",
+    "longest": "clips.longest is gone: a clip is streamed, whatever its length",
 }
 
 
 class ClipsSettings(Section):
     directories: Annotated[tuple[Path, ...], Field(min_length=1)] = (user_state_path(APP_NAME) / "clips",)
-    longest: PositiveFloat = 300.0
-    largest: PositiveInt = 50_000_000
     volume: NonNegativeFloat = 1.0
 
     @model_validator(mode="before")

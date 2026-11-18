@@ -97,7 +97,7 @@ def synthesizing_ticket(turn: Turn) -> int:
 
 
 def recording(name: str) -> Recording:
-    return Recording(name=name, pcm=RECORDED)
+    return Recording(name=name, path=f"/clips/{name}")
 
 
 @given("the assistant is silent", target_fixture="turn")

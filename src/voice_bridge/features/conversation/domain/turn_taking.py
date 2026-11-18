@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from typing import Final, assert_never
 
 ANNOUNCED_FROM: Final = 2
@@ -7,7 +7,7 @@ ANNOUNCED_FROM: Final = 2
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Recording:
     name: str
-    pcm: bytes = field(repr=False)
+    path: str
 
 
 type Said = str | Recording

@@ -25,7 +25,6 @@ def _at_random(files: tuple[Path, ...], /) -> tuple[Path, ...]:
 @dataclass(slots=True, kw_only=True)
 class AudioFolder:
     directories: tuple[Path, ...]
-    largest: int
     decode: Decoder
     rate: int
     draw: Callable[[tuple[Path, ...]], tuple[Path, ...]] = _at_random
@@ -49,8 +48,6 @@ class AudioFolder:
             _refuse(f"{asked} is not an audio file: its name must end with {', '.join(AUDIO_SUFFIXES)}")
         if not found.is_file():
             _refuse(f"{asked} is not a file")
-        if found.stat().st_size > self.largest:
-            _refuse(f"{asked} weighs over {self.largest} bytes")
         return found
 
     def _audio(self, path: Path) -> Audio:

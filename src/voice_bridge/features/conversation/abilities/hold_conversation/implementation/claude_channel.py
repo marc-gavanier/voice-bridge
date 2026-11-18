@@ -66,7 +66,7 @@ class PlayTool:
     description: str
     path_description: str
     label_description: str
-    read: Callable[[str], Awaitable[bytes]]
+    check: Callable[[str], Awaitable[None]]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -144,13 +144,13 @@ async def _clip_of(tool: PlayTool, arguments: dict[str, object]) -> AgentMessage
     except ValidationError as error:
         return _error(str(error))
     try:
-        pcm = await tool.read(asked.path)
+        await tool.check(asked.path)
     except ValueError as error:
         logger.info("play refused: %s", error)
         return _error(str(error))
     name = PurePath(asked.path).name
     logger.info("clip received from Claude: %s, after %r", name, asked.label)
-    return AgentMessageChunk(text=asked.label, recording=Recording(name=name, pcm=pcm))
+    return AgentMessageChunk(text=asked.label, recording=Recording(name=name, path=asked.path))
 
 
 def _board(tool: BoardTool) -> types.CallToolResult:

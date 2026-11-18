@@ -10,7 +10,6 @@ from voice_bridge.features.speaking.domain.ports import AudioSource
 from voice_bridge.features.speaking.implementation.audio_folder import AudioFolder
 
 RATE = 48000
-LARGEST = 1_000_000
 
 
 @dataclass
@@ -41,11 +40,11 @@ def other_folder(tmp_path: Path) -> Path:
 
 
 def source(directory: Path, decoder: RecordingDecoder | None = None) -> AudioSource:
-    return AudioFolder(directories=(directory,), largest=LARGEST, decode=decoder or RecordingDecoder(), rate=RATE)
+    return AudioFolder(directories=(directory,), decode=decoder or RecordingDecoder(), rate=RATE)
 
 
 def sources(*directories: Path) -> AudioSource:
-    return AudioFolder(directories=directories, largest=LARGEST, decode=RecordingDecoder(), rate=RATE)
+    return AudioFolder(directories=directories, decode=RecordingDecoder(), rate=RATE)
 
 
 def refusal(path: Path | str, directory: Path) -> str:
@@ -130,11 +129,6 @@ def test_a_missing_file_is_refused(tmp_path: Path) -> None:
     assert refusal(clip, folder(tmp_path)) == f"{clip} is not a file"
 
 
-def test_a_file_larger_than_allowed_is_refused(tmp_path: Path) -> None:
-    clip = written(folder(tmp_path) / "sample.wav", 11.0)
-    assert refusal(clip, folder(tmp_path)) == f"{clip} weighs over {LARGEST} bytes"
-
-
 @dataclass
 class Draws:
     orders: list[tuple[str, ...]]
@@ -145,7 +139,7 @@ class Draws:
 
 
 def shuffled(*directories: Path, draws: Draws) -> AudioFolder:
-    return AudioFolder(directories=directories, largest=LARGEST, decode=RecordingDecoder(), rate=RATE, draw=draws)
+    return AudioFolder(directories=directories, decode=RecordingDecoder(), rate=RATE, draw=draws)
 
 
 def tracks(directory: Path, *names: str) -> Path:

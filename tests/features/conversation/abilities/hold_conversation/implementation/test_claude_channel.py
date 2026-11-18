@@ -47,21 +47,19 @@ def board() -> str:
 
 
 BOARD_TOOL = BoardTool(description="Read the board of agents", read=board)
-RECORDED = b"\x01\x00" * 480
 
 
-async def read_clip(path: str) -> bytes:
+async def check_clip(path: str) -> None:
     if path.endswith(".txt"):
         message = f"{path} is not an audio file"
         raise ValueError(message)
-    return RECORDED
 
 
 PLAY_TOOL = PlayTool(
     description="Play an audio file",
     path_description="The absolute path of the file",
     label_description="A few words said before it",
-    read=read_clip,
+    check=check_clip,
 )
 TOOLS = ChannelTools(reply=TOOL, end_session=END_TOOL, board=BOARD_TOOL, play=PLAY_TOOL)
 
@@ -182,14 +180,14 @@ async def test_playing_a_file_hands_its_recording_and_label_to_the_conversation(
     async with connected() as connection:
         _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav", "label": "Écoute."})
         reply = await connection.replies.receive()
-    assert reply == AgentMessageChunk(text="Écoute.", recording=Recording(name="sample.wav", pcm=RECORDED))
+    assert reply == AgentMessageChunk(text="Écoute.", recording=Recording(name="sample.wav", path="/clips/sample.wav"))
 
 
 async def test_playing_a_file_without_a_label_says_nothing_before_it() -> None:
     async with connected() as connection:
         _ = await connection.session.call_tool("play", {"path": "/clips/sample.wav"})
         reply = await connection.replies.receive()
-    assert reply == AgentMessageChunk(text="", recording=Recording(name="sample.wav", pcm=RECORDED))
+    assert reply == AgentMessageChunk(text="", recording=Recording(name="sample.wav", path="/clips/sample.wav"))
 
 
 async def test_playing_a_file_confirms_it_was_sent() -> None:

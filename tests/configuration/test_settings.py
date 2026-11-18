@@ -225,23 +225,15 @@ def test_the_former_clips_directory_says_what_replaced_it(tmp_path: Path) -> Non
         _ = load_settings(path)
 
 
-def test_a_clip_is_limited_to_five_minutes_and_fifty_megabytes_by_default(config_file: Path) -> None:
-    clips = load_settings(config_file).clips
-    assert (clips.longest, clips.largest) == (300.0, 50_000_000)
-
-
 def test_a_clip_plays_at_its_own_volume_by_default(config_file: Path) -> None:
     assert load_settings(config_file).clips.volume == 1.0
 
 
-def test_a_clip_limit_must_be_positive() -> None:
-    with pytest.raises(ValidationError, match="longest"):
-        _ = ClipsSettings(longest=0.0)
-
-
-def test_a_clip_size_must_be_positive() -> None:
-    with pytest.raises(ValidationError, match="largest"):
-        _ = ClipsSettings(largest=0)
+def test_the_former_clip_limits_say_that_a_clip_is_streamed(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + "[clips]\nlongest = 300.0\nlargest = 50000000\n", encoding="utf-8")
+    with pytest.raises(ValidationError, match=r"largest is gone: .*; clips\.longest is gone: a clip is streamed"):
+        _ = load_settings(path)
 
 
 def test_the_speech_engine_is_checked_on_its_health_route_by_default(config_file: Path) -> None:

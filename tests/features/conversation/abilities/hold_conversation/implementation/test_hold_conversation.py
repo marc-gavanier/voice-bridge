@@ -112,6 +112,13 @@ async def voiced(sentence: str, hear: Hear) -> bool:
     return True
 
 
+async def recorded(path: str, hear: Hear) -> bool:
+    if path.endswith("missing.wav"):
+        return False
+    await hear(RECORDED)
+    return True
+
+
 async def voiced_in_pieces(sentence: str, hear: Hear) -> bool:
     await hear(SOUND)
     await hear(sentence.encode())
@@ -171,6 +178,7 @@ async def talking(
 
     mouth = Mouth(
         voice=voice,
+        recordings=recorded,
         speaker=StreamedSpeaker(played_in),
         assistant=assistant,
         rate=48000,
@@ -210,16 +218,23 @@ async def test_an_asked_sentence_is_played() -> None:
     assert played == SOUND
 
 
-async def test_a_recording_is_played_as_it_was_recorded() -> None:
+async def test_a_recording_is_played_as_its_file_is_read() -> None:
     async with talking() as talk:
-        await talk.say.send(Asked(sentences=(Recording(name="Silent sample.wav", pcm=RECORDED),)))
+        await talk.say.send(Asked(sentences=(Recording(name="Silent sample.wav", path="/clips/Silent sample.wav"),)))
         played = await talk.played.receive()
     assert played == RECORDED
 
 
+async def test_a_recording_that_can_no_longer_be_read_is_skipped_for_the_next_sentence() -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=(Recording(name="missing.wav", path="/clips/missing.wav"), "Après.")))
+        played = await talk.played.receive()
+    assert played == SOUND
+
+
 async def test_a_recording_is_played_after_the_sentence_before_it() -> None:
     async with talking() as talk:
-        await talk.say.send(Asked(sentences=("Écoute.", Recording(name="sample.wav", pcm=RECORDED))))
+        await talk.say.send(Asked(sentences=("Écoute.", Recording(name="sample.wav", path="/clips/sample.wav"))))
         played = (await talk.played.receive(), await talk.played.receive())
     assert played == (SOUND, RECORDED)
 

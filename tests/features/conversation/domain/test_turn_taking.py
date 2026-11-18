@@ -15,7 +15,6 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     HoldLasted,
     Leave,
     Play,
-    Recording,
     SilenceLasted,
     SoundDismissed,
     SpeechEnded,
@@ -506,10 +505,6 @@ def test_words_given_after_claude_s_voice_ended_bring_the_music_after_its_delay_
         Transcribed(text="Et ensuite ?"),
         SilenceLasted(ticket=0, at=5.0),
     )
-
-
-def test_a_recording_shows_its_name_but_not_its_sound() -> None:
-    assert repr(Recording(name="sample.wav", pcm=SOUND)) == "Recording(name='sample.wav')"
 
 
 def piece(ticket: int, at: float, duration: float = 1.0) -> Voiced:

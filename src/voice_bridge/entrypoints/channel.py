@@ -14,7 +14,7 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, watching_hangs
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
-from voice_bridge.entrypoints.voice import AssistantSide, converse, mumble
+from voice_bridge.entrypoints.voice import AssistantSide, clip_source, converse, mumble
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import SessionUpdate
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     listen_to_claude,
@@ -29,9 +29,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
     serve_over_stdio,
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
-from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import ClipRules, read_clip
-from voice_bridge.features.speaking.implementation.audio_folder import AudioFolder
-from voice_bridge.libraries.audio.file import decode_audio
+from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import check_clip
 
 if TYPE_CHECKING:
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt
@@ -45,19 +43,17 @@ def now() -> datetime:
 
 
 def _play_tool(settings: Settings, language: LanguagePack, rate: int) -> PlayTool:
-    clips = settings.clips
-    rules = ClipRules(longest=clips.longest, volume=clips.volume)
-    source = AudioFolder(directories=clips.directories, largest=clips.largest, decode=decode_audio, rate=rate)
+    source = clip_source(settings, rate)
 
-    async def read(path: str) -> bytes:
-        return await anyio.to_thread.run_sync(partial(read_clip, path, source=source, rules=rules, rate=rate))
+    async def check(path: str) -> None:
+        await anyio.to_thread.run_sync(partial(check_clip, path, source=source))
 
-    directories = ", ".join(str(directory) for directory in clips.directories)
+    directories = ", ".join(str(directory) for directory in settings.clips.directories)
     return PlayTool(
         description=language.play_tool_description,
         path_description=language.play_path_description.format(directories=directories),
         label_description=language.play_label_description,
-        read=read,
+        check=check,
     )
 
 
