@@ -172,7 +172,7 @@ def _ears(settings: Settings, rate: int) -> Ears:
 
 
 async def _transcription(settings: Settings, language: LanguagePack, rate: int) -> Transcription:
-    whisper = settings.whisper
+    whisper = settings.speech_recognition.faster_whisper
     model = await anyio.to_thread.run_sync(
         partial(WhisperModel, whisper.model, device=whisper.device, compute_type=whisper.compute_type)
     )

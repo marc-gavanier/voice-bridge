@@ -65,7 +65,7 @@ def settings(claude: dict[str, str]) -> Settings:
                     "speaker_certificate_hash": "6f0b58787b96ff978ba512c74a1c3ca4aabab441",
                 }
             },
-            "whisper": {"model": "large-v3"},
+            "speech_recognition": {"faster_whisper": {"model": "large-v3"}},
             "hearing": {"settle": 1.5, "silence": 0.7, "smart_turn": True, "turn_threshold": 0.6},
             "speech": {"model": "mistralai/Voxtral-4B-TTS-2603", "speed": 1.2},
         }

@@ -130,6 +130,16 @@ def test_a_missing_config_file_falls_back_to_the_environment(tmp_path: Path, mon
     assert load_settings(tmp_path / "absent.toml").transport.mumble.host == "env.example.org"
 
 
+def test_faster_whisper_recognizes_the_speech_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).speech_recognition.adapter == "faster_whisper"
+
+
+def test_the_speech_recognition_model_comes_from_its_adapters_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[speech_recognition.faster_whisper]\nmodel = "large-v3"\n', encoding="utf-8")
+    assert load_settings(path).speech_recognition.faster_whisper.model == "large-v3"
+
+
 def test_the_voice_defaults_to_the_one_of_the_language(config_file: Path) -> None:
     assert load_settings(config_file).speech.voice is None
 

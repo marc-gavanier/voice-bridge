@@ -33,7 +33,7 @@ def run_attributes(settings: Settings, *, voice: str, pace: str) -> dict[str, st
         "voice_bridge.hearing.settle": hearing.settle,
         "voice_bridge.hearing.smart_turn": hearing.smart_turn,
         "voice_bridge.hearing.turn_threshold": hearing.turn_threshold,
-        "voice_bridge.whisper.model": settings.whisper.model,
+        "voice_bridge.whisper.model": settings.speech_recognition.faster_whisper.model,
         "voice_bridge.speech.model": settings.speech.model,
         "voice_bridge.speech.voice": voice,
         "voice_bridge.speech.speed": settings.speech.speed,

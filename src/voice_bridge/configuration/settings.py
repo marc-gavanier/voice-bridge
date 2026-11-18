@@ -61,10 +61,15 @@ class SpeechSettings(Section):
     health: str = "/health"
 
 
-class WhisperSettings(Section):
+class FasterWhisperSettings(Section):
     model: str = "large-v3-turbo"
     device: Literal["auto", "cuda", "cpu"] = "auto"
     compute_type: str = "default"
+
+
+class SpeechRecognitionSettings(Section):
+    adapter: Literal["faster_whisper"] = "faster_whisper"
+    faster_whisper: FasterWhisperSettings = FasterWhisperSettings()
 
 
 class HearingSettings(Section):
@@ -159,7 +164,7 @@ class Settings(BaseSettings):
     language: Language = DEFAULT_LANGUAGE
     transport: TransportSettings
     speech: SpeechSettings = SpeechSettings()
-    whisper: WhisperSettings = WhisperSettings()
+    speech_recognition: SpeechRecognitionSettings = SpeechRecognitionSettings()
     hearing: HearingSettings = HearingSettings()
     hold_music: HoldMusicSettings = HoldMusicSettings()
     clips: ClipsSettings = ClipsSettings()
