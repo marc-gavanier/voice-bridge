@@ -46,6 +46,11 @@ class MumbleSettings(Section):
     speaker_certificate_hash: str
 
 
+class TransportSettings(Section):
+    adapter: Literal["mumble"] = "mumble"
+    mumble: MumbleSettings
+
+
 class SpeechSettings(Section):
     url: HttpUrl = HttpUrl("http://127.0.0.1:8123")
     model: str = "mistralai/Voxtral-4B-TTS-2603"
@@ -152,7 +157,7 @@ class Settings(BaseSettings):
     )
 
     language: Language = DEFAULT_LANGUAGE
-    mumble: MumbleSettings
+    transport: TransportSettings
     speech: SpeechSettings = SpeechSettings()
     whisper: WhisperSettings = WhisperSettings()
     hearing: HearingSettings = HearingSettings()

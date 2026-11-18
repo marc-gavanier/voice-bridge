@@ -57,11 +57,13 @@ def settings(claude: dict[str, str]) -> Settings:
         {
             "claude": claude,
             "language": "fr",
-            "mumble": {
-                "host": "voice.example.org",
-                "password": "secret",
-                "server_certificate": "/etc/voice-bridge/server.pem",
-                "speaker_certificate_hash": "6f0b58787b96ff978ba512c74a1c3ca4aabab441",
+            "transport": {
+                "mumble": {
+                    "host": "voice.example.org",
+                    "password": "secret",
+                    "server_certificate": "/etc/voice-bridge/server.pem",
+                    "speaker_certificate_hash": "6f0b58787b96ff978ba512c74a1c3ca4aabab441",
+                }
             },
             "whisper": {"model": "large-v3"},
             "hearing": {"settle": 1.5, "silence": 0.7, "smart_turn": True, "turn_threshold": 0.6},

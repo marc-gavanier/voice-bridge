@@ -26,7 +26,7 @@ async def record_bridge(settings: Settings) -> None:
     frames_in, frames_out = anyio.create_memory_object_stream[Frame](math.inf)
     transport = Mumble(
         connection=partial(stay_connected, access(settings, USERNAME)),
-        listened=named(settings.mumble.username),
+        listened=named(settings.transport.mumble.username),
         clock=time.time,
     )
     recorder = Recorder(directory=settings.log_file.parent / "recordings", rate=transport.rate)

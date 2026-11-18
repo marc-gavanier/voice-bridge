@@ -79,7 +79,7 @@ class _Logged:
 async def serve(settings: Settings, language: LanguagePack) -> None:
     updates_in, updates_out = anyio.create_memory_object_stream[SessionUpdate](math.inf)
     board = WorkBoard(clock=now)
-    transport = mumble(settings, settings.mumble.username)
+    transport = mumble(settings, settings.transport.mumble.username)
     server = channel_server(
         instructions=load_instructions(settings.instructions_file, default=language.instructions),
         tools=ChannelTools(

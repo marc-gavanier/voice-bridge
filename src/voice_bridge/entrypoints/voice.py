@@ -101,18 +101,18 @@ PATIENCE: Final = 0.05
 
 def access(settings: Settings, username: str) -> Access:
     return Access(
-        host=settings.mumble.host,
-        port=settings.mumble.port,
+        host=settings.transport.mumble.host,
+        port=settings.transport.mumble.port,
         username=username,
-        password=settings.mumble.password.get_secret_value(),
-        server_certificate=settings.mumble.server_certificate,
+        password=settings.transport.mumble.password.get_secret_value(),
+        server_certificate=settings.transport.mumble.server_certificate,
     )
 
 
 def mumble(settings: Settings, username: str) -> Mumble:
     return Mumble(
         connection=partial(stay_connected, access(settings, username)),
-        listened=holds_certificate(settings.mumble.speaker_certificate_hash),
+        listened=holds_certificate(settings.transport.mumble.speaker_certificate_hash),
         clock=anyio.current_time,
     )
 
