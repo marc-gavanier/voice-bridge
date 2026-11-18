@@ -185,10 +185,15 @@ class ClaudeSettings(Section):
     unanswered_after: PositiveFloat = 10.0
 
 
-class UnderstandingSettings(Section):
+class OnnxEncoderSettings(Section):
     model: str = "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q"
     revision: str = "faf4aa4225822f3bc6376869cb1164e8e3feedd0"
+
+
+class UnderstandingSettings(Section):
+    adapter: Literal["onnx"] = "onnx"
     threshold: float = 0.6
+    onnx: OnnxEncoderSettings = OnnxEncoderSettings()
     stop_flag: Path = DEFAULT_STOP_FLAG
 
 

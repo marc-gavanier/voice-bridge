@@ -4,7 +4,7 @@ from functools import cache
 import pytest
 
 from voice_bridge.configuration.language import language_pack
-from voice_bridge.configuration.settings import Language, UnderstandingSettings
+from voice_bridge.configuration.settings import Language, OnnxEncoderSettings, UnderstandingSettings
 from voice_bridge.features.speaking.abilities.acknowledge.domain.candidates import fallback
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import (
     Encoder,
@@ -18,7 +18,7 @@ from voice_bridge.features.understanding.domain.meaning import Route
 
 @pytest.fixture(scope="session")
 def encoder() -> Encoder:
-    settings = UnderstandingSettings()
+    settings = OnnxEncoderSettings()
     return load_encoder(settings.model, settings.revision)
 
 

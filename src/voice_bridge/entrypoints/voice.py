@@ -232,7 +232,8 @@ async def _hold_music(settings: Settings, rate: int, speaker: Channel) -> HoldMu
 
 def _understanding(settings: Settings, language: LanguagePack) -> Understanding:
     routes = language.acknowledgements
-    encoder = load_encoder(settings.understanding.model, settings.understanding.revision)
+    onnx = settings.understanding.onnx
+    encoder = load_encoder(onnx.model, onnx.revision)
     understanding = Understanding(
         scores=router(encoder, [route.examples for route in routes]),
         routes=tuple(

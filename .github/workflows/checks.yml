@@ -100,7 +100,7 @@ jobs:
           revisions=$(uv run --frozen python -c '
           from voice_bridge.configuration.settings import UnderstandingSettings
           from voice_bridge.features.hearing.abilities.listen.implementation import silero, smart_turn
-          print(UnderstandingSettings().revision, smart_turn.REVISION, silero.MODEL_HASH.removeprefix("sha256:"), sep="-")
+          print(UnderstandingSettings().onnx.revision, smart_turn.REVISION, silero.MODEL_HASH.removeprefix("sha256:"), sep="-")
           ')
           [[ $revisions =~ ^[0-9a-f]{40}-[0-9a-f]{40}-[0-9a-f]{64}$ ]]
           echo "revisions=$revisions" >> "$GITHUB_OUTPUT"

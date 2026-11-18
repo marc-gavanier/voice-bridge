@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from voice_bridge.configuration.settings import UnderstandingSettings
+from voice_bridge.configuration.settings import OnnxEncoderSettings
 from voice_bridge.features.understanding.abilities.understand.implementation.embeddings import (
     Encoder,
     Vectors,
@@ -18,7 +18,7 @@ def along_axes(texts: Sequence[str]) -> Vectors:
 
 
 def default_encoder() -> Encoder:
-    settings = UnderstandingSettings()
+    settings = OnnxEncoderSettings()
     return load_encoder(settings.model, settings.revision)
 
 
