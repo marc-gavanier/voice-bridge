@@ -3,8 +3,12 @@ set -euo pipefail
 project="$(cd "$(dirname "$0")/.." && pwd)"
 voxtral="${VOICE_BRIDGE_SPEECH_SYNTHESIS__OPENAI__URL:-http://127.0.0.1:8123}"
 if ! curl --silent --fail --max-time 2 "$voxtral/health" >/dev/null; then
-  "$project/scripts/voxtral.sh" start
-  echo "Voxtral is starting, it takes about two and a half minutes." >&2
+  echo "Waiting for Voxtral to be ready, it takes about two minutes; the voice session starts right after." >&2
+  if ! "$project/scripts/voxtral.sh" start; then
+    echo "Voxtral did not become ready, the voice session does not start: see $project/scripts/voxtral.sh logs" >&2
+    exit 1
+  fi
+  echo "Voxtral is ready." >&2
 fi
 environment_file="${XDG_CONFIG_HOME:-$HOME/.config}/voice-bridge/environment"
 environment='{}'
