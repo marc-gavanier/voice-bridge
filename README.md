@@ -533,16 +533,18 @@ Besides example tests, [Hypothesis](https://hypothesis.readthedocs.io) checks pr
 
 ### Merging
 
-Every change goes through a pull request on a branch named after its Conventional Commits type, such as `feat/…` or `fix/…`. Pull requests are merged by fast-forward from a local clone rather than with GitHub's button: GitHub's rebase merge recreates the commits without their signatures, while `main` requires signed commits, a linear history and both CI jobs green.
+Every change goes through a pull request on a branch named after its Conventional Commits type, such as `feat/…` or `fix/…`. `main` requires signed commits, a linear history and both CI jobs green. GitHub cannot sign the commits its rebase merge recreates, so its merge buttons are refused: the branch is rebased and signed in a local clone, then `main` is fast-forwarded to it.
 
 ```bash
+git fetch origin
 git switch feat/something
-git rebase main
-git push --force-with-lease
+git rebase --gpg-sign origin/main
+git push --force-with-lease origin feat/something
+gh pr checks feat/something --watch
 git push origin feat/something:main
 ```
 
-The last command succeeds once the checks have passed on the rebased branch; GitHub then marks the pull request as merged.
+Only the pull request's branch is force-pushed, with `--force-with-lease` so that a commit pushed by someone else is never overwritten. `main` only moves forward and is never force-pushed. The last command succeeds once both checks have passed on the rebased branch; GitHub then marks the pull request as merged.
 
 ## Limits
 

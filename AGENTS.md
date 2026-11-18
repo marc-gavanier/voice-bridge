@@ -66,6 +66,7 @@ What each gate holds:
 - [Conventional Commits](https://www.conventionalcommits.org): `feat`, `fix`, `refactor`, `test`, `docs`, `build`. The subject is a lower-case sentence saying what the change does, without a final period; the body says why.
 - One change per pull request, on a branch named after its type, such as `fix/log-dismissed-sounds`.
 - `main` requires signed commits, a linear history and both CI jobs, `checks` and `secrets`, green. Pull requests are merged by fast-forward from a local clone, not with GitHub's button; the README's [Merging](README.md#merging) section gives the commands. Never push to `main` or force-push without being asked.
+- Asking to merge a green pull request is that request: the maintainer has authorized the [Merging](README.md#merging) procedure for it, so follow it without asking again which merge method to use. Rebase with signatures, force-push only the pull request's branch with `--force-with-lease`, wait for both checks to pass, then fast-forward with `git push origin <branch>:main`. Never force-push `main`.
 
 ## Decisions and documentation
 
