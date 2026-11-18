@@ -179,7 +179,7 @@ chmod 600 ~/.config/voice-bridge/config.toml
 | `speech_synthesis.openai.timeout` | `120.0` | Seconds the bridge waits on the speech server for any step of a request, reading a whole acknowledgement or announcement among them, before giving up on it; above zero, and never below the two timeouts that follow |
 | `speech_synthesis.openai.connect_timeout` | `5.0` | Seconds the bridge waits for the speech server to accept the connection before giving up on the sentence and going on to the next. The bridge does not measure its connections, so this is a cautious value rather than a measured one: it leaves room for the two retries of a lost connection request that Linux sends after one and three seconds |
 | `speech_synthesis.openai.first_audio_timeout` | `10.0` | Seconds the bridge waits from the request, connection included, to the first audio of a reply's sentence before giving up on it and going on to the next; once the audio flows, only `timeout` applies. Measured over 3,120 sentences from 2026-11-10 to 2026-11-18, the first audio came in 0.15 s at the median, 0.17 s at the 90th percentile, 0.22 s at the 99th and 0.43 s at most: ten seconds is 45 times the 99th percentile, and keeps a server that accepts but never answers from silencing a reply of five sentences for ten minutes, as the 120 s of `timeout` alone did ([ADR-035](docs/decisions/ADR-035-every-brick-of-the-voice-chain-is-swappable-behind-a-port.md)) |
-| `speech_synthesis.openai.health` | `/health` | The route the bridge polls at start until the speech server answers; empty for a server without one, which is then taken as ready |
+| `speech_synthesis.openai.health` | `/health` | The route the bridge polls at start until the speech server answers, and asks before each reply of Claude's; empty for a server without one, which is then taken as ready |
 | `hold_music.source.adapter` | none | Where the music played while you wait for a reply comes from: `file` or `folder`; without a `[hold_music.source]` section, no music plays |
 | `hold_music.source.file.path` | required with `file` | An audio file, in any format FFmpeg reads, decoded once at startup |
 | `hold_music.source.folder.directories` | required with `folder` | Folders whose audio files, subfolders included, are drawn from, at least one, a leading `~` standing for the home directory: one of them is decoded at startup and plays for the whole run |
@@ -424,7 +424,7 @@ From the folder you want Claude Code to work in:
 ~/path/to/voice-bridge/scripts/claude-voice.sh
 ```
 
-The launcher starts Voxtral when it is not running, which takes a few minutes the first time, then starts Claude Code with the `voice` channel and the hooks, which `voice-bridge-claude-settings` registers with the socket, stop flag, language and log file read from the config at launch, along with the models of `assistant.claude_code.model` and `assistant.claude_code.subagent_model` when they are set: the hooks never read the config themselves, so that editing it under a running session cannot break them, and a change of these settings reaches them at the next launch. Arguments go to Claude Code, so `--resume <session>` works.
+The launcher starts Voxtral when it is not running and waits until it is ready, about two minutes, longer the first time while the model downloads: the console says so, and Claude Code, and with it the bridge, starts only once Voxtral's health answers. If Voxtral is not ready within ten minutes, the launcher stops and points to `scripts/voxtral.sh logs` ([ADR-042](docs/decisions/ADR-042-the-launcher-waits-for-the-voice-before-starting-the-bridge.md)). It then starts Claude Code with the `voice` channel and the hooks, which `voice-bridge-claude-settings` registers with the socket, stop flag, language and log file read from the config at launch, along with the models of `assistant.claude_code.model` and `assistant.claude_code.subagent_model` when they are set: the hooks never read the config themselves, so that editing it under a running session cannot break them, and a change of these settings reaches them at the next launch. Arguments go to Claude Code, so `--resume <session>` works.
 
 1. **Accept the warning.** Claude Code shows a full-screen warning about development channels at every start: choose *I am using this for local development*. Below the banner, `Channels (experimental) messages from server:voice` confirms the channel is registered.
 2. **Connect from the phone.** Once Whisper is loaded and Voxtral answers, you hear the greeting, one of the presence acknowledgements such as « Je suis là. », and the bridge's user appears in the channel.
@@ -442,7 +442,7 @@ To stop, leave Claude Code with `/exit`, then free the GPU from Voxtral:
 scripts/voxtral.sh stop
 ```
 
-`scripts/voxtral.sh` also takes `start`, `status` and `logs`; it runs Voxtral with [vLLM](https://docs.vllm.ai) as a systemd user unit.
+`scripts/voxtral.sh` also takes `start`, `status` and `logs`; it runs Voxtral with [vLLM](https://docs.vllm.ai) as a systemd user unit, which is active only once Voxtral's health answers, so `start` returns when the voice is ready, or fails after ten minutes.
 
 ## Diagnose
 
@@ -460,6 +460,8 @@ Two more commands help test the voice path without Claude:
 | Symptom | Where to look |
 |---|---|
 | No greeting | `scripts/voxtral.sh status`, then the log |
+| The launcher waits for Voxtral, then stops | `scripts/voxtral.sh logs`: the unit failed or its health did not answer within ten minutes |
+| The bridge says it has lost its voice | `the voice is lost` in the log: the speech server stopped answering during the session, often because Voxtral restarted. The sentences asked meanwhile are lost, and Claude's next replies are refused with `not said` until Voxtral's health answers again; `scripts/voxtral.sh status` tells whether it is coming back |
 | The wrong acknowledgement, or a stop missed or wrongly taken | Lines `understood '…' as <route> (<score>)`: add the sentence to the right route's examples in the language's TOML file in [`languages/`](src/voice_bridge/configuration/languages), or adjust `understanding.threshold` and the thresholds of the stop, presence and end routes |
 | Claude's tools are refused after a stop | `stop asked` and `stop lifted` in the log: any sentence that does not ask to stop lifts it |
 | Claude says it cannot edit, write or run a command itself | Expected in a session started by `scripts/claude-voice.sh`: `voice-bridge-tool-hook` refuses the main agent its working tools, and Claude should hand the task to a background agent. To run it once by hand: `echo '{"tool_name": "Bash"}' \| uv run voice-bridge-tool-hook` prints the refusal, and the same input with an `"agent_id"` prints nothing |
@@ -623,6 +625,7 @@ Only the pull request's branch is force-pushed, with `--force-with-lease` so tha
 - Speaking over an acknowledgement does not cut it, and the routes read only the words: about a third of real sentences got another kind than a person would pick in the measurements of [ADR-010](docs/decisions/ADR-010-semantic-routing-chooses-the-acknowledgement-and-detects-a-stop.md), and a sentence that quotes or denies a stop, such as « je n'ai pas dit stop », comes close to the stop route.
 - Voice reaches the bridge over TCP only, the one transport pymumble-rev implements, so a lossy mobile link can delay it.
 - Channels are a Claude Code research preview: the bridge serves them on the MCP handshake protocol, since Claude Code does not deliver channel messages on the 2026-07-28 protocol.
+- A speech server that restarts during a session loses the sentences asked while it was down: the bridge warns once and refuses Claude's new replies until it answers, but it does not keep them to say later ([ADR-042](docs/decisions/ADR-042-the-launcher-waits-for-the-voice-before-starting-the-bridge.md)).
 - Voxtral's licence, [CC BY-NC 4.0](https://huggingface.co/mistralai/Voxtral-4B-TTS-2603), forbids commercial use.
 
 ## License
