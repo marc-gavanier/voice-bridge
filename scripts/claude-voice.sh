@@ -32,7 +32,7 @@ jq --null-input --arg project "$project" --arg pid "$$" --argjson environment "$
             + (if $sentry then ["--extra", "sentry"] else [] end)
             + (if $otel then ["opentelemetry-instrument"] else [] end)
             + ["voice-bridge-channel"]),
-          env: ((if $otel then {OTEL_SERVICE_NAME: "voice-bridge"} else {} end) + $environment + {VOICE_BRIDGE_CLAUDE_PID: $pid}),
+          env: ((if $otel then {OTEL_SERVICE_NAME: "voice-bridge"} else {} end) + $environment + {VOICE_BRIDGE_ASSISTANT__CLAUDE_CODE__CLAUDE_PID: $pid}),
           alwaysLoad: true
         }
       }

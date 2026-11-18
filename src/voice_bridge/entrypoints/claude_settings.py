@@ -11,18 +11,19 @@ from voice_bridge.libraries.claude_code.models import model_settings
 def main() -> None:
     options = claude_settings_options(sys.argv[1:])
     settings = load_settings(options.config)
+    claude_code = settings.assistant.claude_code
     run = ["uv", "run", "--project", str(options.project), "--frozen", "--quiet"]
     log_file = ["--log-file", str(settings.log_file)]
-    activity = [*run, "voice-bridge-activity-hook", "--socket", str(settings.activity_socket), *log_file]
+    activity = [*run, "voice-bridge-activity-hook", "--socket", str(claude_code.activity_socket), *log_file]
     tool = [
         *run,
         "voice-bridge-tool-hook",
         "--stop-flag",
-        str(settings.understanding.stop_flag),
+        str(claude_code.stop_flag),
         "--language",
         settings.language,
         *log_file,
     ]
-    models = model_settings(model=settings.claude.model, subagent_model=settings.claude.subagent_model)
+    models = model_settings(model=claude_code.model, subagent_model=claude_code.subagent_model)
     hooks = hook_settings(activity=shlex.join(activity), tool=shlex.join(tool))
     _ = sys.stdout.write(json.dumps({**hooks, **models}))

@@ -179,10 +179,19 @@ class ClipsSettings(Section):
         return data
 
 
-class ClaudeSettings(Section):
+class ClaudeCodeSettings(Section):
     model: ClaudeModel | None = None
     subagent_model: ClaudeModel | None = None
     unanswered_after: PositiveFloat = 10.0
+    claude_pid: int | None = None
+    activity_socket: Path = DEFAULT_ACTIVITY_SOCKET
+    instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
+    stop_flag: Path = DEFAULT_STOP_FLAG
+
+
+class AssistantSettings(Section):
+    adapter: Literal["claude_code"] = "claude_code"
+    claude_code: ClaudeCodeSettings = ClaudeCodeSettings()
 
 
 class OnnxEncoderSettings(Section):
@@ -194,7 +203,6 @@ class UnderstandingSettings(Section):
     adapter: Literal["onnx"] = "onnx"
     threshold: float = 0.6
     onnx: OnnxEncoderSettings = OnnxEncoderSettings()
-    stop_flag: Path = DEFAULT_STOP_FLAG
 
 
 class Settings(BaseSettings):
@@ -211,17 +219,14 @@ class Settings(BaseSettings):
     hold_music: HoldMusicSettings = HoldMusicSettings()
     clips: ClipsSettings = ClipsSettings()
     understanding: UnderstandingSettings = UnderstandingSettings()
-    claude: ClaudeSettings = ClaudeSettings()
-    instructions_file: Path = user_config_path(APP_NAME) / "instructions.md"
+    assistant: AssistantSettings = AssistantSettings()
     log_file: Path = DEFAULT_LOG_FILE
     log_retention: Retention = 30
     logging: dict[str, JsonValue] | None = None
     telemetry_directory: Path = user_state_path(APP_NAME) / "telemetry"
     telemetry_retention: Retention = 30
     hang_after: PositiveFloat = 30.0
-    activity_socket: Path = DEFAULT_ACTIVITY_SOCKET
     cache_directory: Path = user_cache_path(APP_NAME)
-    claude_pid: int | None = None
 
     @classmethod
     @override

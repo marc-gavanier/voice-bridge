@@ -365,7 +365,9 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             ),
             speaker=player.channel(Layer.VOICE),
             assistant=_FollowingStops(
-                assistant=side.assistant, understanding=understanding, flag=StopFlag(settings.understanding.stop_flag)
+                assistant=side.assistant,
+                understanding=understanding,
+                flag=StopFlag(settings.assistant.claude_code.stop_flag),
             ),
             rate=transport.rate,
             clock=anyio.current_time,
@@ -376,7 +378,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
             unanswered=sentences_of(language.unanswered),
-            unanswered_after=settings.claude.unanswered_after,
+            unanswered_after=settings.assistant.claude_code.unanswered_after,
             telemetry=telemetry,
         )
 

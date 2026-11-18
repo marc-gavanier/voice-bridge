@@ -63,7 +63,7 @@ SMART_TURN: dict[str, object] = {
 def settings(claude: dict[str, str], end_of_turn: dict[str, object] = SMART_TURN) -> Settings:
     return Settings.model_validate(
         {
-            "claude": claude,
+            "assistant": {"claude_code": claude},
             "language": "fr",
             "transport": {
                 "mumble": {

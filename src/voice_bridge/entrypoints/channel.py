@@ -81,7 +81,7 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
     board = WorkBoard(clock=now)
     transport = mumble(settings, settings.transport.mumble.username)
     server = channel_server(
-        instructions=load_instructions(settings.instructions_file, default=language.instructions),
+        instructions=load_instructions(settings.assistant.claude_code.instructions_file, default=language.instructions),
         tools=ChannelTools(
             reply=ReplyTool(
                 description=language.reply_tool_description,
@@ -102,11 +102,11 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
                 assistant=_Logged(assistant=claude_code, board=board), updates=updates_out, board=board
             )
             async with anyio.create_task_group() as tasks:
-                _ = tasks.start_soon(listen_to_claude, settings.activity_socket, updates_in.send)
+                _ = tasks.start_soon(listen_to_claude, settings.assistant.claude_code.activity_socket, updates_in.send)
                 await converse(settings, language, side, transport)
                 tasks.cancel_scope.cancel()
 
-        await serve_over_stdio(server, talk_to, pid=settings.claude_pid)
+        await serve_over_stdio(server, talk_to, pid=settings.assistant.claude_code.claude_pid)
 
 
 def main() -> None:

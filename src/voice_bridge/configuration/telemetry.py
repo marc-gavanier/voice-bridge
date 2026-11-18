@@ -29,6 +29,7 @@ def reports_errors(environ: Mapping[str, str]) -> bool:
 
 def run_attributes(settings: Settings, *, voice: str, pace: str) -> dict[str, str | float | bool]:
     end_of_turn = settings.end_of_turn
+    claude_code = settings.assistant.claude_code
     judged = (
         {"voice_bridge.hearing.turn_threshold": end_of_turn.smart_turn.turn_threshold}
         if isinstance(end_of_turn, SmartTurnEndOfTurnSettings)
@@ -45,6 +46,6 @@ def run_attributes(settings: Settings, *, voice: str, pace: str) -> dict[str, st
         "voice_bridge.speech.voice": voice,
         "voice_bridge.speech.speed": settings.speech_synthesis.speed,
         "voice_bridge.speech.pace": pace,
-        "voice_bridge.claude.model": settings.claude.model or "default",
-        "voice_bridge.claude.subagent_model": settings.claude.subagent_model or "default",
+        "voice_bridge.claude.model": claude_code.model or "default",
+        "voice_bridge.claude.subagent_model": claude_code.subagent_model or "default",
     }

@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from voice_bridge.configuration.settings import (
     LANGUAGES,
-    ClaudeSettings,
+    ClaudeCodeSettings,
     ClipsSettings,
     OnnxEncoderSettings,
     SmartTurnEndOfTurnSettings,
@@ -109,13 +109,35 @@ def test_the_settings_of_an_adapter_not_chosen_stop_the_start(tmp_path: Path) ->
         _ = load_settings(path)
 
 
+def test_claude_code_is_the_assistant_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).assistant.adapter == "claude_code"
+
+
 def test_no_claude_code_process_is_known_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).claude_pid is None
+    assert load_settings(config_file).assistant.claude_code.claude_pid is None
 
 
 def test_the_launcher_tells_the_claude_code_process(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("VOICE_BRIDGE_CLAUDE_PID", "4242")
-    assert load_settings(config_file).claude_pid == 4242
+    monkeypatch.setenv("VOICE_BRIDGE_ASSISTANT__CLAUDE_CODE__CLAUDE_PID", "4242")
+    assert load_settings(config_file).assistant.claude_code.claude_pid == 4242
+
+
+def test_the_stop_flag_belongs_to_claude_code(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[assistant.claude_code]\nstop_flag = "/run/stop"\n', encoding="utf-8")
+    assert load_settings(path).assistant.claude_code.stop_flag == Path("/run/stop")
+
+
+def test_the_activity_socket_belongs_to_claude_code(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[assistant.claude_code]\nactivity_socket = "/run/activity.sock"\n', encoding="utf-8")
+    assert load_settings(path).assistant.claude_code.activity_socket == Path("/run/activity.sock")
+
+
+def test_the_instructions_file_belongs_to_claude_code(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[assistant.claude_code]\ninstructions_file = "/etc/voice.md"\n', encoding="utf-8")
+    assert load_settings(path).assistant.claude_code.instructions_file == Path("/etc/voice.md")
 
 
 def test_an_unknown_key_stops_the_start(tmp_path: Path) -> None:
@@ -395,36 +417,40 @@ def test_every_language_shipped_can_be_chosen_for_the_hooks() -> None:
 
 
 def test_claude_code_chooses_its_own_models_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).claude == ClaudeSettings(model=None, subagent_model=None)
+    claude_code = load_settings(config_file).assistant.claude_code
+    assert (claude_code.model, claude_code.subagent_model) == (None, None)
 
 
 def test_the_models_of_claude_code_come_from_the_config_file(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
-    _ = path.write_text(MINIMAL + '[claude]\nmodel = "sonnet"\nsubagent_model = "claude-opus-5-5"\n', encoding="utf-8")
-    assert load_settings(path).claude == ClaudeSettings(model="sonnet", subagent_model="claude-opus-5-5")
+    _ = path.write_text(
+        MINIMAL + '[assistant.claude_code]\nmodel = "sonnet"\nsubagent_model = "claude-opus-5-5"\n', encoding="utf-8"
+    )
+    claude_code = load_settings(path).assistant.claude_code
+    assert (claude_code.model, claude_code.subagent_model) == ("sonnet", "claude-opus-5-5")
 
 
 def test_claude_code_is_said_not_to_answer_after_ten_seconds_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).claude.unanswered_after == 10.0
+    assert load_settings(config_file).assistant.claude_code.unanswered_after == 10.0
 
 
 def test_the_wait_for_claude_code_to_answer_must_be_positive() -> None:
     with pytest.raises(ValidationError, match="unanswered_after"):
-        _ = ClaudeSettings(unanswered_after=0)
+        _ = ClaudeCodeSettings(unanswered_after=0)
 
 
 def test_a_model_with_a_longer_context_is_accepted() -> None:
-    assert ClaudeSettings(model="opus[1m]").model == "opus[1m]"
+    assert ClaudeCodeSettings(model="opus[1m]").model == "opus[1m]"
 
 
 def test_an_empty_model_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="model"):
-        _ = ClaudeSettings(model="")
+        _ = ClaudeCodeSettings(model="")
 
 
 def test_a_model_that_could_be_read_as_an_option_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="subagent_model"):
-        _ = ClaudeSettings(subagent_model="--dangerously-skip-permissions")
+        _ = ClaudeCodeSettings(subagent_model="--dangerously-skip-permissions")
 
 
 def test_an_onnx_encoder_routes_the_acknowledgements_by_default(config_file: Path) -> None:
