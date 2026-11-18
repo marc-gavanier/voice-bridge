@@ -57,8 +57,24 @@ class OpenAISpeechSettings(Section):
     url: HttpUrl = HttpUrl("http://127.0.0.1:8123")
     model: str = "mistralai/Voxtral-4B-TTS-2603"
     voice: str | None = None
-    timeout: float = 120.0
+    timeout: PositiveFloat = 120.0
+    connect_timeout: PositiveFloat = 5.0
+    first_audio_timeout: PositiveFloat = 10.0
     health: str = "/health"
+
+    @model_validator(mode="after")
+    def _the_connection_is_bounded_by_the_timeout(self) -> Self:
+        if self.connect_timeout > self.timeout:
+            message = "connect_timeout must not exceed timeout"
+            raise ValueError(message)
+        return self
+
+    @model_validator(mode="after")
+    def _the_first_audio_is_bounded_by_the_timeout(self) -> Self:
+        if self.first_audio_timeout > self.timeout:
+            message = "first_audio_timeout must not exceed timeout"
+            raise ValueError(message)
+        return self
 
 
 class SpeechSynthesisSettings(Section):

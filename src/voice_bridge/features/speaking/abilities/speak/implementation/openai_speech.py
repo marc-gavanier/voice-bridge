@@ -1,7 +1,9 @@
+import math
 import wave
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
+import anyio
 import httpx
 
 from voice_bridge.features.speaking.abilities.speak.domain.ports import SynthesisError
@@ -44,6 +46,10 @@ def _rate_of(response: httpx.Response) -> int:
     return int(named[0]) if named else PCM_RATE
 
 
+def client(url: str, *, timeout: float, connect_timeout: float) -> httpx.AsyncClient:
+    return httpx.AsyncClient(base_url=url, timeout=httpx.Timeout(timeout, connect=connect_timeout))
+
+
 async def _hear_some(hear: Callable[[bytes], Awaitable[None]], pcm: bytes) -> None:
     if pcm:
         await hear(pcm)
@@ -59,6 +65,7 @@ class OpenAICompatibleSpeech:
     pacing: Pacing
     rate: int
     health: str
+    first_audio_timeout: float
 
     @property
     def fingerprint(self) -> str:
@@ -83,15 +90,17 @@ class OpenAICompatibleSpeech:
     async def stream(self, sentence: str, hear: Callable[[bytes], Awaitable[None]]) -> None:
         payload = {**self._payload(sentence, "pcm"), "stream": True, "stream_format": "audio"}
         try:
-            async with self.client.stream("POST", SPEECH_ROUTE, json=payload) as response:
-                _ = response.raise_for_status()
-                shaping = self._shaping(_rate_of(response))
-                rest = b""
-                async for chunk in response.aiter_bytes():
-                    whole, rest = _whole_samples(rest + chunk)
-                    await _hear_some(hear, shaping.push(whole))
-                await _hear_some(hear, shaping.end())
-        except (httpx.HTTPError, ValueError) as error:
+            with anyio.fail_after(self.first_audio_timeout) as first_audio:
+                async with self.client.stream("POST", SPEECH_ROUTE, json=payload) as response:
+                    _ = response.raise_for_status()
+                    shaping = self._shaping(_rate_of(response))
+                    rest = b""
+                    async for chunk in response.aiter_bytes():
+                        first_audio.deadline = math.inf
+                        whole, rest = _whole_samples(rest + chunk)
+                        await _hear_some(hear, shaping.push(whole))
+                    await _hear_some(hear, shaping.end())
+        except (httpx.HTTPError, ValueError, TimeoutError) as error:
             raise SynthesisError(sentence) from error
 
     async def ready(self) -> bool:

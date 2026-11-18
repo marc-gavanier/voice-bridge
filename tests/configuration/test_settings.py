@@ -14,6 +14,7 @@ from voice_bridge.configuration.settings import (
     FolderSettings,
     FolderSourceSettings,
     OnnxEncoderSettings,
+    OpenAISpeechSettings,
     SmartTurnEndOfTurnSettings,
     SmartTurnSettings,
     SpeechSynthesisSettings,
@@ -235,6 +236,54 @@ def test_a_speed_above_double_stops_the_start() -> None:
 
 def test_the_extreme_speeds_are_accepted() -> None:
     assert (SpeechSynthesisSettings(speed=0.5).speed, SpeechSynthesisSettings(speed=2.0).speed) == (0.5, 2.0)
+
+
+def test_the_speech_server_gets_five_seconds_to_accept_the_connection_by_default() -> None:
+    assert OpenAISpeechSettings().connect_timeout == 5.0
+
+
+def test_the_speech_server_gets_ten_seconds_to_send_the_first_audio_by_default() -> None:
+    assert OpenAISpeechSettings().first_audio_timeout == 10.0
+
+
+def test_the_timeouts_of_the_speech_server_come_from_its_adapters_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(
+        MINIMAL + "[speech_synthesis.openai]\ntimeout = 30.0\nconnect_timeout = 2.0\nfirst_audio_timeout = 4.0\n",
+        encoding="utf-8",
+    )
+    openai = load_settings(path).speech_synthesis.openai
+    assert (openai.timeout, openai.connect_timeout, openai.first_audio_timeout) == (30.0, 2.0, 4.0)
+
+
+def test_a_timeout_of_zero_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="timeout"):
+        _ = OpenAISpeechSettings(timeout=0.0)
+
+
+def test_a_connect_timeout_of_zero_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="connect_timeout"):
+        _ = OpenAISpeechSettings(connect_timeout=0.0)
+
+
+def test_a_first_audio_timeout_of_zero_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="first_audio_timeout"):
+        _ = OpenAISpeechSettings(first_audio_timeout=0.0)
+
+
+def test_a_connect_timeout_longer_than_the_timeout_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="connect_timeout"):
+        _ = OpenAISpeechSettings(timeout=3.0, connect_timeout=3.1, first_audio_timeout=3.0)
+
+
+def test_a_first_audio_timeout_longer_than_the_timeout_stops_the_start() -> None:
+    with pytest.raises(ValidationError, match="first_audio_timeout"):
+        _ = OpenAISpeechSettings(timeout=3.0, connect_timeout=3.0, first_audio_timeout=3.1)
+
+
+def test_timeouts_as_long_as_the_timeout_are_accepted() -> None:
+    openai = OpenAISpeechSettings(timeout=3.0, connect_timeout=3.0, first_audio_timeout=3.0)
+    assert (openai.connect_timeout, openai.first_audio_timeout) == (3.0, 3.0)
 
 
 def test_opentelemetry_records_the_telemetry_by_default(config_file: Path) -> None:

@@ -1,13 +1,17 @@
 import json
-from collections.abc import AsyncIterator
+import socket
+from collections.abc import AsyncIterator, Generator
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field, replace
+from typing import cast
 
+import anyio
 import httpx
 import numpy as np
 import pytest
 
 from voice_bridge.features.speaking.abilities.speak.domain.ports import Pace, Pacing, Synthesis, SynthesisError
-from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech, client
 from voice_bridge.libraries.audio.wav import encode
 
 pytestmark = pytest.mark.anyio
@@ -16,6 +20,10 @@ REFUSED = "connection refused"
 SAMPLES = np.array([1000, -1000], dtype=np.int16).tobytes()
 OTHER_SAMPLES = np.array([500, -500], dtype=np.int16).tobytes()
 TENTH_OF_A_SECOND_AT_24_KHZ = bytes(4800)
+WHOLE_TIMEOUT = 120.0
+SHORT_TIMEOUT = 0.1
+LONGER_THAN_THE_SHORT_TIMEOUT = 0.3
+LONG_TIMEOUT = 10.0
 
 
 @dataclass(frozen=True)
@@ -82,6 +90,7 @@ def engine(
         pacing=pacing,
         rate=48000,
         health=health,
+        first_audio_timeout=WHOLE_TIMEOUT,
     )
 
 
@@ -252,6 +261,109 @@ async def test_a_stream_broken_midway_is_a_synthesis_error_after_the_voice_alrea
     with pytest.raises(SynthesisError):
         await engine(breaking_after(SAMPLES)).stream("Bonjour.", ear)
     assert ear.heard == [SAMPLES]
+
+
+@contextmanager
+def listening(backlog: int) -> Generator[socket.socket]:
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen(backlog)
+        yield server
+
+
+def address_of(server: socket.socket) -> tuple[str, int]:
+    return cast("tuple[str, int]", server.getsockname())
+
+
+def knocking(server: socket.socket, stack: ExitStack) -> None:
+    knock = stack.enter_context(socket.socket())
+    knock.settimeout(0.0)
+    _ = knock.connect_ex(address_of(server))
+
+
+def url_of(server: socket.socket) -> str:
+    host, port = address_of(server)
+    return f"http://{host}:{port}"
+
+
+@contextmanager
+def unreachable() -> Generator[str]:
+    with listening(0) as server, ExitStack() as stack:
+        knocking(server, stack)
+        knocking(server, stack)
+        yield url_of(server)
+
+
+@contextmanager
+def accepting_but_silent() -> Generator[str]:
+    with listening(8) as server:
+        yield url_of(server)
+
+
+async def held_before(*chunks: bytes) -> AsyncIterator[bytes]:
+    await anyio.sleep(LONGER_THAN_THE_SHORT_TIMEOUT)
+    for chunk in chunks:
+        yield chunk
+
+
+async def pausing_after(first: bytes, then: bytes) -> AsyncIterator[bytes]:
+    yield first
+    await anyio.sleep(LONGER_THAN_THE_SHORT_TIMEOUT)
+    yield then
+
+
+def answering_with(content: AsyncIterator[bytes]) -> httpx.MockTransport:
+    return httpx.MockTransport(
+        lambda request: httpx.Response(200, headers={"X-Audio-Sample-Rate": "48000"}, content=content, request=request)
+    )
+
+
+async def answering_late(request: httpx.Request) -> httpx.Response:
+    await anyio.sleep(SHORT_TIMEOUT)
+    return httpx.Response(200, headers={"X-Audio-Sample-Rate": "48000"}, content=pieces(SAMPLES), request=request)
+
+
+def waiting_long_for_the_first_audio(url: str, connect_timeout: float) -> OpenAICompatibleSpeech:
+    return replace(SPEECH, client=client(url, timeout=WHOLE_TIMEOUT, connect_timeout=connect_timeout))
+
+
+def waiting_long_for_the_connection(url: str) -> OpenAICompatibleSpeech:
+    return replace(
+        SPEECH,
+        client=client(url, timeout=WHOLE_TIMEOUT, connect_timeout=WHOLE_TIMEOUT),
+        first_audio_timeout=SHORT_TIMEOUT,
+    )
+
+
+async def test_an_unreachable_server_gives_up_the_sentence_after_the_connect_timeout() -> None:
+    with unreachable() as url, anyio.fail_after(LONG_TIMEOUT), pytest.raises(SynthesisError):
+        _ = await heard_from(waiting_long_for_the_first_audio(url, connect_timeout=SHORT_TIMEOUT))
+
+
+async def test_an_unreachable_server_gives_up_the_whole_voice_after_the_connect_timeout() -> None:
+    with unreachable() as url, anyio.fail_after(LONG_TIMEOUT), pytest.raises(SynthesisError):
+        _ = await waiting_long_for_the_first_audio(url, connect_timeout=SHORT_TIMEOUT).whole("Bonjour.")
+
+
+async def test_a_server_that_accepts_but_never_answers_gives_up_the_sentence_after_the_first_audio_timeout() -> None:
+    with accepting_but_silent() as url, anyio.fail_after(LONG_TIMEOUT), pytest.raises(SynthesisError):
+        _ = await heard_from(waiting_long_for_the_connection(url))
+
+
+async def test_a_server_that_answers_without_audio_gives_up_the_sentence_after_the_first_audio_timeout() -> None:
+    speech = replace(engine(answering_with(held_before(SAMPLES))), first_audio_timeout=SHORT_TIMEOUT)
+    with anyio.fail_after(LONG_TIMEOUT), pytest.raises(SynthesisError):
+        _ = await heard_from(speech)
+
+
+async def test_a_slow_server_whose_first_audio_comes_in_time_is_heard() -> None:
+    speech = replace(engine(httpx.MockTransport(answering_late)), first_audio_timeout=LONG_TIMEOUT)
+    assert await heard_from(speech) == [SAMPLES]
+
+
+async def test_a_pause_after_the_first_audio_longer_than_the_first_audio_timeout_is_heard_whole() -> None:
+    speech = replace(engine(answering_with(pausing_after(SAMPLES, OTHER_SAMPLES))), first_audio_timeout=SHORT_TIMEOUT)
+    assert await heard_from(speech) == [SAMPLES, OTHER_SAMPLES]
 
 
 async def test_the_server_is_ready_when_its_health_answers() -> None:

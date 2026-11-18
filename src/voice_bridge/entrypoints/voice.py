@@ -7,7 +7,6 @@ from functools import partial
 from typing import TYPE_CHECKING, Final, assert_never
 
 import anyio
-import httpx
 from faster_whisper import WhisperModel
 
 from voice_bridge.configuration.log_config import kept_days
@@ -69,6 +68,7 @@ from voice_bridge.features.speaking.abilities.mix.domain.mixing import Layer
 from voice_bridge.features.speaking.abilities.mix.implementation.player import Channel, Player
 from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import ClipStream
 from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import client as speech_client
 from voice_bridge.features.speaking.abilities.speak.implementation.speak import (
     sentences_of,
     voice_of,
@@ -360,7 +360,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         frames_out,
         utterances_in,
         utterances_out,
-        httpx.AsyncClient(base_url=str(openai.url), timeout=openai.timeout) as http,
+        speech_client(str(openai.url), timeout=openai.timeout, connect_timeout=openai.connect_timeout) as http,
         anyio.create_task_group() as tasks,
     ):
         engine = OpenAICompatibleSpeech(
@@ -372,6 +372,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             pacing=pace,
             rate=transport.rate,
             health=openai.health,
+            first_audio_timeout=openai.first_audio_timeout,
         )
         greeting = secrets.choice(language.greetings)
         clips = Clips(
