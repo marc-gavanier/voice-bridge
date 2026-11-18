@@ -231,6 +231,16 @@ class UnderstandingSettings(Section):
     onnx: OnnxEncoderSettings = OnnxEncoderSettings()
 
 
+class OpenTelemetrySettings(Section):
+    directory: Path = user_state_path(APP_NAME) / "telemetry"
+    retention: Retention = 30
+
+
+class TelemetrySettings(Section):
+    adapter: Literal["opentelemetry"] = "opentelemetry"
+    opentelemetry: OpenTelemetrySettings = OpenTelemetrySettings()
+
+
 class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_prefix="VOICE_BRIDGE_", env_nested_delimiter="__", extra="forbid", frozen=True
@@ -249,8 +259,7 @@ class Settings(BaseSettings):
     log_file: Path = DEFAULT_LOG_FILE
     log_retention: Retention = 30
     logging: dict[str, JsonValue] | None = None
-    telemetry_directory: Path = user_state_path(APP_NAME) / "telemetry"
-    telemetry_retention: Retention = 30
+    telemetry: TelemetrySettings = TelemetrySettings()
     hang_after: PositiveFloat = 30.0
     cache_directory: Path = user_cache_path(APP_NAME)
 

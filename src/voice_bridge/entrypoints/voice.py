@@ -324,8 +324,8 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
     openai = synthesis.openai
     telemetry = chosen_telemetry(
         anyio.current_time,
-        settings.telemetry_directory,
-        kept_days(settings.telemetry_retention),
+        settings.telemetry.opentelemetry.directory,
+        kept_days(settings.telemetry.opentelemetry.retention),
         run_attributes(settings, voice=openai.voice or language.voice, pace=PACE_METHOD),
     )
 
