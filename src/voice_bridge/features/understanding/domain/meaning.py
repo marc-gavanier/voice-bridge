@@ -24,9 +24,9 @@ class Meaning:
     ranking: tuple[tuple[str, float], ...] = ()
 
 
-def _ranking(scores: Sequence[float], routes: Sequence[Route]) -> tuple[tuple[str, float], ...]:
+def _ranking(scored: Sequence[tuple[float, Route]]) -> tuple[tuple[str, float], ...]:
     named = sorted(
-        ((route.name, score) for score, route in zip(scores, routes, strict=True)),
+        ((route.name, score) for score, route in scored),
         key=lambda pair: pair[1],
         reverse=True,
     )
@@ -34,12 +34,9 @@ def _ranking(scores: Sequence[float], routes: Sequence[Route]) -> tuple[tuple[st
 
 
 def meaning_of(scores: Sequence[float], routes: Sequence[Route]) -> Meaning:
-    ranking = _ranking(scores, routes)
-    passing = [
-        (score, index)
-        for index, (score, route) in enumerate(zip(scores, routes, strict=True))
-        if score >= route.threshold
-    ]
+    scored = tuple(zip(scores, routes, strict=True))
+    ranking = _ranking(scored)
+    passing = [(score, index) for index, (score, route) in enumerate(scored) if score >= route.threshold]
     if not passing:
         return Meaning(route=None, score=max(scores, default=0.0), stops=False, answers=False, ranking=ranking)
     score, index = max(passing)
