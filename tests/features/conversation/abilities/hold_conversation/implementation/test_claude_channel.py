@@ -3,7 +3,7 @@ import json
 import signal
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import anyio
 import pytest
@@ -19,6 +19,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.domain.assis
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Assistant
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_channel import (
+    VOICE_UNAVAILABLE,
     BoardTool,
     ChannelTools,
     ClaudeCode,
@@ -34,10 +35,16 @@ from voice_bridge.features.conversation.domain.turn_taking import Recording
 
 pytestmark = pytest.mark.anyio
 
-TOOL = ReplyTool(
-    description="Speak a reply aloud",
-    text_description="The text to speak",
-)
+
+async def voice_ready() -> bool:
+    return True
+
+
+async def voice_unavailable() -> bool:
+    return False
+
+
+TOOL = ReplyTool(description="Speak a reply aloud", text_description="The text to speak", voice_ready=voice_ready)
 END_TOOL = EndSessionTool(description="Say goodbye and end the session", text_description="The goodbye to speak")
 BOARD = '{"at_work": [], "finished": []}'
 
@@ -62,6 +69,9 @@ PLAY_TOOL = PlayTool(
     check=check_clip,
 )
 TOOLS = ChannelTools(reply=TOOL, end_session=END_TOOL, board=BOARD_TOOL, play=PLAY_TOOL)
+VOICELESS = ChannelTools(
+    reply=replace(TOOL, voice_ready=voice_unavailable), end_session=END_TOOL, board=BOARD_TOOL, play=PLAY_TOOL
+)
 
 
 @dataclass(frozen=True)
@@ -72,11 +82,11 @@ class Connection:
 
 
 @asynccontextmanager
-async def connected() -> AsyncGenerator[Connection]:
+async def connected(tools: ChannelTools = TOOLS) -> AsyncGenerator[Connection]:
     replies_in, replies_out = anyio.create_memory_object_stream[SessionUpdate](10)
     server = channel_server(
         instructions="Answer with reply.",
-        tools=TOOLS,
+        tools=tools,
         updates=replies_in,
     )
     async with (
@@ -298,6 +308,32 @@ async def test_calling_an_unknown_tool_is_an_error() -> None:
     async with connected() as connection:
         result = await connection.session.call_tool("other", {})
     assert result.is_error
+
+
+async def test_a_reply_the_voice_cannot_say_is_an_error() -> None:
+    async with connected(VOICELESS) as connection:
+        result = await connection.session.call_tool("reply", {"text": "Bonjour."})
+    assert result.is_error
+
+
+async def test_a_reply_the_voice_cannot_say_tells_claude_it_was_not_said() -> None:
+    async with connected(VOICELESS) as connection:
+        result = await connection.session.call_tool("reply", {"text": "Bonjour."})
+    assert result.content == [types.TextContent(type="text", text=VOICE_UNAVAILABLE)]
+
+
+async def test_a_reply_the_voice_cannot_say_is_not_handed_to_the_conversation() -> None:
+    async with connected(VOICELESS) as connection:
+        _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
+        _ = await connection.session.call_tool("end_session", {"text": "Au revoir."})
+        handed = await connection.replies.receive()
+    assert handed == AgentMessageChunk(text="Au revoir.", closing=True)
+
+
+async def test_a_reply_the_voice_cannot_say_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    async with connected(VOICELESS) as connection:
+        _ = await connection.session.call_tool("reply", {"text": "Bonjour."})
+    assert "reply not said, the speech server does not answer: 'Bonjour.'" in caplog.text
 
 
 async def test_calling_reply_without_text_is_an_error() -> None:

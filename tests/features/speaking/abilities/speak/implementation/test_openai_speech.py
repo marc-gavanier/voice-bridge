@@ -11,7 +11,11 @@ import numpy as np
 import pytest
 
 from voice_bridge.features.speaking.abilities.speak.domain.ports import Pace, Pacing, Synthesis, SynthesisError
-from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import OpenAICompatibleSpeech, client
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import (
+    OpenAICompatibleSpeech,
+    client,
+    health_answers,
+)
 from voice_bridge.libraries.audio.wav import encode
 
 pytestmark = pytest.mark.anyio
@@ -368,6 +372,18 @@ async def test_a_pause_after_the_first_audio_longer_than_the_first_audio_timeout
 
 async def test_the_server_is_ready_when_its_health_answers() -> None:
     assert await engine(httpx.MockTransport(healthy)).ready()
+
+
+def client_of(handler: httpx.MockTransport) -> httpx.AsyncClient:
+    return httpx.AsyncClient(transport=handler, base_url="http://speech")
+
+
+async def test_the_health_answers_for_any_client_of_the_speech_server() -> None:
+    assert await health_answers(client_of(httpx.MockTransport(healthy)), "/health")
+
+
+async def test_the_health_does_not_answer_for_an_unreachable_speech_server() -> None:
+    assert not await health_answers(client_of(httpx.MockTransport(refusing)), "/health")
 
 
 async def test_the_server_is_not_ready_when_unreachable() -> None:

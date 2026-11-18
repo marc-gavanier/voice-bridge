@@ -7,6 +7,7 @@ from functools import partial
 from typing import TYPE_CHECKING
 
 import anyio
+import httpx
 
 from voice_bridge.configuration.language import LanguagePack, language_pack, load_instructions
 from voice_bridge.configuration.settings import Settings, load_settings
@@ -30,6 +31,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.implementati
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
 from voice_bridge.features.speaking.abilities.play_clip.implementation.clip_file import check_clip
+from voice_bridge.features.speaking.abilities.speak.implementation.openai_speech import health_answers
 
 if TYPE_CHECKING:
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt
@@ -80,12 +82,14 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
     updates_in, updates_out = anyio.create_memory_object_stream[SessionUpdate](math.inf)
     board = WorkBoard(clock=now)
     transport = mumble(settings, settings.transport.mumble.username)
+    speech = httpx.AsyncClient(base_url=str(settings.speech_synthesis.openai.url))
     server = channel_server(
         instructions=load_instructions(settings.assistant.claude_code.instructions_file, default=language.instructions),
         tools=ChannelTools(
             reply=ReplyTool(
                 description=language.reply_tool_description,
                 text_description=language.reply_text_description,
+                voice_ready=partial(health_answers, speech, settings.speech_synthesis.openai.health),
             ),
             end_session=EndSessionTool(
                 description=language.end_tool_description, text_description=language.end_text_description
@@ -95,7 +99,7 @@ async def serve(settings: Settings, language: LanguagePack) -> None:
         ),
         updates=updates_in,
     )
-    async with updates_in, updates_out:
+    async with updates_in, updates_out, speech:
 
         async def talk_to(claude_code: Assistant) -> None:
             side = AssistantSide(

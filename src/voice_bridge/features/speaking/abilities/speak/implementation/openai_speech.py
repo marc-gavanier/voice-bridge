@@ -55,6 +55,16 @@ async def _hear_some(hear: Callable[[bytes], Awaitable[None]], pcm: bytes) -> No
         await hear(pcm)
 
 
+async def health_answers(client: httpx.AsyncClient, health: str) -> bool:
+    if not health:
+        return True
+    try:
+        response = await client.get(health, timeout=HEALTH_TIMEOUT)
+    except httpx.HTTPError:
+        return False
+    return response.is_success
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class OpenAICompatibleSpeech:
     client: httpx.AsyncClient
@@ -104,10 +114,4 @@ class OpenAICompatibleSpeech:
             raise SynthesisError(sentence) from error
 
     async def ready(self) -> bool:
-        if not self.health:
-            return True
-        try:
-            response = await self.client.get(self.health, timeout=HEALTH_TIMEOUT)
-        except httpx.HTTPError:
-            return False
-        return response.is_success
+        return await health_answers(self.client, self.health)

@@ -35,6 +35,10 @@ PLAY_TOOL_NAME: Final = "play"
 ALWAYS_LOAD: Final = {"anthropic/alwaysLoad": True}
 CHANNEL_CAPABILITY: Final = "claude/channel"
 CHANNEL_NOTIFICATION: Final = "notifications/claude/channel"
+VOICE_UNAVAILABLE: Final = (
+    "not said: the speech server does not answer, it may be restarting, so the user heard nothing of this reply. "
+    "Send it again in a minute."
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +51,7 @@ class MessageSender(Protocol):
 class ReplyTool:
     description: str
     text_description: str
+    voice_ready: Callable[[], Awaitable[bool]]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -221,6 +226,9 @@ def channel_server(
         received = await _received(tools, params)
         if isinstance(received, types.CallToolResult):
             return received
+        if params.name == TOOL_NAME and not await tools.reply.voice_ready():
+            logger.warning("reply not said, the speech server does not answer: %r", received.text)
+            return _error(VOICE_UNAVAILABLE)
         await updates.send(received)
         answer = "ending" if received.closing else "sent"
         return types.CallToolResult(content=[types.TextContent(type="text", text=answer)])
