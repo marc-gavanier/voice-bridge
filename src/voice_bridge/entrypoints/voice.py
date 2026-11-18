@@ -288,7 +288,9 @@ def _interpreting(understanding: Understanding) -> Interpreter:
 
 def _wording(language: LanguagePack) -> Wording:
     announcements = language.announcements
-    return Wording(at_work=announcements.at_work, many_at_work=announcements.many_at_work)
+    return Wording(
+        at_work=announcements.at_work, many_at_work=announcements.many_at_work, voice_lost=language.voice_lost
+    )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -399,6 +401,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             acknowledgement=clips,
             understood=_interpreting(understanding),
             announcement=announcements,
+            voice_lost=announcements.voice_lost,
             settle=settings.end_of_turn.settle,
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,

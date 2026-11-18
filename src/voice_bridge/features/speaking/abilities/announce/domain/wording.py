@@ -8,6 +8,7 @@ FIRST_COUNTED: Final = 2
 class Wording:
     at_work: tuple[str, ...]
     many_at_work: str
+    voice_lost: str
 
 
 def sentence_for(wording: Wording, at_work: int) -> str | None:
@@ -18,4 +19,4 @@ def sentence_for(wording: Wording, at_work: int) -> str | None:
 
 
 def every_sentence(wording: Wording) -> tuple[str, ...]:
-    return (*wording.at_work, wording.many_at_work)
+    return (*wording.at_work, wording.many_at_work, wording.voice_lost)

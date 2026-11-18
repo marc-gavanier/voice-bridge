@@ -12,6 +12,7 @@ from voice_bridge.features.conversation.abilities.hold_conversation.domain.assis
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import (
     Acknowledgement,
     Voice,
+    VoiceLostWarning,
 )
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.hold_conversation import (
     Mouth,
@@ -48,6 +49,7 @@ MUSIC = b"\x04\x00" * 480
 FADE = b"\x05\x00" * 48
 ANNOUNCEMENT_CLIP = b"\x06\x00" * 480
 RECORDED = b"\x07\x00" * 4800
+WARNING_CLIP = b"\x08\x00" * 480
 SOUND_DURATION = 0.1
 
 
@@ -102,6 +104,14 @@ def announced(at_work: int) -> tuple[str, bytes] | None:
     return None if sentence is None else (sentence, ANNOUNCEMENT_CLIP)
 
 
+def warned() -> tuple[str, bytes] | None:
+    return ("The voice is lost.", WARNING_CLIP)
+
+
+def no_warning_ready() -> tuple[str, bytes] | None:
+    return None
+
+
 type Hear = Callable[[bytes], Awaitable[None]]
 
 
@@ -138,6 +148,16 @@ async def hanging_after_a_piece(sentence: str, hear: Hear) -> bool:
 
 
 @dataclass(frozen=True)
+class Voices:
+    voice: Voice = voiced
+    warning: VoiceLostWarning = no_warning_ready
+
+
+SPOKEN = Voices()
+WARNED = Voices(warning=warned)
+
+
+@dataclass(frozen=True)
 class FakeAssistant:
     prompts: MemoryObjectSendStream[Prompt]
     closed: MemoryObjectSendStream[float]
@@ -165,7 +185,7 @@ async def talking(
     *,
     music: bool = True,
     settle: float = 0.0,
-    voice: Voice = voiced,
+    voices: Voices = SPOKEN,
     unanswered: tuple[str, ...] = (),
 ) -> AsyncGenerator[Talk]:
     say, events = anyio.create_memory_object_stream[Event](100)
@@ -177,7 +197,7 @@ async def talking(
     hold_music = FakeMusic(played=played_in)
 
     mouth = Mouth(
-        voice=voice,
+        voice=voices.voice,
         recordings=recorded,
         speaker=StreamedSpeaker(played_in),
         assistant=assistant,
@@ -186,6 +206,7 @@ async def talking(
         acknowledgement=acknowledgement,
         understood=understood,
         announcement=announced,
+        voice_lost=voices.warning,
         settle=settle,
         hold_music=hold_music if music else None,
         hold_music_delay=0.0,
@@ -244,6 +265,27 @@ async def test_a_sentence_without_voice_is_skipped_for_the_next_one() -> None:
         await talk.say.send(Asked(sentences=("Silent sentence.", "Spoken sentence.")))
         played = await talk.played.receive()
     assert played == SOUND
+
+
+async def test_a_sentence_without_voice_plays_the_warning_that_the_voice_is_lost() -> None:
+    async with talking(voices=WARNED) as talk:
+        await talk.say.send(Asked(sentences=("Silent sentence.",)))
+        played = await talk.played.receive()
+    assert played == WARNING_CLIP
+
+
+async def test_the_warning_that_the_voice_is_lost_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    async with talking(voices=WARNED) as talk:
+        await talk.say.send(Asked(sentences=("Silent sentence.",)))
+        _ = await talk.played.receive()
+    assert "the voice is lost, warned with 'The voice is lost.'" in caplog.text
+
+
+async def test_a_lost_voice_without_a_warning_ready_is_logged(caplog: pytest.LogCaptureFixture) -> None:
+    async with talking() as talk:
+        await talk.say.send(Asked(sentences=("Silent sentence.", "Spoken sentence.")))
+        _ = await talk.played.receive()
+    assert "the voice is lost and no warning is ready to say so" in caplog.text
 
 
 async def test_a_transcript_is_prompted_to_the_assistant() -> None:
@@ -479,14 +521,14 @@ async def test_the_turn_under_way_is_reported_when_the_conversation_ends() -> No
 
 
 async def test_each_piece_of_a_voice_is_played_as_it_arrives() -> None:
-    async with talking(voice=voiced_in_pieces) as talk:
+    async with talking(voices=Voices(voice=voiced_in_pieces)) as talk:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         played = (await talk.played.receive(), await talk.played.receive())
     assert played == (SOUND, b"Bonjour.")
 
 
 async def test_the_next_sentence_follows_the_whole_voice_of_the_one_before() -> None:
-    async with talking(voice=voiced_in_pieces) as talk:
+    async with talking(voices=Voices(voice=voiced_in_pieces)) as talk:
         await talk.say.send(Asked(sentences=("Un.", "Deux.")))
         played = (
             await talk.played.receive(),
@@ -498,7 +540,7 @@ async def test_the_next_sentence_follows_the_whole_voice_of_the_one_before() -> 
 
 
 async def test_a_voice_broken_after_a_piece_moves_on_to_the_next_sentence() -> None:
-    async with talking(voice=broken_after_a_piece) as talk:
+    async with talking(voices=Voices(voice=broken_after_a_piece)) as talk:
         await talk.say.send(Asked(sentences=("Broken sentence.", "Spoken sentence.")))
         played = (await talk.played.receive(), await talk.played.receive())
     assert played == (SOUND, SOUND)
@@ -506,7 +548,7 @@ async def test_a_voice_broken_after_a_piece_moves_on_to_the_next_sentence() -> N
 
 async def test_an_interruption_cancels_the_voice_still_arriving(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level("INFO")
-    async with talking(voice=hanging_after_a_piece) as talk:
+    async with talking(voices=Voices(voice=hanging_after_a_piece)) as talk:
         await talk.say.send(Asked(sentences=("Bonjour.",)))
         _ = await talk.played.receive()
         await talk.say.send(VoiceDetected(at=0.0))

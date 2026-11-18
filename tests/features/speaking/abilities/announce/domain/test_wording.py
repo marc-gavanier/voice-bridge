@@ -1,6 +1,8 @@
 from voice_bridge.features.speaking.abilities.announce.domain.wording import Wording, every_sentence, sentence_for
 
-WORDING = Wording(at_work=("Two at work.", "Three at work."), many_at_work="Many at work.")
+WORDING = Wording(
+    at_work=("Two at work.", "Three at work."), many_at_work="Many at work.", voice_lost="The voice is lost."
+)
 
 
 def test_no_agent_at_work_has_no_announcement() -> None:
@@ -24,4 +26,4 @@ def test_more_agents_at_work_than_counted_are_many() -> None:
 
 
 def test_every_sentence_is_listed_to_be_voiced() -> None:
-    assert every_sentence(WORDING) == ("Two at work.", "Three at work.", "Many at work.")
+    assert every_sentence(WORDING) == ("Two at work.", "Three at work.", "Many at work.", "The voice is lost.")

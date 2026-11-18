@@ -19,6 +19,12 @@ class Announcements:
         sentence = sentence_for(self.wording, at_work)
         if sentence is None:
             return None
+        return self._clip(sentence)
+
+    def voice_lost(self) -> tuple[str, bytes] | None:
+        return self._clip(self.wording.voice_lost)
+
+    def _clip(self, sentence: str) -> tuple[str, bytes] | None:
         pcm = self.clips.get(sentence)
         return None if pcm is None else (sentence, pcm)
 

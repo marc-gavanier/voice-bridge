@@ -50,6 +50,10 @@ def test_english_says_that_claude_code_does_not_answer_in_english() -> None:
     assert language_pack("en").unanswered.startswith("Claude is not answering")
 
 
+def test_english_warns_that_the_voice_is_lost_in_english() -> None:
+    assert language_pack("en").voice_lost.startswith("I have lost my voice")
+
+
 def test_english_describes_the_end_of_session_tool_in_english() -> None:
     assert language_pack("en").end_tool_description.startswith("Say goodbye")
 
@@ -204,6 +208,7 @@ voice = "neutral_female"
 stop_refusal = "Stopped."
 delegation_refusal = "Delegate."
 unanswered = "Claude is not answering."
+voice_lost = "No voice."
 reply_tool_description = "Speak"
 reply_text_description = "Text"
 end_tool_description = "End"

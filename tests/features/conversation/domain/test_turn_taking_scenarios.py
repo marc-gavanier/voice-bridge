@@ -35,6 +35,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     Voiced,
     VoiceDetected,
+    WarnVoiceLost,
     step,
     unspoken,
 )
@@ -46,6 +47,7 @@ SILENT_AT = 5.0
 NO_SILENCE = -1
 RECORDED = b"recorded"
 UNANSWERED = "The assistant waits for a confirmation on its screen."
+FIRST_TICKET = 0
 
 
 @dataclass(frozen=True)
@@ -337,6 +339,31 @@ def claudes_voice_fails(turn: Turn, sentence: str) -> Turn:
     assert turn.state.synthesizing is not None
     assert turn.state.synthesizing.sentence == sentence
     return after(turn, SynthesisFailed(ticket=synthesizing_ticket(turn)))
+
+
+@given(parsers.parse('the assistant\'s voice for "{sentence}" failed'), target_fixture="turn")
+def claudes_voice_failed(turn: Turn, sentence: str) -> Turn:
+    return claudes_voice_fails(turn, sentence)
+
+
+@when("the voice of an older sentence fails", target_fixture="turn")
+def the_voice_of_an_older_sentence_fails(turn: Turn) -> Turn:
+    return after(turn, SynthesisFailed(ticket=FIRST_TICKET))
+
+
+@then("the bridge warns that the voice is lost")
+def the_bridge_warns_that_the_voice_is_lost(turn: Turn) -> None:
+    assert WarnVoiceLost() in turn.commands
+
+
+@then("the bridge does not warn that the voice is lost")
+def the_bridge_does_not_warn_that_the_voice_is_lost(turn: Turn) -> None:
+    assert WarnVoiceLost() not in turn.commands
+
+
+@then(parsers.parse('the warning comes before the assistant starts saying "{sentence}"'))
+def the_warning_comes_before(turn: Turn, sentence: str) -> None:
+    assert turn.commands == (WarnVoiceLost(), Synthesize(ticket=synthesizing_ticket(turn), sentence=sentence))
 
 
 @given(parsers.parse('the speaker said "{words}"'), target_fixture="turn")

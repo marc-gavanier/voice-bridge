@@ -39,6 +39,7 @@ class LanguagePack(_Strict):
     stop_refusal: str
     delegation_refusal: str
     unanswered: str
+    voice_lost: str
     reply_tool_description: str
     reply_text_description: str
     end_tool_description: str

@@ -189,6 +189,11 @@ class Announce:
     at_work: int
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class WarnVoiceLost:
+    pass
+
+
 type Command = (
     Synthesize
     | CancelSynthesis
@@ -203,6 +208,7 @@ type Command = (
     | StopHoldMusic
     | Leave
     | Announce
+    | WarnVoiceLost
 )
 
 
@@ -246,6 +252,7 @@ class Conversation:
     awaiting_answer: int | None = None
     ending: bool = False
     announcing: Announce | None = None
+    voice_lost: bool = False
     settle: float = 0.0
     hold_music_delay: float = 0.0
     unanswered: tuple[Said, ...] = ()
@@ -346,10 +353,11 @@ def _play(state: Conversation, event: Voiced) -> Step:
     synthesis = state.synthesizing
     if synthesis is None or synthesis.ticket != event.ticket:
         return state, ()
+    voiced = replace(state, voice_lost=False)
     if synthesis.ends_at is None:
-        return _start_playing(state, synthesis, event)
+        return _start_playing(voiced, synthesis, event)
     longer = replace(synthesis, ends_at=max(event.at, synthesis.ends_at) + event.duration)
-    return replace(state, synthesizing=longer), (Play(pcm=event.pcm),)
+    return replace(voiced, synthesizing=longer), (Play(pcm=event.pcm),)
 
 
 def _played(state: Conversation, synthesis: Synthesis) -> tuple[Scheduled, ...]:
@@ -383,6 +391,14 @@ def _skip(state: Conversation, ticket: int) -> Step:
         until = max((scheduled.ends_at for scheduled in skipped.playing), default=0.0)
         return skipped, (*commands, Leave(until=until))
     return _stop_holding(skipped, commands)
+
+
+def _fail(state: Conversation, ticket: int) -> Step:
+    synthesis = state.synthesizing
+    if state.voice_lost or synthesis is None or synthesis.ticket != ticket:
+        return _skip(state, ticket)
+    lost, commands = _skip(replace(state, voice_lost=True), ticket)
+    return lost, (WarnVoiceLost(), *commands)
 
 
 def _interrupt(state: Conversation, at: float) -> Step:
@@ -497,7 +513,7 @@ def _on_claude(state: Conversation, event: Asked | Voiced | Synthesized | Synthe
         case Synthesized():
             return _finish(state, event)
         case SynthesisFailed(ticket=ticket):
-            return _skip(state, ticket)
+            return _fail(state, ticket)
         case _:
             assert_never(event)
 

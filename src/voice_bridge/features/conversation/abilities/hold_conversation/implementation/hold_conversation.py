@@ -30,6 +30,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Synthesize,
     Synthesized,
     Voiced,
+    WarnVoiceLost,
     step,
 )
 from voice_bridge.features.conversation.domain.turn_trace import Acknowledged, Trace, close, forwarded, observe
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
         Speaker,
         Telemetry,
         Voice,
+        VoiceLostWarning,
     )
     from voice_bridge.features.conversation.domain.turn_trace import Report
 
@@ -67,6 +69,7 @@ class Mouth:
     acknowledgement: Acknowledgement
     understood: Interpreter
     announcement: Announcement
+    voice_lost: VoiceLostWarning
     settle: float
     hold_music: HoldMusic | None
     hold_music_delay: float
@@ -167,6 +170,16 @@ def _announce(mouth: Mouth, order: Announce) -> None:
     logger.info("announced %r", sentence)
 
 
+def _warn_voice_lost(mouth: Mouth) -> None:
+    clip = mouth.voice_lost()
+    if clip is None:
+        logger.warning("the voice is lost and no warning is ready to say so")
+        return
+    sentence, pcm = clip
+    mouth.speaker.play(pcm)
+    logger.warning("the voice is lost, warned with %r", sentence)
+
+
 async def _await_silence(mouth: Mouth, emit: ObjectSendStream[Event], order: AwaitSilence) -> None:
     wait = order.lasting if order.until is None else order.until - mouth.clock()
     await anyio.sleep(max(0.0, wait))
@@ -263,6 +276,8 @@ async def _execute(
             _acknowledge(mouth, shell, command)
         case Announce():
             _announce(mouth, command)
+        case WarnVoiceLost():
+            _warn_voice_lost(mouth)
         case StartHoldMusic():
             await _start_music(mouth, shell, tasks)
         case StopHoldMusic():

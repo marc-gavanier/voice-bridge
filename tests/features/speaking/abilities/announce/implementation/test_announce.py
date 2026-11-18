@@ -7,7 +7,7 @@ from voice_bridge.features.speaking.abilities.announce.implementation.announce i
 )
 
 SOUND = b"\x01\x00" * 480
-WORDING = Wording(at_work=("Two at work.",), many_at_work="Silent many at work.")
+WORDING = Wording(at_work=("Two at work.",), many_at_work="Silent many at work.", voice_lost="The voice is lost.")
 
 
 async def voiced(sentence: str) -> bytes | None:
@@ -18,6 +18,16 @@ async def recorded() -> Announcements:
     announcements = Announcements(wording=WORDING)
     await record_announcements(announcements, voiced)
     return announcements
+
+
+def test_no_warning_that_the_voice_is_lost_is_ready_before_it_is_recorded() -> None:
+    assert Announcements(wording=WORDING).voice_lost() is None
+
+
+@pytest.mark.anyio
+async def test_a_recorded_warning_that_the_voice_is_lost_gives_its_sentence_and_voice() -> None:
+    announcements = await recorded()
+    assert announcements.voice_lost() == ("The voice is lost.", SOUND)
 
 
 def test_no_announcement_is_ready_before_it_is_recorded() -> None:
@@ -46,4 +56,4 @@ async def test_an_announcement_without_voice_is_not_played() -> None:
 async def test_the_number_of_announcements_ready_is_logged(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level("INFO")
     _ = await recorded()
-    assert "1 announcements ready" in caplog.text
+    assert "2 announcements ready" in caplog.text

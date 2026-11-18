@@ -27,6 +27,7 @@ from voice_bridge.features.conversation.domain.turn_taking import (
     Transcribed,
     Voiced,
     VoiceDetected,
+    WarnVoiceLost,
     step,
     unspoken,
 )
@@ -85,6 +86,7 @@ def test_the_next_sentence_is_synthesized_once_the_previous_one_is_ready() -> No
 
 def test_a_failed_synthesis_moves_on_to_the_next_sentence() -> None:
     assert last_commands(Asked(sentences=(FIRST, SECOND)), SynthesisFailed(ticket=0)) == (
+        WarnVoiceLost(),
         Synthesize(ticket=1, sentence=SECOND),
     )
 
@@ -595,12 +597,14 @@ def test_a_later_piece_plays_while_words_heard_over_it_are_transcribed() -> None
 
 def test_a_goodbye_failing_partway_leaves_once_what_was_voiced_has_played() -> None:
     assert last_commands(Asked(sentences=(FIRST,), ending=True), piece(0, at=10.0), SynthesisFailed(ticket=0)) == (
+        WarnVoiceLost(),
         Leave(until=11.0),
     )
 
 
 def test_a_voice_failing_partway_moves_on_to_the_next_sentence() -> None:
     assert last_commands(Asked(sentences=(FIRST, SECOND)), piece(0, at=10.0), SynthesisFailed(ticket=0)) == (
+        WarnVoiceLost(),
         Synthesize(ticket=1, sentence=SECOND),
     )
 

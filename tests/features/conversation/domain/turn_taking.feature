@@ -821,3 +821,50 @@ Feature: Turn taking
       And the first piece of the assistant's voice for "Let me look at your notes." was ready
       When the assistant's voice for "Let me look at your notes." fails
       Then the assistant starts saying "I found three of them."
+
+  Rule: The bridge warns once when the assistant's voice cannot be made
+    A speech server that restarts during a session fails every sentence until it is back, and
+    the speaker would only hear silence. The first failure warns them with a sentence recorded
+    in advance; the next failures do not repeat it, until a voice plays again.
+
+    Scenario: A reply that cannot be voiced warns that the voice is lost
+      Given the assistant is silent
+      And the assistant replied "Let me look at your notes." then "I found three of them."
+      When the assistant's voice for "Let me look at your notes." fails
+      Then the bridge warns that the voice is lost
+
+    Scenario: The warning comes before the next sentence
+      Given the assistant is silent
+      And the assistant replied "Let me look at your notes." then "I found three of them."
+      When the assistant's voice for "Let me look at your notes." fails
+      Then the warning comes before the assistant starts saying "I found three of them."
+
+    Scenario: The next failure does not warn again
+      Given the assistant is silent
+      And the assistant replied "Let me look at your notes." then "I found three of them."
+      And the assistant's voice for "Let me look at your notes." failed
+      When the assistant's voice for "I found three of them." fails
+      Then the bridge does not warn that the voice is lost
+
+    Scenario: The next failure still moves on to the next sentence
+      Given the assistant is silent
+      And the assistant replied "Let me look at your notes." then "I found three of them."
+      And the assistant replied "Shall I open them?"
+      And the assistant's voice for "Let me look at your notes." failed
+      When the assistant's voice for "I found three of them." fails
+      Then the assistant starts saying "Shall I open them?"
+
+    Scenario: A voice that plays again warns again at the next failure
+      Given the assistant is silent
+      And the assistant replied "Let me look at your notes." then "I found three of them."
+      And the assistant's voice for "Let me look at your notes." failed
+      And the first piece of the assistant's voice for "I found three of them." was ready
+      When the assistant's voice for "I found three of them." fails
+      Then the bridge warns that the voice is lost
+
+    Scenario: A failure for an older sentence does not warn
+      Given the assistant is silent
+      And the assistant replied "Let me look at your notes." then "I found three of them."
+      And the assistant's voice for "Let me look at your notes." was ready
+      When the voice of an older sentence fails
+      Then nothing happens
