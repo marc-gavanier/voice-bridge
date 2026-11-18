@@ -1,21 +1,51 @@
 language = "en"
 
-[mumble]
+[transport]
+adapter = "mumble"
+
+[transport.mumble]
 host = "voice.example.org"
 password = ""
 username = "claude"
 server_certificate = "/home/user/.config/voice-bridge/server.pem"
 speaker_certificate_hash = ""
 
-[speech]
-url = "http://127.0.0.1:8123"
-gain = 1.0
-speed = 1.0
+[voice_activity]
+adapter = "silero"
 
-[whisper]
+[end_of_turn]
+adapter = "silence"
+
+[speech_recognition]
+adapter = "faster_whisper"
+
+[speech_recognition.faster_whisper]
 model = "large-v3-turbo"
 device = "auto"
 
 [understanding]
+adapter = "onnx"
+
+[understanding.onnx]
 model = "Qdrant/paraphrase-multilingual-MiniLM-L12-v2-onnx-Q"
 revision = "faf4aa4225822f3bc6376869cb1164e8e3feedd0"
+
+[assistant]
+adapter = "claude_code"
+
+[speech_synthesis]
+adapter = "openai"
+gain = 1.0
+speed = 1.0
+
+[speech_synthesis.openai]
+url = "http://127.0.0.1:8123"
+
+[clips.source]
+adapter = "folder"
+
+[clips.source.folder]
+directories = ["~/.local/state/voice-bridge/clips"]
+
+[telemetry]
+adapter = "opentelemetry"

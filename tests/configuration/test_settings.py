@@ -65,6 +65,8 @@ adapter = "folder"
 directories = ["/music"]
 """
 
+EXAMPLE = Path(__file__).parents[2] / "config.example.toml"
+
 
 @pytest.fixture
 def config_file(tmp_path: Path) -> Path:
@@ -275,6 +277,10 @@ def test_no_retention_of_zero_days_is_accepted(tmp_path: Path) -> None:
 def test_a_retention_is_read_from_the_environment(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("VOICE_BRIDGE_TELEMETRY__OPENTELEMETRY__RETENTION", "90")
     assert load_settings(config_file).telemetry.opentelemetry.retention == 90
+
+
+def test_the_example_config_file_starts_the_bridge() -> None:
+    assert load_settings(EXAMPLE).transport.mumble.host == "voice.example.org"
 
 
 def test_the_default_config_file_is_named_after_the_bridge() -> None:
