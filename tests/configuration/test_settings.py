@@ -12,7 +12,7 @@ from voice_bridge.configuration.settings import (
     ClipsSettings,
     SmartTurnEndOfTurnSettings,
     SmartTurnSettings,
-    SpeechSettings,
+    SpeechSynthesisSettings,
     UnderstandingSettings,
     VoiceActivitySettings,
     default_config_file,
@@ -150,36 +150,48 @@ def test_the_speech_recognition_model_comes_from_its_adapters_section(tmp_path: 
     assert load_settings(path).speech_recognition.faster_whisper.model == "large-v3"
 
 
+def test_an_openai_compatible_server_synthesizes_the_speech_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).speech_synthesis.adapter == "openai"
+
+
 def test_the_voice_defaults_to_the_one_of_the_language(config_file: Path) -> None:
-    assert load_settings(config_file).speech.voice is None
+    assert load_settings(config_file).speech_synthesis.openai.voice is None
+
+
+def test_the_speech_server_comes_from_its_adapters_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(
+        MINIMAL + '[speech_synthesis.openai]\nurl = "http://speech.example.org:8880"\n', encoding="utf-8"
+    )
+    assert str(load_settings(path).speech_synthesis.openai.url) == "http://speech.example.org:8880/"
 
 
 def test_the_gain_is_neutral_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).speech.gain == 1.0
+    assert load_settings(config_file).speech_synthesis.gain == 1.0
 
 
 def test_the_speech_keeps_its_natural_speed_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).speech.speed == 1.0
+    assert load_settings(config_file).speech_synthesis.speed == 1.0
 
 
 def test_the_speed_of_the_speech_comes_from_the_config_file(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
-    _ = path.write_text(MINIMAL + "[speech]\nspeed = 1.2\n", encoding="utf-8")
-    assert load_settings(path).speech.speed == 1.2
+    _ = path.write_text(MINIMAL + "[speech_synthesis]\nspeed = 1.2\n", encoding="utf-8")
+    assert load_settings(path).speech_synthesis.speed == 1.2
 
 
 def test_a_speed_below_half_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="speed"):
-        _ = SpeechSettings(speed=0.49)
+        _ = SpeechSynthesisSettings(speed=0.49)
 
 
 def test_a_speed_above_double_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="speed"):
-        _ = SpeechSettings(speed=2.01)
+        _ = SpeechSynthesisSettings(speed=2.01)
 
 
 def test_the_extreme_speeds_are_accepted() -> None:
-    assert (SpeechSettings(speed=0.5).speed, SpeechSettings(speed=2.0).speed) == (0.5, 2.0)
+    assert (SpeechSynthesisSettings(speed=0.5).speed, SpeechSynthesisSettings(speed=2.0).speed) == (0.5, 2.0)
 
 
 def test_the_telemetry_is_written_beside_the_log_by_default(config_file: Path) -> None:
@@ -351,7 +363,7 @@ def test_the_former_clip_limits_say_that_a_clip_is_streamed(tmp_path: Path) -> N
 
 
 def test_the_speech_engine_is_checked_on_its_health_route_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).speech.health == "/health"
+    assert load_settings(config_file).speech_synthesis.openai.health == "/health"
 
 
 def test_no_logging_section_is_set_by_default(config_file: Path) -> None:

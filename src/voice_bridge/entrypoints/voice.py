@@ -297,12 +297,13 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
     player = Player(clock=anyio.current_time)
     hold_music = await _hold_music(settings, transport.rate, player.channel(Layer.MUSIC))
     understanding = await anyio.to_thread.run_sync(_understanding, settings, language)
-    speech_settings = settings.speech
+    synthesis = settings.speech_synthesis
+    openai = synthesis.openai
     telemetry = chosen_telemetry(
         anyio.current_time,
         settings.telemetry_directory,
         kept_days(settings.telemetry_retention),
-        run_attributes(settings, voice=speech_settings.voice or language.voice, pace=PACE_METHOD),
+        run_attributes(settings, voice=openai.voice or language.voice, pace=PACE_METHOD),
     )
 
     def stalled(waited: float) -> None:
@@ -336,18 +337,18 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         frames_out,
         utterances_in,
         utterances_out,
-        httpx.AsyncClient(base_url=str(speech_settings.url), timeout=speech_settings.timeout) as http,
+        httpx.AsyncClient(base_url=str(openai.url), timeout=openai.timeout) as http,
         anyio.create_task_group() as tasks,
     ):
         engine = OpenAICompatibleSpeech(
             client=http,
-            model=speech_settings.model,
-            voice=speech_settings.voice or language.voice,
-            gain=speech_settings.gain,
-            speed=speech_settings.speed,
+            model=openai.model,
+            voice=openai.voice or language.voice,
+            gain=synthesis.gain,
+            speed=synthesis.speed,
             pacing=pace,
             rate=transport.rate,
-            health=speech_settings.health,
+            health=openai.health,
         )
         greeting = secrets.choice(language.greetings)
         clips = Clips(

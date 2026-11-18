@@ -53,14 +53,19 @@ class TransportSettings(Section):
     mumble: MumbleSettings
 
 
-class SpeechSettings(Section):
+class OpenAISpeechSettings(Section):
     url: HttpUrl = HttpUrl("http://127.0.0.1:8123")
     model: str = "mistralai/Voxtral-4B-TTS-2603"
     voice: str | None = None
-    gain: float = 1.0
-    speed: Annotated[float, Field(ge=0.5, le=2.0)] = 1.0
     timeout: float = 120.0
     health: str = "/health"
+
+
+class SpeechSynthesisSettings(Section):
+    adapter: Literal["openai"] = "openai"
+    gain: float = 1.0
+    speed: Annotated[float, Field(ge=0.5, le=2.0)] = 1.0
+    openai: OpenAISpeechSettings = OpenAISpeechSettings()
 
 
 class FasterWhisperSettings(Section):
@@ -194,7 +199,7 @@ class Settings(BaseSettings):
 
     language: Language = DEFAULT_LANGUAGE
     transport: TransportSettings
-    speech: SpeechSettings = SpeechSettings()
+    speech_synthesis: SpeechSynthesisSettings = SpeechSynthesisSettings()
     speech_recognition: SpeechRecognitionSettings = SpeechRecognitionSettings()
     voice_activity: VoiceActivitySettings = VoiceActivitySettings()
     end_of_turn: EndOfTurnSettings = SilenceEndOfTurnSettings()

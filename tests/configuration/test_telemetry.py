@@ -75,7 +75,7 @@ def settings(claude: dict[str, str], end_of_turn: dict[str, object] = SMART_TURN
             },
             "speech_recognition": {"faster_whisper": {"model": "large-v3"}},
             "end_of_turn": end_of_turn,
-            "speech": {"model": "mistralai/Voxtral-4B-TTS-2603", "speed": 1.2},
+            "speech_synthesis": {"speed": 1.2, "openai": {"model": "mistralai/Voxtral-4B-TTS-2603"}},
         }
     )
 
