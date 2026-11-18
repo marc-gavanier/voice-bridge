@@ -213,6 +213,12 @@ def test_the_clips_directories_come_from_the_config_file(tmp_path: Path) -> None
     assert load_settings(path).clips.directories == (Path("/srv/clips"), Path("/srv/music"))
 
 
+def test_a_clips_directory_under_the_home_directory_is_made_absolute(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[clips]\ndirectories = ["~/Music", "~"]\n', encoding="utf-8")
+    assert load_settings(path).clips.directories == (Path.home() / "Music", Path.home())
+
+
 def test_clips_need_at_least_one_directory() -> None:
     with pytest.raises(ValidationError, match="directories"):
         _ = ClipsSettings(directories=())

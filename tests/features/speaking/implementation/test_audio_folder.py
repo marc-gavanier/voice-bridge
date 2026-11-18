@@ -75,6 +75,12 @@ def test_a_file_in_any_of_the_folders_is_found(tmp_path: Path) -> None:
     assert sources(folder(tmp_path), other_folder(tmp_path)).find(str(clip)).name == "song.wav"
 
 
+def test_a_file_in_a_folder_that_is_a_link_to_another_folder_is_found(tmp_path: Path) -> None:
+    clip = written(tmp_path / "library" / "song.wav", 0.1)
+    folder(tmp_path).symlink_to(clip.parent)
+    assert source(folder(tmp_path)).find(str(folder(tmp_path) / "song.wav")).name == "song.wav"
+
+
 def test_a_file_in_a_subfolder_is_found(tmp_path: Path) -> None:
     clip = written(folder(tmp_path) / "comparison" / "sample.wav", 0.1)
     assert source(folder(tmp_path)).find(str(clip)).name == "sample.wav"

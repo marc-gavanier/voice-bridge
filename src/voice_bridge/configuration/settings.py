@@ -4,6 +4,7 @@ from typing import Annotated, ClassVar, Literal, Self, cast, override
 
 from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path, user_state_path
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -118,7 +119,9 @@ REMOVED_CLIP_KEYS: dict[str, str] = {
 
 
 class ClipsSettings(Section):
-    directories: Annotated[tuple[Path, ...], Field(min_length=1)] = (user_state_path(APP_NAME) / "clips",)
+    directories: Annotated[tuple[Annotated[Path, AfterValidator(Path.expanduser)], ...], Field(min_length=1)] = (
+        user_state_path(APP_NAME) / "clips",
+    )
     volume: NonNegativeFloat = 1.0
 
     @model_validator(mode="before")
