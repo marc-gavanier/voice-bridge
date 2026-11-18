@@ -70,64 +70,9 @@ def test_cjk_punctuation_ends_a_sentence_without_a_following_space() -> None:
     )
 
 
-def test_the_first_sentence_is_cut_after_its_first_clause_of_four_words() -> None:
+def test_the_first_sentence_is_kept_whole_across_its_commas() -> None:
     text = "When the tests pass, I will open the pull request. Then I will wait for the review."
     assert split_sentences(text) == (
-        "When the tests pass,",
-        "I will open the pull request.",
+        "When the tests pass, I will open the pull request.",
         "Then I will wait for the review.",
     )
-
-
-def test_a_first_clause_of_three_words_is_not_cut() -> None:
-    assert split_sentences("If they pass, I will open the pull request.") == (
-        "If they pass, I will open the pull request.",
-    )
-
-
-def test_the_first_sentence_is_cut_at_the_first_pause_after_four_words() -> None:
-    assert split_sentences("Well, if the tests pass, I will open the pull request.") == (
-        "Well, if the tests pass,",
-        "I will open the pull request.",
-    )
-
-
-def test_a_semicolon_cuts_the_first_sentence() -> None:
-    assert split_sentences("The build is green on main; the release can go out today.") == (
-        "The build is green on main;",
-        "the release can go out today.",
-    )
-
-
-def test_a_colon_cuts_the_first_sentence() -> None:
-    assert split_sentences("Two points are left to settle : the name and the date.") == (
-        "Two points are left to settle :",
-        "the name and the date.",
-    )
-
-
-def test_a_dash_cuts_the_first_sentence() -> None:
-    text = "The first run is done \N{EN DASH} the second one starts now."
-    assert split_sentences(text) == (
-        "The first run is done \N{EN DASH}",
-        "the second one starts now.",
-    )
-
-
-def test_only_the_first_sentence_is_cut() -> None:
-    text = "I am looking into it right away. When the tests pass, I will open the pull request."
-    assert split_sentences(text) == (
-        "I am looking into it right away.",
-        "When the tests pass, I will open the pull request.",
-    )
-
-
-def test_a_short_rest_of_the_first_sentence_is_merged_with_the_next_one() -> None:
-    assert split_sentences("When the tests pass, yes. I will open the pull request.") == (
-        "When the tests pass,",
-        "yes. I will open the pull request.",
-    )
-
-
-def test_a_first_clause_shorter_than_the_shortest_sentence_is_not_cut() -> None:
-    assert split_sentences("A b c d, then the rest of the sentence.") == ("A b c d, then the rest of the sentence.",)
