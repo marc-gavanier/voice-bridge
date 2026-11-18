@@ -10,9 +10,11 @@ from voice_bridge.configuration.settings import (
     LANGUAGES,
     ClaudeSettings,
     ClipsSettings,
-    HearingSettings,
+    SmartTurnEndOfTurnSettings,
+    SmartTurnSettings,
     SpeechSettings,
     UnderstandingSettings,
+    VoiceActivitySettings,
     default_config_file,
     load_settings,
 )
@@ -34,6 +36,14 @@ JSON_TRANSPORT = json.dumps(
             "speaker_certificate_hash": "a",
         }
     }
+)
+
+SMART_TURN = (
+    MINIMAL
+    + """
+[end_of_turn]
+adapter = "smart_turn"
+"""
 )
 
 
@@ -209,33 +219,86 @@ def test_the_default_config_file_is_named_after_the_bridge() -> None:
 
 def test_a_shortest_voice_longer_than_the_barge_in_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="shortest_voice"):
-        _ = HearingSettings(shortest_voice=0.6, barge_in=0.5)
+        _ = VoiceActivitySettings(shortest_voice=0.6, barge_in=0.5)
 
 
 def test_a_shortest_voice_as_long_as_the_barge_in_is_accepted() -> None:
-    assert HearingSettings(shortest_voice=0.5, barge_in=0.5).shortest_voice == 0.5
+    assert VoiceActivitySettings(shortest_voice=0.5, barge_in=0.5).shortest_voice == 0.5
 
 
-def test_a_barge_window_longer_than_the_silence_plus_the_barge_in_is_accepted() -> None:
-    assert HearingSettings(silence=0.3, barge_in=0.5, barge_window=1.0).barge_window == 1.0
+def test_silero_detects_the_voice_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).voice_activity.adapter == "silero"
 
 
-def test_the_end_of_turn_model_is_off_by_default() -> None:
-    assert not HearingSettings().smart_turn
+def test_the_voice_thresholds_come_from_the_voice_activity_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + "[voice_activity]\nvolume_threshold = 800.0\n", encoding="utf-8")
+    assert load_settings(path).voice_activity.volume_threshold == 800.0
+
+
+def test_the_end_of_turn_model_is_off_by_default(config_file: Path) -> None:
+    assert load_settings(config_file).end_of_turn.adapter == "silence"
+
+
+def test_the_silence_ending_a_turn_comes_from_the_end_of_turn_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + "[end_of_turn]\nsilence = 1.0\n", encoding="utf-8")
+    assert load_settings(path).end_of_turn.silence == 1.0
+
+
+def test_smart_turn_is_chosen_as_the_end_of_turns_adapter(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[end_of_turn]\nadapter = "smart_turn"\n', encoding="utf-8")
+    assert load_settings(path).end_of_turn == SmartTurnEndOfTurnSettings()
+
+
+def test_smart_turns_settings_come_from_its_own_section(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(SMART_TURN + "[end_of_turn.smart_turn]\nturn_threshold = 0.7\n", encoding="utf-8")
+    assert load_settings(path).end_of_turn == SmartTurnEndOfTurnSettings(
+        smart_turn=SmartTurnSettings(turn_threshold=0.7)
+    )
+
+
+def test_smart_turns_settings_without_smart_turn_chosen_stop_the_start(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + "[end_of_turn.smart_turn]\nturn_threshold = 0.7\n", encoding="utf-8")
+    with pytest.raises(ValidationError, match="smart_turn"):
+        _ = load_settings(path)
+
+
+def test_an_unknown_end_of_turn_stops_the_start(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[end_of_turn]\nadapter = "vad"\n', encoding="utf-8")
+    with pytest.raises(ValidationError, match="vad"):
+        _ = load_settings(path)
+
+
+def test_smart_turn_is_chosen_from_the_environment(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VOICE_BRIDGE_END_OF_TURN__ADAPTER", "smart_turn")
+    assert load_settings(config_file).end_of_turn.adapter == "smart_turn"
 
 
 def test_a_short_pause_as_long_as_the_silence_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="short_pause"):
-        _ = HearingSettings(short_pause=0.8, silence=0.8)
+        _ = SmartTurnEndOfTurnSettings(smart_turn=SmartTurnSettings(short_pause=0.8), silence=0.8)
 
 
 def test_a_short_pause_shorter_than_the_silence_is_accepted() -> None:
-    assert HearingSettings(short_pause=0.3, silence=0.8).short_pause == 0.3
+    settings = SmartTurnEndOfTurnSettings(smart_turn=SmartTurnSettings(short_pause=0.3), silence=0.8)
+    assert settings.smart_turn.short_pause == 0.3
 
 
 def test_an_unfinished_silence_no_longer_than_the_silence_stops_the_start() -> None:
     with pytest.raises(ValidationError, match="unfinished_silence"):
-        _ = HearingSettings(unfinished_silence=0.8, silence=0.8)
+        _ = SmartTurnEndOfTurnSettings(smart_turn=SmartTurnSettings(unfinished_silence=0.8), silence=0.8)
+
+
+def test_smart_turns_bounds_are_checked_against_the_silence_of_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(SMART_TURN + "silence = 0.1\n", encoding="utf-8")
+    with pytest.raises(ValidationError, match="short_pause"):
+        _ = load_settings(path)
 
 
 def test_no_hold_music_plays_by_default(config_file: Path) -> None:

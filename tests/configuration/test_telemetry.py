@@ -52,7 +52,15 @@ def test_a_sentry_dsn_reports_errors() -> None:
     assert reports_errors({"SENTRY_DSN": "https://key@sentry.example.org/1"})
 
 
-def settings(claude: dict[str, str]) -> Settings:
+SMART_TURN: dict[str, object] = {
+    "adapter": "smart_turn",
+    "settle": 1.5,
+    "silence": 0.7,
+    "smart_turn": {"turn_threshold": 0.6},
+}
+
+
+def settings(claude: dict[str, str], end_of_turn: dict[str, object] = SMART_TURN) -> Settings:
     return Settings.model_validate(
         {
             "claude": claude,
@@ -66,7 +74,7 @@ def settings(claude: dict[str, str]) -> Settings:
                 }
             },
             "speech_recognition": {"faster_whisper": {"model": "large-v3"}},
-            "hearing": {"settle": 1.5, "silence": 0.7, "smart_turn": True, "turn_threshold": 0.6},
+            "end_of_turn": end_of_turn,
             "speech": {"model": "mistralai/Voxtral-4B-TTS-2603", "speed": 1.2},
         }
     )
@@ -96,3 +104,13 @@ def test_a_run_on_claude_codes_own_models_names_them_default() -> None:
         "default",
         "default",
     )
+
+
+def test_a_run_ended_by_silence_alone_names_no_turn_threshold() -> None:
+    attributes = run_attributes(settings({}, {"silence": 0.7}), voice="fr_female", pace="atempo")
+    assert "voice_bridge.hearing.turn_threshold" not in attributes
+
+
+def test_a_run_ended_by_silence_alone_says_smart_turn_is_off() -> None:
+    attributes = run_attributes(settings({}, {"silence": 0.7}), voice="fr_female", pace="atempo")
+    assert attributes["voice_bridge.hearing.smart_turn"] is False

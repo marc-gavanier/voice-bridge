@@ -7,6 +7,7 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
+    Discriminator,
     Field,
     HttpUrl,
     JsonValue,
@@ -14,6 +15,7 @@ from pydantic import (
     PositiveFloat,
     PositiveInt,
     SecretStr,
+    Tag,
     model_validator,
 )
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
@@ -72,20 +74,15 @@ class SpeechRecognitionSettings(Section):
     faster_whisper: FasterWhisperSettings = FasterWhisperSettings()
 
 
-class HearingSettings(Section):
+class VoiceActivitySettings(Section):
+    adapter: Literal["silero"] = "silero"
     volume_threshold: float = 500.0
     voice_probability: float = 0.5
-    silence: float = 0.8
     longest: float = 30.0
     shortest_voice: float = 0.3
     preroll: float = 0.3
     barge_in: float = 0.5
     barge_window: float = 1.0
-    smart_turn: bool = False
-    short_pause: float = 0.2
-    unfinished_silence: float = 2.0
-    turn_threshold: float = 0.5
-    settle: float = 1.2
 
     @model_validator(mode="after")
     def _an_interruption_is_never_dismissed(self) -> Self:
@@ -94,19 +91,53 @@ class HearingSettings(Section):
             raise ValueError(message)
         return self
 
+
+class SmartTurnSettings(Section):
+    short_pause: float = 0.2
+    unfinished_silence: float = 2.0
+    turn_threshold: float = 0.5
+
+
+class EndOfTurnSection(Section):
+    silence: float = 0.8
+    settle: float = 1.2
+
+
+class SilenceEndOfTurnSettings(EndOfTurnSection):
+    adapter: Literal["silence"] = "silence"
+
+
+class SmartTurnEndOfTurnSettings(EndOfTurnSection):
+    adapter: Literal["smart_turn"] = "smart_turn"
+    smart_turn: SmartTurnSettings = SmartTurnSettings()
+
     @model_validator(mode="after")
     def _a_short_pause_comes_before_the_silence(self) -> Self:
-        if self.short_pause >= self.silence:
+        if self.smart_turn.short_pause >= self.silence:
             message = "short_pause must be shorter than silence"
             raise ValueError(message)
         return self
 
     @model_validator(mode="after")
     def _an_unfinished_turn_waits_longer_than_the_silence(self) -> Self:
-        if self.unfinished_silence <= self.silence:
+        if self.smart_turn.unfinished_silence <= self.silence:
             message = "unfinished_silence must be longer than silence"
             raise ValueError(message)
         return self
+
+
+def _end_of_turn_adapter(value: object) -> object:
+    match value:
+        case {"adapter": object() as adapter}:
+            return adapter
+        case _:
+            return getattr(value, "adapter", "silence")
+
+
+type EndOfTurnSettings = Annotated[
+    Annotated[SilenceEndOfTurnSettings, Tag("silence")] | Annotated[SmartTurnEndOfTurnSettings, Tag("smart_turn")],
+    Discriminator(_end_of_turn_adapter),
+]
 
 
 class HoldMusicSettings(Section):
@@ -165,7 +196,8 @@ class Settings(BaseSettings):
     transport: TransportSettings
     speech: SpeechSettings = SpeechSettings()
     speech_recognition: SpeechRecognitionSettings = SpeechRecognitionSettings()
-    hearing: HearingSettings = HearingSettings()
+    voice_activity: VoiceActivitySettings = VoiceActivitySettings()
+    end_of_turn: EndOfTurnSettings = SilenceEndOfTurnSettings()
     hold_music: HoldMusicSettings = HoldMusicSettings()
     clips: ClipsSettings = ClipsSettings()
     understanding: UnderstandingSettings = UnderstandingSettings()

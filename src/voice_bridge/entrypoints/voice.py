@@ -11,6 +11,7 @@ import httpx
 from faster_whisper import WhisperModel
 
 from voice_bridge.configuration.log_config import kept_days
+from voice_bridge.configuration.settings import SilenceEndOfTurnSettings, SmartTurnEndOfTurnSettings
 from voice_bridge.configuration.telemetry import run_attributes
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import AgentMessageChunk
@@ -88,7 +89,7 @@ if TYPE_CHECKING:
     from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
     from voice_bridge.configuration.language import LanguagePack
-    from voice_bridge.configuration.settings import Settings
+    from voice_bridge.configuration.settings import Settings, SmartTurnSettings
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt, SessionUpdate
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Assistant, Interpreter
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
@@ -127,11 +128,20 @@ def _timed(judge: Callable[[bytes], float]) -> Callable[[bytes], float]:
     return timed
 
 
-def _turn(settings: Settings, rate: int) -> Turn | None:
-    hearing = settings.hearing
-    if not hearing.smart_turn:
+def _smart_turn(settings: Settings) -> SmartTurnSettings | None:
+    match settings.end_of_turn:
+        case SmartTurnEndOfTurnSettings(smart_turn=smart_turn):
+            return smart_turn
+        case SilenceEndOfTurnSettings():
+            return None
+        case _:
+            assert_never(settings.end_of_turn)
+
+
+def _turn(smart_turn: SmartTurnSettings | None, rate: int) -> Turn | None:
+    if smart_turn is None:
         return None
-    return Turn(judge=_timed(partial(completion, load_session(), rate=rate)), threshold=hearing.turn_threshold)
+    return Turn(judge=_timed(partial(completion, load_session(), rate=rate)), threshold=smart_turn.turn_threshold)
 
 
 def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
@@ -152,22 +162,23 @@ def _log_hearing(each: Dismissed | TurnChecked, silence: float) -> None:
 
 
 def _ears(settings: Settings, rate: int) -> Ears:
-    hearing = settings.hearing
+    voice_activity = settings.voice_activity
+    smart_turn = _smart_turn(settings)
     return Ears(
         detector=SileroDetector(session=load_silero(), rate=rate),
-        voicing=Voicing(volume_threshold=hearing.volume_threshold, probability=hearing.voice_probability),
+        voicing=Voicing(volume_threshold=voice_activity.volume_threshold, probability=voice_activity.voice_probability),
         rules=UtteranceRules(
-            silence=hearing.silence,
-            longest=hearing.longest,
-            shortest_voice=hearing.shortest_voice,
-            preroll=hearing.preroll,
-            barge_in=hearing.barge_in,
-            barge_window=hearing.barge_window,
-            short_pause=hearing.short_pause if hearing.smart_turn else None,
-            unfinished_silence=hearing.unfinished_silence if hearing.smart_turn else None,
+            silence=settings.end_of_turn.silence,
+            longest=voice_activity.longest,
+            shortest_voice=voice_activity.shortest_voice,
+            preroll=voice_activity.preroll,
+            barge_in=voice_activity.barge_in,
+            barge_window=voice_activity.barge_window,
+            short_pause=None if smart_turn is None else smart_turn.short_pause,
+            unfinished_silence=None if smart_turn is None else smart_turn.unfinished_silence,
         ),
         rate=rate,
-        turn=_turn(settings, rate),
+        turn=_turn(smart_turn, rate),
     )
 
 
@@ -298,7 +309,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         telemetry(AudioStalled(waited=waited))
 
     async def heard(each: Heard) -> None:
-        await _route(each, events_in, utterances_in, settings.hearing.silence)
+        await _route(each, events_in, utterances_in, settings.end_of_turn.silence)
 
     async def transcribed(text: str, *, noise: bool) -> None:
         meaning = None if noise else understanding(text)
@@ -359,7 +370,7 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
             acknowledgement=clips,
             understood=_interpreting(understanding),
             announcement=announcements,
-            settle=settings.hearing.settle,
+            settle=settings.end_of_turn.settle,
             hold_music=hold_music,
             hold_music_delay=settings.hold_music.delay,
             unanswered=sentences_of(language.unanswered),

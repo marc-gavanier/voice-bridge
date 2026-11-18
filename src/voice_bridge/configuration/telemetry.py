@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Final
 
+from voice_bridge.configuration.settings import SmartTurnEndOfTurnSettings
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -26,13 +28,18 @@ def reports_errors(environ: Mapping[str, str]) -> bool:
 
 
 def run_attributes(settings: Settings, *, voice: str, pace: str) -> dict[str, str | float | bool]:
-    hearing = settings.hearing
+    end_of_turn = settings.end_of_turn
+    judged = (
+        {"voice_bridge.hearing.turn_threshold": end_of_turn.smart_turn.turn_threshold}
+        if isinstance(end_of_turn, SmartTurnEndOfTurnSettings)
+        else {}
+    )
     return {
         "voice_bridge.language": settings.language,
-        "voice_bridge.hearing.silence": hearing.silence,
-        "voice_bridge.hearing.settle": hearing.settle,
-        "voice_bridge.hearing.smart_turn": hearing.smart_turn,
-        "voice_bridge.hearing.turn_threshold": hearing.turn_threshold,
+        "voice_bridge.hearing.silence": end_of_turn.silence,
+        "voice_bridge.hearing.settle": end_of_turn.settle,
+        "voice_bridge.hearing.smart_turn": end_of_turn.adapter == "smart_turn",
+        **judged,
         "voice_bridge.whisper.model": settings.speech_recognition.faster_whisper.model,
         "voice_bridge.speech.model": settings.speech.model,
         "voice_bridge.speech.voice": voice,
