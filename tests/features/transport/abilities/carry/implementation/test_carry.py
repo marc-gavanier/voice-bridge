@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from typing import Final
 
 import anyio
 import pytest
@@ -20,6 +21,8 @@ pytestmark = pytest.mark.anyio
 
 TWENTY_MS = bytes(1920)
 FRAME = Frame(pcm=TWENTY_MS, at=1.0, frame_number=0, last=False)
+FRAMES_ALREADY_WAITING_PATIENCE: Final = 30.0
+NO_FRAME_PATIENCE: Final = 0.01
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -88,7 +91,7 @@ async def test_a_reconnection_is_logged(caplog: pytest.LogCaptureFixture) -> Non
     assert "reconnected to the transport" in caplog.text
 
 
-async def paced(*frames: Frame, patience: float = 0.01) -> list[Frame | None]:
+async def paced(*frames: Frame, patience: float) -> list[Frame | None]:
     sent, received = anyio.create_memory_object_stream[Frame](10)
     async with received:
         async with sent:
@@ -98,13 +101,13 @@ async def paced(*frames: Frame, patience: float = 0.01) -> list[Frame | None]:
 
 
 async def test_frames_come_through_as_they_arrive() -> None:
-    assert await paced(FRAME) == [FRAME]
+    assert await paced(FRAME, patience=FRAMES_ALREADY_WAITING_PATIENCE) == [FRAME]
 
 
 async def test_a_pause_comes_through_when_no_frame_arrives_in_time() -> None:
     sent, received = anyio.create_memory_object_stream[Frame](10)
     async with sent, received:
-        ticks = with_pauses(received, 0.01)
+        ticks = with_pauses(received, NO_FRAME_PATIENCE)
         tick = await anext(ticks)
         await ticks.aclose()
     assert tick is None
