@@ -24,7 +24,7 @@ def _at_random(files: tuple[Path, ...], /) -> tuple[Path, ...]:
 
 @dataclass(slots=True, kw_only=True)
 class AudioFolder:
-    directory: Path
+    directories: tuple[Path, ...]
     largest: int
     decode: Decoder
     rate: int
@@ -32,13 +32,19 @@ class AudioFolder:
     queue: tuple[Path, ...] = field(default=(), init=False)
     last: Path | None = field(default=None, init=False)
 
+    def _listed(self) -> str:
+        return ", ".join(str(directory) for directory in self.directories)
+
+    def _inside(self, found: Path) -> bool:
+        return any(found.is_relative_to(directory.resolve()) for directory in self.directories)
+
     def _allowed(self, asked: str) -> Path:
         path = Path(asked)
         if not path.is_absolute():
             _refuse(f"{asked} is not an absolute path")
         found = path.resolve()
-        if not found.is_relative_to(self.directory.resolve()):
-            _refuse(f"{asked} is outside {self.directory}, where the audio must be")
+        if not self._inside(found):
+            _refuse(f"{asked} is outside {self._listed()}, where the audio must be")
         if found.suffix.lower() not in AUDIO_SUFFIXES:
             _refuse(f"{asked} is not an audio file: its name must end with {', '.join(AUDIO_SUFFIXES)}")
         if not found.is_file():
@@ -55,10 +61,13 @@ class AudioFolder:
 
     def _tracks(self) -> tuple[Path, ...]:
         found = sorted(
-            path for path in self.directory.rglob("*") if path.suffix.lower() in AUDIO_SUFFIXES and path.is_file()
+            path
+            for directory in self.directories
+            for path in directory.rglob("*")
+            if path.suffix.lower() in AUDIO_SUFFIXES and path.is_file()
         )
         if not found:
-            _refuse(f"{self.directory} holds no audio file")
+            _refuse(f"{self._listed()} holds no audio file")
         return tuple(found)
 
     def pick(self) -> Audio:

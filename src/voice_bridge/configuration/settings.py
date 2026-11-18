@@ -1,6 +1,6 @@
 import tomllib
 from pathlib import Path
-from typing import Annotated, ClassVar, Literal, Self, override
+from typing import Annotated, ClassVar, Literal, Self, cast, override
 
 from platformdirs import user_cache_path, user_config_path, user_log_path, user_runtime_path, user_state_path
 from pydantic import (
@@ -106,11 +106,28 @@ class HoldMusicSettings(Section):
     fade_out: NonNegativeFloat = 0.3
 
 
+def _keys_of(data: object) -> set[str]:
+    return {str(key) for key in cast("dict[object, object]", data)} if isinstance(data, dict) else set()
+
+
+REMOVED_CLIP_KEYS: dict[str, str] = {
+    "directory": 'clips.directory became clips.directories, a list: directories = ["/path/to/clips"]',
+}
+
+
 class ClipsSettings(Section):
-    directory: Path = user_state_path(APP_NAME) / "clips"
+    directories: Annotated[tuple[Path, ...], Field(min_length=1)] = (user_state_path(APP_NAME) / "clips",)
     longest: PositiveFloat = 300.0
     largest: PositiveInt = 50_000_000
     volume: NonNegativeFloat = 1.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def _removed_keys_say_what_replaced_them(cls, data: object) -> object:
+        removed = sorted(REMOVED_CLIP_KEYS.keys() & _keys_of(data))
+        if removed:
+            raise ValueError("; ".join(REMOVED_CLIP_KEYS[key] for key in removed))
+        return data
 
 
 class ClaudeSettings(Section):

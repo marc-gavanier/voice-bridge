@@ -38,7 +38,7 @@ def test_english_describes_the_play_tool_in_english() -> None:
 
 @pytest.mark.parametrize("language", LANGUAGES)
 def test_every_language_tells_claude_where_clips_must_be(language: Language) -> None:
-    assert "{directory}" in language_pack(language).play_path_description
+    assert "{directories}" in language_pack(language).play_path_description
 
 
 @pytest.mark.parametrize("language", LANGUAGES)

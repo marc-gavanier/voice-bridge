@@ -204,13 +204,25 @@ def test_the_hold_music_comes_from_the_config_file(tmp_path: Path) -> None:
 
 
 def test_clips_are_played_from_the_state_directory_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).clips.directory == user_state_path("voice-bridge") / "clips"
+    assert load_settings(config_file).clips.directories == (user_state_path("voice-bridge") / "clips",)
 
 
-def test_the_clips_directory_comes_from_the_config_file(tmp_path: Path) -> None:
+def test_the_clips_directories_come_from_the_config_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[clips]\ndirectories = ["/srv/clips", "/srv/music"]\n', encoding="utf-8")
+    assert load_settings(path).clips.directories == (Path("/srv/clips"), Path("/srv/music"))
+
+
+def test_clips_need_at_least_one_directory() -> None:
+    with pytest.raises(ValidationError, match="directories"):
+        _ = ClipsSettings(directories=())
+
+
+def test_the_former_clips_directory_says_what_replaced_it(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     _ = path.write_text(MINIMAL + '[clips]\ndirectory = "/srv/clips"\n', encoding="utf-8")
-    assert load_settings(path).clips.directory == Path("/srv/clips")
+    with pytest.raises(ValidationError, match=r"clips\.directory became clips\.directories, a list"):
+        _ = load_settings(path)
 
 
 def test_a_clip_is_limited_to_five_minutes_and_fifty_megabytes_by_default(config_file: Path) -> None:

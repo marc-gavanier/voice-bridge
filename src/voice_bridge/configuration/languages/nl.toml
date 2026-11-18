@@ -9,7 +9,7 @@ end_tool_description = "Hardop gedag zeggen en daarna de hele spraaksessie beëi
 end_text_description = "Het korte afscheid dat wordt uitgesproken voordat de sessie eindigt"
 board_tool_description = "Het bord lezen van de agenten aan het werk en van die klaar zijn: hun type, de beschrijving van hun taak, sinds wanneer ze werken, hun laatste actie en wanneer ze die deden, en het laatste bericht van elke agent die klaar is. Gebruik het om te zeggen wat er loopt en wat elke taak nu doet, ook nadat het gesprek is samengevat"
 play_tool_description = "Een audiobestand afspelen in de headset van de gebruiker, zoals een opname, een fragment of voorbeelden om te vergelijken, na wat nog gezegd moet worden; de gebruiker kan het onderbreken door te spreken, zoals een antwoord"
-play_path_description = "Het absolute pad van het audiobestand (WAV, MP3, FLAC, Ogg, Opus, M4A of AAC), dat in {directory} moet staan"
+play_path_description = "Het absolute pad van het audiobestand (WAV, MP3, FLAC, Ogg, Opus, M4A of AAC), dat in een van deze mappen moet staan: {directories}"
 play_label_description = "Optioneel: een paar woorden vlak voor het bestand, zoals de naam of waarop te letten, geschreven voor het oor"
 hallucinations = [
   "",

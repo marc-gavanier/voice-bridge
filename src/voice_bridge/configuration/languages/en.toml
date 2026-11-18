@@ -9,7 +9,7 @@ end_tool_description = "Say goodbye aloud, then end the whole voice session: the
 end_text_description = "The short goodbye to speak before the session ends"
 board_tool_description = "Read the board of the agents at work and of those that finished: their type, the description of their task, since when they work, their latest action and when they made it, and the last message of each finished one. Use it to say what runs and what each task is doing right now, even after the conversation was summarized"
 play_tool_description = "Play an audio file in the user's headset, such as a recording, an extract or samples to compare, after what is still to be said; the user can cut it off by speaking, like a reply"
-play_path_description = "The absolute path of the audio file (WAV, MP3, FLAC, Ogg, Opus, M4A or AAC), which must be inside {directory}"
+play_path_description = "The absolute path of the audio file (WAV, MP3, FLAC, Ogg, Opus, M4A or AAC), which must be inside one of these directories: {directories}"
 play_label_description = "Optional: a few words said just before the file, such as its name or what to listen for, written for the ear"
 hallucinations = [
   "",

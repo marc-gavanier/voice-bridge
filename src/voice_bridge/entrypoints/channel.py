@@ -47,14 +47,15 @@ def now() -> datetime:
 def _play_tool(settings: Settings, language: LanguagePack, rate: int) -> PlayTool:
     clips = settings.clips
     rules = ClipRules(longest=clips.longest, volume=clips.volume)
-    source = AudioFolder(directory=clips.directory, largest=clips.largest, decode=decode_audio, rate=rate)
+    source = AudioFolder(directories=clips.directories, largest=clips.largest, decode=decode_audio, rate=rate)
 
     async def read(path: str) -> bytes:
         return await anyio.to_thread.run_sync(partial(read_clip, path, source=source, rules=rules, rate=rate))
 
+    directories = ", ".join(str(directory) for directory in clips.directories)
     return PlayTool(
         description=language.play_tool_description,
-        path_description=language.play_path_description.format(directory=clips.directory),
+        path_description=language.play_path_description.format(directories=directories),
         label_description=language.play_label_description,
         read=read,
     )
