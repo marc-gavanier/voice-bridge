@@ -9,7 +9,10 @@ from pydantic import ValidationError
 from voice_bridge.configuration.settings import (
     LANGUAGES,
     ClaudeCodeSettings,
-    ClipsSettings,
+    FileSettings,
+    FileSourceSettings,
+    FolderSettings,
+    FolderSourceSettings,
     OnnxEncoderSettings,
     SmartTurnEndOfTurnSettings,
     SmartTurnSettings,
@@ -45,6 +48,22 @@ SMART_TURN = (
 adapter = "smart_turn"
 """
 )
+
+HOLD_MUSIC_FILE = """
+[hold_music.source]
+adapter = "file"
+
+[hold_music.source.file]
+path = "/music/hold.mp3"
+"""
+
+HOLD_MUSIC_FOLDER = """
+[hold_music.source]
+adapter = "folder"
+
+[hold_music.source.folder]
+directories = ["/music"]
+"""
 
 
 @pytest.fixture
@@ -336,40 +355,82 @@ def test_smart_turns_bounds_are_checked_against_the_silence_of_the_config_file(t
 
 
 def test_no_hold_music_plays_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).hold_music.file is None
+    assert load_settings(config_file).hold_music.source is None
 
 
-def test_the_hold_music_comes_from_the_config_file(tmp_path: Path) -> None:
+def test_the_hold_music_comes_from_a_file(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
-    _ = path.write_text(MINIMAL + '[hold_music]\nfile = "/music/hold.mp3"\n', encoding="utf-8")
-    assert load_settings(path).hold_music.file == Path("/music/hold.mp3")
+    _ = path.write_text(MINIMAL + HOLD_MUSIC_FILE, encoding="utf-8")
+    assert load_settings(path).hold_music.source == FileSourceSettings(file=FileSettings(path=Path("/music/hold.mp3")))
+
+
+def test_the_hold_music_comes_from_a_folder(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + HOLD_MUSIC_FOLDER, encoding="utf-8")
+    assert load_settings(path).hold_music.source == FolderSourceSettings(
+        folder=FolderSettings(directories=(Path("/music"),))
+    )
+
+
+def test_the_hold_musics_file_path_is_read_from_the_environment(
+    config_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("VOICE_BRIDGE_HOLD_MUSIC__SOURCE", '{"adapter": "file", "file": {"path": "/music/env.mp3"}}')
+    assert load_settings(config_file).hold_music.source == FileSourceSettings(
+        file=FileSettings(path=Path("/music/env.mp3"))
+    )
+
+
+def test_a_hold_music_source_without_its_adapter_stops_the_start(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[hold_music.source.file]\npath = "/music/hold.mp3"\n', encoding="utf-8")
+    with pytest.raises(ValidationError, match="adapter"):
+        _ = load_settings(path)
+
+
+def test_a_folders_settings_beside_a_file_source_stop_the_start(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(
+        MINIMAL + HOLD_MUSIC_FILE + '[hold_music.source.folder]\ndirectories = ["/music"]\n', encoding="utf-8"
+    )
+    with pytest.raises(ValidationError, match="folder"):
+        _ = load_settings(path)
 
 
 def test_clips_are_played_from_the_state_directory_by_default(config_file: Path) -> None:
-    assert load_settings(config_file).clips.directories == (user_state_path("voice-bridge") / "clips",)
+    assert load_settings(config_file).clips.source.folder.directories == (user_state_path("voice-bridge") / "clips",)
 
 
-def test_the_clips_directories_come_from_the_config_file(tmp_path: Path) -> None:
+def test_the_clips_directories_come_from_the_folders_section(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
-    _ = path.write_text(MINIMAL + '[clips]\ndirectories = ["/srv/clips", "/srv/music"]\n', encoding="utf-8")
-    assert load_settings(path).clips.directories == (Path("/srv/clips"), Path("/srv/music"))
+    _ = path.write_text(
+        MINIMAL + '[clips.source.folder]\ndirectories = ["/srv/clips", "/srv/music"]\n', encoding="utf-8"
+    )
+    assert load_settings(path).clips.source.folder.directories == (Path("/srv/clips"), Path("/srv/music"))
 
 
 def test_a_clips_directory_under_the_home_directory_is_made_absolute(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
-    _ = path.write_text(MINIMAL + '[clips]\ndirectories = ["~/Music", "~"]\n', encoding="utf-8")
-    assert load_settings(path).clips.directories == (Path.home() / "Music", Path.home())
+    _ = path.write_text(MINIMAL + '[clips.source.folder]\ndirectories = ["~/Music", "~"]\n', encoding="utf-8")
+    assert load_settings(path).clips.source.folder.directories == (Path.home() / "Music", Path.home())
 
 
-def test_clips_need_at_least_one_directory() -> None:
+def test_a_folder_needs_at_least_one_directory() -> None:
     with pytest.raises(ValidationError, match="directories"):
-        _ = ClipsSettings(directories=())
+        _ = FolderSettings(directories=())
+
+
+def test_clips_are_read_from_a_folder_only(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    _ = path.write_text(MINIMAL + '[clips.source]\nadapter = "file"\n', encoding="utf-8")
+    with pytest.raises(ValidationError, match="folder"):
+        _ = load_settings(path)
 
 
 def test_the_former_clips_directory_says_what_replaced_it(tmp_path: Path) -> None:
     path = tmp_path / "config.toml"
     _ = path.write_text(MINIMAL + '[clips]\ndirectory = "/srv/clips"\n', encoding="utf-8")
-    with pytest.raises(ValidationError, match=r"clips\.directory became clips\.directories, a list"):
+    with pytest.raises(ValidationError, match=r"clips\.directory became directories in \[clips\.source\.folder\]"):
         _ = load_settings(path)
 
 

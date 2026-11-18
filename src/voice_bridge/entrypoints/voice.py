@@ -11,7 +11,12 @@ import httpx
 from faster_whisper import WhisperModel
 
 from voice_bridge.configuration.log_config import kept_days
-from voice_bridge.configuration.settings import SilenceEndOfTurnSettings, SmartTurnEndOfTurnSettings
+from voice_bridge.configuration.settings import (
+    FileSourceSettings,
+    FolderSourceSettings,
+    SilenceEndOfTurnSettings,
+    SmartTurnEndOfTurnSettings,
+)
 from voice_bridge.configuration.telemetry import run_attributes
 from voice_bridge.entrypoints.telemetry import chosen_telemetry
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import AgentMessageChunk
@@ -89,10 +94,11 @@ if TYPE_CHECKING:
     from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
     from voice_bridge.configuration.language import LanguagePack
-    from voice_bridge.configuration.settings import Settings, SmartTurnSettings
+    from voice_bridge.configuration.settings import AudioSourceSettings, Settings, SmartTurnSettings
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import Prompt, SessionUpdate
     from voice_bridge.features.conversation.abilities.hold_conversation.domain.ports import Assistant, Interpreter
     from voice_bridge.features.conversation.abilities.hold_conversation.implementation.work_board import WorkBoard
+    from voice_bridge.features.speaking.domain.ports import AudioSource
     from voice_bridge.features.transport.abilities.carry.domain.ports import Transport
 
 logger = logging.getLogger(__name__)
@@ -213,14 +219,34 @@ async def _route(
             assert_never(each)
 
 
+def audio_source(settings: AudioSourceSettings, rate: int) -> AudioSource:
+    match settings:
+        case FileSourceSettings(file=file):
+            return AudioFile(path=file.path, decode=decode_audio, rate=rate)
+        case FolderSourceSettings(folder=folder):
+            return AudioFolder(directories=folder.directories, decode=decode_audio, rate=rate)
+        case _:
+            assert_never(settings)
+
+
+def _location(settings: AudioSourceSettings) -> str:
+    match settings:
+        case FileSourceSettings(file=file):
+            return file.path.name
+        case FolderSourceSettings(folder=folder):
+            return ", ".join(directory.name for directory in folder.directories)
+        case _:
+            assert_never(settings)
+
+
 async def _hold_music(settings: Settings, rate: int, speaker: Channel) -> HoldMusic | None:
     hold_music = settings.hold_music
-    if hold_music.file is None:
+    if hold_music.source is None:
         return None
     track = await anyio.to_thread.run_sync(
-        partial(track_of, AudioFile(path=hold_music.file, decode=decode_audio, rate=rate), volume=hold_music.volume)
+        partial(track_of, audio_source(hold_music.source, rate), volume=hold_music.volume)
     )
-    logger.info("hold music ready: %s, %.0f s", hold_music.file.name, len(track.pcm) / 2 / rate)
+    logger.info("hold music ready: %s, %.0f s", _location(hold_music.source), len(track.pcm) / 2 / rate)
     return HoldMusic(
         track=track,
         speaker=speaker,
@@ -284,10 +310,6 @@ class AssistantSide:
     assistant: Assistant
     updates: ObjectReceiveStream[SessionUpdate]
     board: WorkBoard
-
-
-def clip_source(settings: Settings, rate: int) -> AudioFolder:
-    return AudioFolder(directories=settings.clips.directories, decode=decode_audio, rate=rate)
 
 
 async def converse(settings: Settings, language: LanguagePack, side: AssistantSide, transport: Transport) -> None:
@@ -361,7 +383,9 @@ async def converse(settings: Settings, language: LanguagePack, side: AssistantSi
         mouth = Mouth(
             voice=partial(voice_streamed, engine),
             recordings=ClipStream(
-                source=clip_source(settings, transport.rate), volume=settings.clips.volume, rate=transport.rate
+                source=audio_source(settings.clips.source, transport.rate),
+                volume=settings.clips.volume,
+                rate=transport.rate,
             ),
             speaker=player.channel(Layer.VOICE),
             assistant=_FollowingStops(

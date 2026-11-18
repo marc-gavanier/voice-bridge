@@ -145,12 +145,36 @@ type EndOfTurnSettings = Annotated[
 ]
 
 
+class FileSettings(Section):
+    path: Path
+
+
+type Directories = Annotated[tuple[Annotated[Path, AfterValidator(Path.expanduser)], ...], Field(min_length=1)]
+
+
+class FolderSettings(Section):
+    directories: Directories
+
+
+class FileSourceSettings(Section):
+    adapter: Literal["file"] = "file"
+    file: FileSettings
+
+
+class FolderSourceSettings(Section):
+    adapter: Literal["folder"] = "folder"
+    folder: FolderSettings
+
+
+type AudioSourceSettings = Annotated[FileSourceSettings | FolderSourceSettings, Field(discriminator="adapter")]
+
+
 class HoldMusicSettings(Section):
-    file: Path | None = None
     delay: float = 2.0
     volume: float = 0.3
     fade_in: NonNegativeFloat = 1.0
     fade_out: NonNegativeFloat = 0.3
+    source: AudioSourceSettings | None = None
 
 
 def _keys_of(data: object) -> set[str]:
@@ -158,17 +182,19 @@ def _keys_of(data: object) -> set[str]:
 
 
 REMOVED_CLIP_KEYS: dict[str, str] = {
-    "directory": 'clips.directory became clips.directories, a list: directories = ["/path/to/clips"]',
+    "directory": (
+        'clips.directory became directories in [clips.source.folder], a list: directories = ["/path/to/clips"]'
+    ),
     "largest": "clips.largest is gone: a clip is streamed, whatever its size",
     "longest": "clips.longest is gone: a clip is streamed, whatever its length",
 }
 
 
 class ClipsSettings(Section):
-    directories: Annotated[tuple[Annotated[Path, AfterValidator(Path.expanduser)], ...], Field(min_length=1)] = (
-        user_state_path(APP_NAME) / "clips",
-    )
     volume: NonNegativeFloat = 1.0
+    source: FolderSourceSettings = FolderSourceSettings(
+        folder=FolderSettings(directories=(user_state_path(APP_NAME) / "clips",))
+    )
 
     @model_validator(mode="before")
     @classmethod

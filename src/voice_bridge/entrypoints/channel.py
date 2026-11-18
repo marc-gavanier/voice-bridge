@@ -14,7 +14,7 @@ from voice_bridge.entrypoints.arguments import config_file
 from voice_bridge.entrypoints.crashes import crash_file_of, watching_crashes, watching_hangs
 from voice_bridge.entrypoints.logs import configure_logging, run_logged
 from voice_bridge.entrypoints.telemetry import report_errors
-from voice_bridge.entrypoints.voice import AssistantSide, clip_source, converse, mumble
+from voice_bridge.entrypoints.voice import AssistantSide, audio_source, converse, mumble
 from voice_bridge.features.conversation.abilities.hold_conversation.domain.assistant import SessionUpdate
 from voice_bridge.features.conversation.abilities.hold_conversation.implementation.claude_activity import (
     listen_to_claude,
@@ -43,12 +43,12 @@ def now() -> datetime:
 
 
 def _play_tool(settings: Settings, language: LanguagePack, rate: int) -> PlayTool:
-    source = clip_source(settings, rate)
+    source = audio_source(settings.clips.source, rate)
 
     async def check(path: str) -> None:
         await anyio.to_thread.run_sync(partial(check_clip, path, source=source))
 
-    directories = ", ".join(str(directory) for directory in settings.clips.directories)
+    directories = ", ".join(str(directory) for directory in settings.clips.source.folder.directories)
     return PlayTool(
         description=language.play_tool_description,
         path_description=language.play_path_description.format(directories=directories),
