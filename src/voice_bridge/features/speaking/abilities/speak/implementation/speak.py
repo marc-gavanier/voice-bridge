@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-LONGEST_WAIT_FOR_READINESS: Final = 5.0
+LONGEST_WAIT_FOR_READINESS: Final = 0.5
 
 
 class NotReadyError(Exception):
